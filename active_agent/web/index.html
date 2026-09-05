@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AA · Active Agent</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2217%22 fill=%22%2363e6a4%22/><text x=%2210%22 y=%2242%22 font-size=%2230%22 font-family=%22Arial%22 font-weight=%22700%22>AA</text></svg>">
+  <style>
+    :root{color-scheme:dark;--bg:#0a0d12;--panel:#11161e;--panel2:#171d27;--line:#252e3b;--text:#edf2f7;--muted:#8995a7;--green:#63e6a4;--cyan:#62c8ff;--amber:#ffc66d;--red:#ff7e85}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 75% -20%,#162c35 0,transparent 35%),var(--bg);color:var(--text);font:14px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"PingFang SC",sans-serif}
+    button,input,select,textarea{font:inherit} button{cursor:pointer}.shell{max-width:1440px;margin:auto;padding:28px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}.brand{display:flex;align-items:center;gap:13px}.mark{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,var(--green),var(--cyan));color:#081018;font-weight:900;font-size:17px;box-shadow:0 0 30px #63e6a426}.brand h1{font-size:19px;margin:0}.brand p{color:var(--muted);margin:1px 0 0}.health{display:flex;align-items:center;gap:8px;border:1px solid var(--line);padding:8px 12px;border-radius:999px;background:#10151c}.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 11px var(--green)}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.stat,.card{background:color-mix(in srgb,var(--panel) 93%,transparent);border:1px solid var(--line);border-radius:16px}.stat{padding:17px 19px}.stat .n{font-size:27px;font-weight:750;letter-spacing:-1px}.stat .label{color:var(--muted);font-size:12px;margin-top:2px}.layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(340px,.75fr);gap:16px}.card{overflow:hidden}.card-head{height:58px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.card-head h2{font-size:14px;margin:0}.subtle{color:var(--muted);font-size:12px}.missions{min-height:430px;max-height:65vh;overflow:auto}.mission{padding:16px 18px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:13px;align-items:start}.mission:last-child{border:0}.mode-dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);margin-top:7px}.mission-title{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{display:flex;gap:9px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:7px}.tag{padding:2px 7px;border-radius:6px;background:var(--panel2);border:1px solid var(--line)}.risk-high{color:var(--red)}.status-active{color:var(--green)}.status-waiting_approval{color:var(--amber)}.empty{height:350px;display:grid;place-items:center;color:var(--muted);text-align:center;padding:30px}.side{display:grid;gap:16px;align-content:start}.form{padding:17px}.field{margin-bottom:13px}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;background:#0c1118;border:1px solid var(--line);border-radius:9px;padding:10px 11px;color:var(--text);outline:none}.field textarea{min-height:78px;resize:vertical}.field input:focus,.field textarea:focus,.field select:focus{border-color:#4aa8d4}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.primary,.ghost{border:0;border-radius:9px;padding:10px 13px;font-weight:650}.primary{background:linear-gradient(120deg,var(--green),#68cfff);color:#071018}.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}.actions{display:flex;gap:8px}.feed{max-height:270px;overflow:auto}.notice{padding:13px 17px;border-bottom:1px solid var(--line)}.notice:last-child{border:0}.notice p{margin:0}.notice small{color:var(--muted)}.toast{position:fixed;right:24px;bottom:24px;padding:11px 15px;background:#1a2430;border:1px solid #34455a;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:none}.docs{color:var(--cyan);text-decoration:none}
+    @media(max-width:900px){.shell{padding:18px}.stats{grid-template-columns:1fr 1fr}.layout{grid-template-columns:1fr}.missions{min-height:300px}.top{align-items:flex-start}.health{font-size:0}.health:after{content:"在线";font-size:12px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div class="brand"><div class="mark">AA</div><div><h1>Active Agent 控制台</h1><p>持续感知 · 审慎介入 · 可恢复执行</p></div></div>
+      <div class="health"><i class="dot"></i><span id="healthText">正在连接</span></div>
+    </header>
+    <section class="stats">
+      <div class="stat"><div class="n" id="total">—</div><div class="label">全部任务</div></div>
+      <div class="stat"><div class="n" id="active">—</div><div class="label">持续观察</div></div>
+      <div class="stat"><div class="n" id="approval">—</div><div class="label">等待审批</div></div>
+      <div class="stat"><div class="n" id="pending">—</div><div class="label">待发送消息</div></div>
+    </section>
+    <section class="layout">
+      <article class="card">
+        <div class="card-head"><div><h2>长期任务</h2><span class="subtle">每个判断都由增量证据触发</span></div><div class="actions"><button class="ghost" onclick="runCycle()">立即巡检</button><button class="ghost" onclick="refresh()">刷新</button></div></div>
+        <div class="missions" id="missions"><div class="empty">正在读取 AA 状态…</div></div>
+      </article>
+      <aside class="side">
+        <article class="card">
+          <div class="card-head"><h2>交代一个长期任务</h2><span class="subtle">无需写得很精确</span></div>
+          <form class="form" id="missionForm">
+            <div class="field"><label>目标</label><textarea name="objective" required placeholder="例如：帮我留意支付项目下次迭代前是否需要增加资源"></textarea></div>
+            <div class="row"><div class="field"><label>群聊 ID</label><input name="conversation_id" value="demo-group" required></div><div class="field"><label>负责人 ID</label><input name="owner_id" value="me" required></div></div>
+            <div class="row"><div class="field"><label>模式</label><select name="mode"><option value="watch">长期留意</option><option value="todo_steward">Todo 管家</option><option value="private_research">私人研究</option><option value="agent_copilot">Agent 副驾驶</option><option value="orchestrator">开放式统帅</option></select></div><div class="field"><label>风险等级</label><select name="risk"><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select></div></div>
+            <button class="primary" type="submit">交给 AA</button>
+          </form>
+        </article>
+        <article class="card">
+          <div class="card-head"><h2>AA 准备发出的消息</h2><a class="docs" href="/docs">API 文档</a></div>
+          <div class="feed" id="outbox"><div class="empty" style="height:130px">暂无消息</div></div>
+        </article>
+      </aside>
+    </section>
+  </main>
+  <div class="toast" id="toast"></div>
+  <script>
+    const $=s=>document.querySelector(s); const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const modeName={watch:'长期留意',todo_steward:'Todo 管家',private_research:'私人研究',agent_copilot:'Agent 副驾驶',orchestrator:'开放式统帅'};
+    function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
+    async function api(path,options={}){const r=await fetch(path,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});if(!r.ok)throw new Error(await r.text());return r.json()}
+    async function refresh(){try{const [missions,outbox,health]=await Promise.all([api('/v1/missions'),api('/v1/outbox'),api('/health')]);$('#healthText').textContent=`内核在线 · ${health.version}`;$('#total').textContent=missions.length;$('#active').textContent=missions.filter(x=>x.status==='active').length;$('#approval').textContent=missions.filter(x=>x.status==='waiting_approval').length;$('#pending').textContent=outbox.length;renderMissions(missions);renderOutbox(outbox)}catch(e){$('#healthText').textContent='连接失败';toast('无法读取服务状态')}}
+    function renderMissions(items){const root=$('#missions');if(!items.length){root.innerHTML='<div class="empty"><div>AA 还没有长期任务<br><span class="subtle">在右侧交代一件事，或从 IM 中 @AA</span></div></div>';return}root.innerHTML=items.map(x=>`<div class="mission"><i class="mode-dot"></i><div><div class="mission-title">${esc(x.objective)}</div><div class="meta"><span class="tag">${esc(modeName[x.mode]||x.mode)}</span><span class="status-${esc(x.status)}">${esc(x.status)}</span><span class="${x.risk==='high'?'risk-high':''}">风险 ${esc(x.risk)}</span><span>${esc(x.conversation_id)}</span></div></div><span class="subtle">${new Date(x.updated_at).toLocaleString()}</span></div>`).join('')}
+    function renderOutbox(items){const root=$('#outbox');if(!items.length){root.innerHTML='<div class="empty" style="height:130px">AA 正在安静观察</div>';return}root.innerHTML=items.map(x=>`<div class="notice"><p>${esc(x.text)}</p><small>${new Date(x.created_at).toLocaleString()} · ${esc(x.conversation_id)}</small></div>`).join('')}
+    async function runCycle(){try{const r=await api('/v1/cycles',{method:'POST'});toast(`巡检完成：检查 ${r.checked} 个任务`);await refresh()}catch(e){toast('巡检失败')}}
+    $('#missionForm').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.target),body=Object.fromEntries(f.entries());body.check_interval_seconds=300;try{await api('/v1/missions',{method:'POST',body:JSON.stringify(body)});e.target.objective.value='';toast('任务已交给 AA');await refresh()}catch(err){toast('创建失败：请检查输入')}});
+    refresh();setInterval(refresh,15000);
+  </script>
+</body>
+</html>
