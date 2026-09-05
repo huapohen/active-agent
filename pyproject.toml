@@ -4,10 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "active-agent"
-version = "0.1.0"
-description = "A proactive, recoverable agent runtime for IM conversations"
+version = "0.2.0"
+description = "Proactive agents that collaborate with people through visible, living documents"
+readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.9"
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/huapohen/active-agent"
+Documentation = "https://github.com/huapohen/active-agent/tree/evolve/docs/evolve"
+Issues = "https://github.com/huapohen/active-agent/issues"
 
 [project.optional-dependencies]
 api = ["fastapi>=0.110", "uvicorn>=0.27"]

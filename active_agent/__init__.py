@@ -5,5 +5,4 @@ from .engine import ActiveAgent
 from .store import Store
 
 __all__ = ["ActiveAgent", "Settings", "Store"]
-__version__ = "0.1.0"
-
+__version__ = "0.2.0"

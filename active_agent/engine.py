@@ -21,7 +21,8 @@ class ActiveAgent:
         self.settings = settings or Settings()
         model = None
         if self.settings.model_api_key:
-            model = OpenAICompatibleModel(self.settings.model_api_key, self.settings.model_base_url, self.settings.model_name)
+            model = OpenAICompatibleModel(self.settings.model_api_key, self.settings.model_base_url,
+                self.settings.model_name, self.settings.model_timeout, self.settings.model_reasoning_effort, self.settings.model_api_style)
         self.evaluator = Evaluator(model)
         self.plugins = list(plugins or [NoopPlugin()])
 

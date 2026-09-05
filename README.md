@@ -1,96 +1,104 @@
-# Active Agent（AA）
+<div align="center">
 
-AA 是面向企业 IM 和其他 Agent 的主动式运行时。它持续接收消息，但只在出现新的、相关且可行动的证据时介入；长期任务、判断依据、待发送消息与审批全部可恢复、可审计。
+# Active Agent
 
-当前版本是一个能运行的纵向切片，不绑定飞书：
+**Give your agent a document to live in.**
 
-- IM 通过 HTTP 事件协议写入消息，发送侧消费 outbox；
-- 其他 Agent 通过 MCP 分配、补充和检查长期任务；
-- SQLite 保存事件、任务、证据、决策、审批和发送状态；
-- 后台 worker 周期唤醒，但“到时间”本身不会触发发言；
-- 连续相关消息会重置安静窗口，先合并上下文，再选择介入时机；
-- OpenAI-compatible 模型负责语义判断，未配置模型时使用保守规则策略；
-- 交易、付款、删除、企业资源变更、外部委派等动作必须经过审批闸门。
+Proactive agents that work alongside people in visible, collaborative documents.
 
-## 五种模式的落点
+[![Verify](https://github.com/huapohen/active-agent/actions/workflows/ci.yml/badge.svg?branch=evolve)](https://github.com/huapohen/active-agent/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-5d8061.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-47725c.svg)](pyproject.toml)
 
-| 产品模式 | 内核 mode | 首版行为 |
-|---|---|---|
-| 上下文 Todo 管家 | `todo_steward` | 从相关增量中形成主动提醒，不按闹钟刷屏 |
-| 模糊长期留意 | `watch` | 持续积累证据，满足条件后通知 |
-| 私人资料研究 | `private_research` | 资料达到充分性阈值后给结论；阈值可配置 |
-| 长程 Agent 副驾驶 | `agent_copilot` | 保存关键线索与进展，供主 Agent 恢复上下文 |
-| 开放任务统帅 | `orchestrator` | 先形成委派提案，通过人工批准后才能调度 |
+[中文介绍](README.zh-CN.md) · [Start locally](#start-locally) · [Architecture](docs/evolve/2026-09-06/02-architecture.md) · [Roadmap](docs/evolve/2026-09-06/05-roadmap.md) · [Doc Free](https://github.com/huapohen/doc-free/tree/evolve)
 
-## 快速开始
+</div>
 
-要求 Python 3.9+。当前本机按 Conda `base` 环境运行，不需要项目 `.venv`；核心无第三方依赖，HTTP API 才需要 FastAPI。
+![A live document, a shared objective, and an evidence-backed proposal](docs/assets/workspace.png)
 
-```bash
-cd execute/enterprise_work/active_agent
-conda activate base
-python -m pip install -e '.[api,dev]'
-cp .env.example .env  # 已存在时不要覆盖
-python -m uvicorn active_agent.api:app --reload --port 8090
+A person writes a goal. An agent notices meaningful document changes, waits until editing settles, and brings back a concrete proposal. Everyone sees the same source, evidence, proposed change and outcome.
+
+The shared document is the collaboration surface. Goals and decisions remain readable and exportable after the worker restarts—or its local checkpoint database disappears.
+
+## The loop
+
+```mermaid
+flowchart LR
+    H[People edit a living document] --> O[Observe and wait for quiet]
+    O --> A[Agent evaluates the shared goal]
+    A --> P[Visible proposal with source evidence]
+    P --> R[Review in the document workspace]
+    R -->|accept after version check| H
+    R -->|reject or conflict| D[Visible outcome]
 ```
 
-浏览器打开 `http://127.0.0.1:8090/` 即可使用 AA 控制台；交互式 API 文档位于 `/docs`。
+- **Proactive by default.** The worker observes continuously. No repeated prompts or manual refresh to start another round.
+- **Document-native context.** Source documents, mission contracts, proposals and observations are ordinary Doc Free documents.
+- **Real collaboration.** [Doc Free](https://github.com/huapohen/doc-free) supplies Tiptap + Yjs + Hocuspocus. People edit the same live document the agent reads.
+- **Reviewable changes.** Exact source quotes, before/after text, actor, revision and resolution are visible before acceptance.
+- **Respect concurrent work.** Source or mission changes invalidate stale results. Acceptance compares the live CRDT state inside its write transaction.
+- **Recoverable work.** Deterministic run identities suppress duplicate publications. A CRDT commit receipt recovers interrupted acceptance.
+- **Bring your model.** Responses streaming and Chat Completions adapters; configurable model and reasoning effort. No model key is bundled.
+- **Open interfaces.** REST and seven `active_doc_*` MCP tools use the same document workflow.
 
-另开终端启动巡检 worker：
+**Status: 0.2 evolution preview.** This is a working, tested local collaboration loop. It is not yet a multi-tenant service, a complete rich-document platform or a distributed agent fleet. See the [precise boundaries](docs/evolve/2026-09-06/04-validation-and-limits.md). IM is outside this release.
 
-```bash
-active-agent worker
-```
+## Start locally
 
-IM 收消息时调用：
-
-```bash
-curl -X POST http://127.0.0.1:8090/v1/events \
-  -H 'Content-Type: application/json' \
-  -d '{"event_id":"im-event-1","conversation_id":"group-1","sender_id":"user-1","sender_name":"小王","text":"@AA 帮我持续留意支付服务上线是否被阻塞"}'
-```
-
-`event_id` 应使用 IM 平台原始事件 ID，以保证 webhook 重试幂等。读取 `/v1/outbox` 后，由 IM connector 完成真正的 `@人` 发送，再调用 `/v1/outbox/{id}/delivered`。
-
-## 模型配置
-
-本机 `.env` 已被 Git 忽略。`AA_MODEL_BASE_URL` 同时支持服务根地址和已经以 `/v1` 结尾的兼容地址，不会重复拼接版本路径。凭据不要写入命令、日志、示例文件或提交。
-
-```text
-AA_MODEL_API_KEY=<local-secret>
-AA_MODEL_BASE_URL=https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
-AA_MODEL_NAME=qwen3.8-flash
-```
-
-建议用隐藏输入命令写入 Key，避免进入 shell history：
+Requirements: Python 3.9+, Node.js 20+ and npm. The document worker uses the Python standard library.
 
 ```bash
+git clone --branch evolve https://github.com/huapohen/active-agent.git
+git clone --branch evolve https://github.com/huapohen/doc-free.git
+cd doc-free
+npm ci
+cd ../active-agent
+python -m pip install -e .
+cp .env.example .env
 active-agent configure-model-key
 ```
 
-## MCP 接入
-
-MCP 使用 stdio，启动命令：
+Set your provider's endpoint, model and API style in the ignored `.env`. The credential prompt keeps the model key out of shell history. Use `AA_MODEL_API_STYLE=responses` for Responses-only providers; the default reasoning effort in the example is `medium`. Supported models depend on your provider.
 
 ```bash
-active-agent-mcp
+python scripts/dev_workspace.py --doc-free ../doc-free
 ```
 
-提供五个工具：`active_agent_ingest`、`active_agent_assign`、`active_agent_status`、`active_agent_tick`、`active_agent_approve`。MCP 是 Agent-to-Agent 控制面；IM webhook 是消息数据面，两者共用同一个数据库和内核。
+Open **http://127.0.0.1:3217/workbench**. Enter a display name and `AA_DOC_FREE_TOKEN` from your local `.env`; the launcher creates that workspace token if needed. Click **体验一次协作** to create an example source and a standing goal. Wait for a proposal, review its evidence, and accept or reject it.
 
-## 扩展 IM 与插件
+The launcher starts Doc Free, the CRDT service and the document worker together. Development data stays under `active-agent/data/workspace/`, separate from any existing Doc Free data. Ctrl-C stops these processes. Nothing is deployed by this command.
 
-- 接入飞书、钉钉、企业微信时，实现 `DeliveryAdapter.send()`，并把平台 webhook 映射到 `IncomingEvent`。
-- 领域数据源、RAG、行情或项目系统通过 `ActiveAgentPlugin` 丰富事件和观察决策。
-- 多实例生产部署应把 SQLite 换成 PostgreSQL，并为 `run_cycle` 加数据库租约；表结构里已经预留 `leases`。
+Without a model key, the system creates a visible blocked observation instead of fabricating an AI result. Configure a model and restart to continue. The [Chinese walkthrough](docs/evolve/2026-09-06/03-quickstart-and-protocol.md) covers manual startup, MCP and conflict handling.
 
-详细边界见 [docs/architecture.md](docs/architecture.md)。
-
-完整技术架构提供两种格式：[Markdown](docs/technical-architecture.md)（适合评审、检索与版本管理）和 [HTML](docs/technical-architecture.html)（适合可视化讲解与浏览器展示）。
-服务启动后也可以直接访问 `http://127.0.0.1:8090/architecture`。
-
-## 验证
+## Verify
 
 ```bash
 python -m unittest discover -s tests -v
+python scripts/check_secrets.py
+cd ../doc-free
+npm test
+npm run build
 ```
+
+The Doc Free tests launch real isolated HTTP and CRDT servers. They check duplicate delivery, version conflicts, acceptance/rejection, direct CRDT changes, event replay, process restart and interrupted commit recovery. Python tests exercise debounce, leases, retry limits, lost-checkpoint recovery, evidence validation and incomplete model streams.
+
+## Project map
+
+| Component | Responsibility |
+|---|---|
+| `active_agent/documents.py` | Observation, quiet windows, model evaluation and recoverable scheduling |
+| `active_agent/llm.py` | Responses / Chat adapters; finalized JSON only |
+| `scripts/dev_workspace.py` | One-command isolated local workspace |
+| Doc Free `workspace.js` | Visible mission contracts, proposals and review protocol |
+| Doc Free `collab-server.js` | Canonical CRDT reads, compare-and-replace, commit receipts |
+| Doc Free `workbench.*` | Document workspace and shared editing |
+
+The original 0.1 event/mission APIs remain available for compatibility. The `evolve` implementation adds a document-native runtime; it does not build or integrate an IM.
+
+## Build with us
+
+The roadmap is organized around reproducible collaboration quality: fewer unnecessary interventions, reliable review, no lost edits, portable documents and a short time to first useful proposal. Stars are an outcome, not a substitute for those properties.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and the [dated evolution documents](docs/evolve/README.md). All new capabilities should include an observable document-level result and a failure/recovery story.
+
+MIT © huapohen

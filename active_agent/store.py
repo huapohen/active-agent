@@ -1,4 +1,5 @@
 import json
+from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
 from typing import Any, Dict, Iterable, List, Optional
@@ -54,10 +55,16 @@ class Store:
         with self.connect() as conn:
             conn.executescript(SCHEMA)
 
-    def connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def connect(self):
         conn = sqlite3.connect(str(self.path), timeout=10)
         conn.row_factory = sqlite3.Row
-        return conn
+        conn.execute("PRAGMA foreign_keys=ON")
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     @staticmethod
     def _dict(row: sqlite3.Row) -> Dict[str, Any]:

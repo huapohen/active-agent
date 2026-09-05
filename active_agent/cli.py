@@ -1,6 +1,7 @@
 import argparse
 import getpass
 import json
+import logging
 from pathlib import Path
 from typing import Optional, Sequence
 
@@ -25,6 +26,8 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     sub.add_parser("status", help="show missions and pending messages")
     sub.add_parser("worker", help="run the background evaluator")
     sub.add_parser("configure-model-key", help="securely prompt for and save the model key")
+    sub.add_parser("documents", help="continuously collaborate on Doc Free mission documents")
+    sub.add_parser("documents-tick", help="observe/evaluate document missions once")
     args = parser.parse_args(argv)
 
     if args.command == "configure-model-key":
@@ -34,6 +37,20 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
 
     settings = Settings.from_env()
     db_path = Path(args.db) if args.db else settings.db_path
+    if args.command in {"documents", "documents-tick"}:
+        from dataclasses import replace
+        from .documents import DocumentAgent
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+        document_agent = DocumentAgent(replace(settings, db_path=db_path))
+        if args.command == "documents-tick":
+            print(json.dumps(document_agent.cycle(), ensure_ascii=False, indent=2))
+        else:
+            print("Active Agent is watching Doc Free documents. Ctrl-C to stop.", flush=True)
+            try:
+                document_agent.run()
+            except KeyboardInterrupt:
+                pass
+        return
     agent = ActiveAgent(Store(db_path), settings)
     if args.command == "create":
         output = agent.create_mission(MissionSpec(args.conversation_id, args.owner_id, args.objective, Mode(args.mode), risk=Risk(args.risk)))
