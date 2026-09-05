@@ -16,7 +16,7 @@
 
 本轮在 macOS 本机验证，Python 3.13、现有 Node 运行时和 Chromium 浏览器。所有写入测试使用隔离文档数据或专门创建的示例文档。原有业务文档、数据库和 IM 项目不参与测试。
 
-自动化检查：Active Agent **22 项** Python 测试、Doc Free **12 项**真实服务集成测试。Python 3.9 和 3.13 的 GitHub CI 配置已加入；远端实际执行结果应查看 Actions，不能把“写了配置”当作已完成远端验证。
+自动化检查：Active Agent **22 项** Python 测试、Doc Free **12 项**真实服务集成测试。GitHub 上 Python 3.9 / 3.13 和 Doc Free Node 构建/集成测试均已成功，准确的运行链接与对应提交见 [发布记录](PUBLICATION.md)。
 
 ## 2. 核心行为验收
 
