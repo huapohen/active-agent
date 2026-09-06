@@ -2,6 +2,21 @@ import 'package:flutter/material.dart';
 
 import 'office_theme.dart';
 
+/// Explicit people and a group-wide mention are independent message semantics.
+class OfficeMentionSelection {
+  OfficeMentionSelection({
+    required Iterable<String> selectedIds,
+    this.mentionAll = false,
+  }) : selectedIds = List<String>.unmodifiable(selectedIds.toSet());
+  factory OfficeMentionSelection.fromDraft(Json draft, {required bool group}) =>
+      OfficeMentionSelection(
+        selectedIds: (draft['mentions'] as List? ?? []).map(str),
+        mentionAll: group && draft['mention_all'] == true,
+      );
+  final List<String> selectedIds;
+  final bool mentionAll;
+}
+
 class OfficeMentionPicker extends StatefulWidget {
   const OfficeMentionPicker({
     super.key,
@@ -9,21 +24,31 @@ class OfficeMentionPicker extends StatefulWidget {
     required this.selected,
     required this.mobile,
     required this.group,
+    this.mentionAll = false,
   });
   final List<Json> people;
   final List<String> selected;
   final bool mobile, group;
+  final bool mentionAll;
   @override
   State<OfficeMentionPicker> createState() => _OfficeMentionPickerState();
 }
 
 class _OfficeMentionPickerState extends State<OfficeMentionPicker> {
-  late final _selected = widget.selected.toSet();
+  late final Set<String> _selected;
+  late bool _mentionAll;
   String _query = '', _kind = 'all';
+  @override
+  void initState() {
+    super.initState();
+    final members = widget.people.map(personId).toSet();
+    _selected = widget.selected.where(members.contains).toSet();
+    _mentionAll = widget.group && widget.mentionAll;
+  }
+
   @override
   Widget build(BuildContext context) {
     final allIds = widget.people.map(personId).toSet();
-    final everyone = allIds.isNotEmpty && _selected.containsAll(allIds);
     final people =
         widget.people
             .where(
@@ -104,22 +129,20 @@ class _OfficeMentionPickerState extends State<OfficeMentionPicker> {
             const SizedBox(height: 7),
             if (widget.group && _query.isEmpty)
               CheckboxListTile(
-                value: everyone,
-                onChanged: (value) => setState(() {
-                  value == true
-                      ? _selected.addAll(allIds)
-                      : _selected.removeAll(allIds);
-                }),
+                key: const ValueKey('mention-all-choice'),
+                value: _mentionAll,
+                onChanged: (value) =>
+                    setState(() => _mentionAll = value == true),
                 secondary: const CircleAvatar(
                   backgroundColor: selectedColor,
                   child: Icon(Icons.groups_outlined, color: accentColor),
                 ),
                 title: Text(
-                  '所有人 (${allIds.length})',
+                  '@所有人 (${allIds.length})',
                   style: const TextStyle(fontSize: 13),
                 ),
                 subtitle: const Text(
-                  '提醒会话中全部成员与 Agent',
+                  '群内通知遵守个人偏好；也可另外明确提及成员或 Agent。',
                   style: TextStyle(fontSize: 10, color: mutedColor),
                 ),
               ),
@@ -139,6 +162,7 @@ class _OfficeMentionPickerState extends State<OfficeMentionPicker> {
                 children: people
                     .map(
                       (p) => CheckboxListTile(
+                        key: ValueKey('mention-person-${personId(p)}'),
                         value: _selected.contains(personId(p)),
                         onChanged: (value) => setState(() {
                           value == true
@@ -174,12 +198,18 @@ class _OfficeMentionPickerState extends State<OfficeMentionPicker> {
                 children: [
                   Expanded(
                     child: Text(
-                      '已选择 ${_selected.length} 位',
+                      '${_mentionAll ? '@所有人 · ' : ''}明确提及 ${_selected.length} 位',
                       style: const TextStyle(fontSize: 12, color: mutedColor),
                     ),
                   ),
                   FilledButton(
-                    onPressed: () => Navigator.pop(context, _selected.toList()),
+                    onPressed: () => Navigator.pop(
+                      context,
+                      OfficeMentionSelection(
+                        selectedIds: _selected,
+                        mentionAll: widget.group && _mentionAll,
+                      ),
+                    ),
                     child: const Text('确定'),
                   ),
                 ],

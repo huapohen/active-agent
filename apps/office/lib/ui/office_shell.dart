@@ -21,6 +21,7 @@ import 'message_group_editor.dart';
 import 'message_group_labels.dart';
 import 'calendar.dart';
 import 'conversation.dart';
+import 'conversation_list.dart';
 import 'enterprise.dart';
 import 'meetings.dart';
 import 'office_dialogs.dart';
@@ -56,6 +57,8 @@ class _OfficeShellState extends State<OfficeShell> {
   }
 
   bool _groupsOpen = false;
+  bool _foldedOpen = false;
+  final Set<String> _pendingRoomPreferences = {};
   String _searchType = 'all';
   bool _searchOpen = false, _agentStore = false;
   bool _roomOpen = false, _unreadOnly = false;
@@ -94,6 +97,7 @@ class _OfficeShellState extends State<OfficeShell> {
     setState(() {
       _unreadOnly = id == 'unread';
       _roomOpen = false;
+      _foldedOpen = false;
     });
     _messageGroups.select(id);
   }
@@ -128,17 +132,95 @@ class _OfficeShellState extends State<OfficeShell> {
     );
   }
 
-  Widget _roomGroupingMenu(Json room) => PopupMenuButton<String>(
-    tooltip: '整理会话',
-    enabled: _messageGroups.loaded,
-    padding: EdgeInsets.zero,
-    constraints: const BoxConstraints(minWidth: 160),
-    icon: const Icon(Icons.more_horiz, size: 16, color: mutedColor),
-    onSelected: (_) => showOfficeRoomGrouping(context, _messageGroups, room),
-    itemBuilder: (_) => const [
-      PopupMenuItem(value: 'grouping', child: Text('标签、标记与已完成')),
-    ],
-  );
+  String get _identityKey =>
+      '${identityHashCode(s)}|${s.identityGeneration}|${s.endpoint}|${personId(s.me ?? {})}';
+
+  Future<void> _setRoomFolded(Json room, bool value, String identity) async {
+    final id = str(room['id']);
+    final operation = '$identity|$id';
+    if (identity != _identityKey ||
+        !s.connected ||
+        _pendingRoomPreferences.contains(operation)) {
+      return;
+    }
+    setState(() => _pendingRoomPreferences.add(operation));
+    try {
+      await s.officeRequest(
+        '/rooms/${Uri.encodeComponent(id)}/preferences',
+        method: 'PATCH',
+        data: {'folded': value},
+      );
+      if (!mounted || identity != _identityKey) return;
+      await s.refresh();
+      if (mounted && identity == _identityKey) {
+        notifyOffice(context, value ? '已移入折叠的会话' : '已移出折叠的会话');
+      }
+    } catch (error) {
+      if (mounted && identity == _identityKey) {
+        notifyOffice(context, friendlyError(error));
+      }
+    } finally {
+      if (mounted) setState(() => _pendingRoomPreferences.remove(operation));
+    }
+  }
+
+  Widget _roomGroupingMenu(Json room) {
+    final identity = _identityKey;
+    final folded = officeRoomFolded(room);
+    return PopupMenuButton<String>(
+      key: ValueKey('room-menu-$identity-${room['id']}'),
+      tooltip: '整理会话',
+      enabled:
+          s.connected &&
+          !_pendingRoomPreferences.contains('$identity|${room['id']}'),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 190),
+      icon: const Icon(Icons.more_horiz, size: 16, color: mutedColor),
+      onSelected: (action) {
+        if (identity != _identityKey) return;
+        if (action == 'fold' || action == 'unfold') {
+          unawaited(_setRoomFolded(room, action == 'fold', identity));
+        } else {
+          showOfficeRoomGrouping(context, _messageGroups, room);
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'grouping',
+          enabled: _messageGroups.loaded,
+          child: const Text('标签、标记与已完成'),
+        ),
+        PopupMenuItem(
+          value: folded ? 'unfold' : 'fold',
+          child: Text(folded ? '移出折叠的会话' : '移入折叠的会话'),
+        ),
+      ],
+    );
+  }
+
+  Widget _conversationRow(Json room, bool mobile) {
+    final identity = _identityKey;
+    return OfficeConversationRow(
+      key: ValueKey('room-row-${room['id']}'),
+      room: room,
+      preview: s.settings['show_message_preview'] != false,
+      selected:
+          s.selectedRoomId == room['id'] &&
+          !mobile &&
+          (!_foldedOpen || _roomOpen),
+      onOpen: () {
+        if (identity == _identityKey) _open(str(room['id']));
+      },
+      onContextMenu: _messageGroups.loaded
+          ? () {
+              if (identity == _identityKey) {
+                showOfficeRoomGrouping(context, _messageGroups, room);
+              }
+            }
+          : null,
+      menu: _roomGroupingMenu(room),
+    );
+  }
 
   void _mediaChanged() {
     if (mounted) setState(() {});
@@ -470,7 +552,15 @@ class _OfficeShellState extends State<OfficeShell> {
                     destinations: [
                       for (final item in officeMobileNavigation(s))
                         NavigationDestination(
-                          icon: Icon(item.icon, size: 20),
+                          icon: Badge(
+                            key: ValueKey('nav-badge-${item.id}'),
+                            isLabelVisible:
+                                item.route == 0 &&
+                                s.rooms.any(
+                                  (room) => officeNotificationCount(room) > 0,
+                                ),
+                            child: Icon(item.icon, size: 20),
+                          ),
                           label: item.label,
                         ),
                       const NavigationDestination(
@@ -571,11 +661,7 @@ class _OfficeShellState extends State<OfficeShell> {
                             if (i == 0 &&
                                 s.rooms.fold<int>(
                                       0,
-                                      (a, r) =>
-                                          a +
-                                          ((r['unread_count'] as num?)
-                                                  ?.toInt() ??
-                                              0),
+                                      (a, r) => a + officeNotificationCount(r),
                                     ) >
                                     0) ...[
                               const Spacer(),
@@ -763,6 +849,13 @@ class _OfficeShellState extends State<OfficeShell> {
     }
     switch (_nav) {
       case 0:
+        if (_foldedOpen && !_roomOpen) {
+          return const EmptyOffice(
+            title: '折叠的会话',
+            subtitle: '选择一个会话，继续共同协作。',
+            icon: Icons.unfold_less,
+          );
+        }
         return OfficeConversation(
           state: s,
           onAgentStore: () {
@@ -961,20 +1054,37 @@ class _OfficeShellState extends State<OfficeShell> {
   );
 
   Widget _roomList({bool mobile = false}) {
+    final folded = s.rooms.where(officeRoomFolded).toList();
+    if (_foldedOpen) {
+      return OfficeFoldedConversations(
+        key: ValueKey('folded-$_identityKey'),
+        rooms: folded,
+        onBack: () => setState(() => _foldedOpen = false),
+        itemBuilder: (room) => _conversationRow(room, mobile),
+      );
+    }
     final favorites = s.rooms
         .where(
           (r) =>
-              r['is_favorite'] == true ||
-              (r['preferences'] as Map?)?['favorite'] == true,
+              !officeRoomFolded(r) &&
+              (r['is_favorite'] == true ||
+                  (r['preferences'] as Map?)?['favorite'] == true),
         )
         .toList();
     final rooms = _messageGroups.filteredRooms
         .where(
           (r) =>
               str(r['name']).toLowerCase().contains(_roomQuery.toLowerCase()) &&
-              (!_unreadOnly || ((r['unread_count'] as num?)?.toInt() ?? 0) > 0),
+              (!_unreadOnly || officeUnreadCount(r) > 0) &&
+              (_messageGroups.selectedId != 'messages' ||
+                  _roomQuery.trim().isNotEmpty ||
+                  !officeRoomFolded(r)),
         )
         .toList();
+    final showFoldedSummary =
+        folded.isNotEmpty &&
+        _messageGroups.selectedId == 'messages' &&
+        _roomQuery.trim().isEmpty;
     final originalOrder = {
       for (var i = 0; i < rooms.length; i++) str(rooms[i]['id']): i,
     };
@@ -1192,7 +1302,7 @@ class _OfficeShellState extends State<OfficeShell> {
             ),
           ),
         Expanded(
-          child: rooms.isEmpty
+          child: rooms.isEmpty && !showFoldedSummary
               ? Padding(
                   padding: const EdgeInsets.all(23),
                   child: Center(
@@ -1212,163 +1322,26 @@ class _OfficeShellState extends State<OfficeShell> {
                   ),
                 )
               : ListView.builder(
-                  itemCount: rooms.length,
                   padding: const EdgeInsets.symmetric(horizontal: 7),
+                  itemCount: rooms.length + (showFoldedSummary ? 1 : 0),
                   itemBuilder: (context, index) {
-                    final r = rooms[index],
-                        last = rooms[index]['last_message'] is Map
-                            ? rooms[index]['last_message'] as Map
-                            : {};
-                    final unread = (r['unread_count'] as num?)?.toInt() ?? 0;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 3),
-                      child: Material(
-                        color: s.selectedRoomId == r['id'] && !mobile
-                            ? selectedColor
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(6),
-                        child: InkWell(
-                          onTap: () => _open(str(r['id'])),
-                          onLongPress: _messageGroups.loaded
-                              ? () => showOfficeRoomGrouping(
-                                  context,
-                                  _messageGroups,
-                                  r,
-                                )
-                              : null,
-                          onSecondaryTap: _messageGroups.loaded
-                              ? () => showOfficeRoomGrouping(
-                                  context,
-                                  _messageGroups,
-                                  r,
-                                )
-                              : null,
-                          borderRadius: BorderRadius.circular(6),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                PersonAvatar(
-                                  name: str(r['name']),
-                                  group: r['kind'] != 'direct',
-                                  size: 39,
-                                ),
-                                const SizedBox(width: 11),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              str(r['name']),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                          if (r['is_pinned'] == true)
-                                            const Tooltip(
-                                              message: '置顶聊天',
-                                              child: Icon(
-                                                Icons.push_pin,
-                                                size: 13,
-                                                color: accentColor,
-                                              ),
-                                            ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            clockText(
-                                              last['at'],
-                                              context: context,
-                                            ),
-                                            style: const TextStyle(
-                                              fontSize: 9,
-                                              color: Color(0xffb0b6c0),
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            width: 26,
-                                            height: 24,
-                                            child: _roomGroupingMenu(r),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 7),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              s.settings['show_message_preview'] ==
-                                                      false
-                                                  ? '消息预览已隐藏'
-                                                  : last['retracted_at'] != null
-                                                  ? '一条消息已撤回'
-                                                  : str(
-                                                      last['content'],
-                                                      str(
-                                                        r['description'],
-                                                        '开始共同协作',
-                                                      ),
-                                                    ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                color: Color(0xff9bA2ae),
-                                              ),
-                                            ),
-                                          ),
-                                          if (r['muted'] == true)
-                                            const Icon(
-                                              Icons.notifications_off_outlined,
-                                              size: 12,
-                                              color: mutedColor,
-                                            ),
-                                          if (unread > 0)
-                                            Container(
-                                              margin: const EdgeInsets.only(
-                                                left: 5,
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 5,
-                                                    vertical: 1,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: r['muted'] == true
-                                                    ? const Color(0xffb9c0cc)
-                                                    : const Color(0xffed727a),
-                                                borderRadius:
-                                                    BorderRadius.circular(9),
-                                              ),
-                                              child: Text(
-                                                '${unread > 99 ? '99+' : unread}',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 9,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
+                    final folderIndex = rooms
+                        .takeWhile((room) => room['is_pinned'] == true)
+                        .length;
+                    if (showFoldedSummary && index == folderIndex) {
+                      return OfficeFoldedSummary(
+                        key: const ValueKey('folded-summary'),
+                        rooms: folded,
+                        onOpen: () => setState(() {
+                          _foldedOpen = true;
+                          _roomOpen = false;
+                        }),
+                      );
+                    }
+                    final roomIndex = showFoldedSummary && index > folderIndex
+                        ? index - 1
+                        : index;
+                    return _conversationRow(rooms[roomIndex], mobile);
                   },
                 ),
         ),

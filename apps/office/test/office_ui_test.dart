@@ -750,7 +750,7 @@ void main() {
       await tester.enterText(composer, '继续讨论 @');
       await tester.pumpAndSettle();
       expect(find.text('选择成员'), findsOneWidget);
-      expect(find.text('所有人 (2)'), findsOneWidget);
+      expect(find.text('@所有人 (2)'), findsOneWidget);
       await tester.tap(find.byTooltip('取消选择'));
       await tester.pumpAndSettle();
       expect(tester.widget<TextField>(composer).controller!.text, '继续讨论 @');

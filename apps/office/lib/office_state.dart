@@ -696,19 +696,49 @@ class OfficeState extends ChangeNotifier {
   Future<Json> send(
     String content, {
     List<String> mentions = const [],
+    bool mentionAll = false,
+    String? sourceRoomId,
     String? replyTo,
     String? clientId,
     List<String> attachmentIds = const [],
   }) async {
-    final route = _room('/messages');
+    final roomId = sourceRoomId ?? selectedRoomId;
+    if (roomId == null || roomId.isEmpty) {
+      throw OfficeException(422, '请先选择工作会话');
+    }
+    final room = (detail?['room'] as Map?)?['id'] == roomId
+        ? detail!['room'] as Map
+        : rooms.where((room) => room['id'] == roomId).firstOrNull;
+    if (mentionAll && (room == null || room['kind'] == 'direct')) {
+      throw OfficeException(409, '@所有人仅可用于已加入的群聊', code: 'group_required');
+    }
+    final generation = _generation;
+    final route = '/rooms/${Uri.encodeComponent(roomId)}/messages';
     final intent = jsonEncode([
+      route,
+      content,
+      mentions,
+      mentionAll,
+      replyTo,
+      attachmentIds,
+    ]);
+    // A hot-reloaded pre-mention_all retry still represents the same false
+    // intent. Move its pending key instead of duplicating an ambiguous send.
+    final legacyIntent = jsonEncode([
       route,
       content,
       mentions,
       replyTo,
       attachmentIds,
     ]);
-    final key = clientId ?? _outbox.putIfAbsent(intent, newClientId);
+    final key =
+        clientId ??
+        _outbox.putIfAbsent(
+          intent,
+          () =>
+              (!mentionAll ? _outbox.remove(legacyIntent) : null) ??
+              newClientId(),
+        );
     final result = await _request(
       route,
       method: 'POST',
@@ -716,12 +746,19 @@ class OfficeState extends ChangeNotifier {
         'client_id': key,
         'content': content,
         'mentions': mentions,
+        'mention_all': mentionAll,
         'reply_to': ?replyTo,
         'attachment_ids': attachmentIds,
       },
     );
+    if (generation != _generation) {
+      throw OfficeException(401, '工作身份已变化，请重新确认发送结果');
+    }
     _outbox.remove(intent);
     await _updated();
+    if (generation != _generation) {
+      throw OfficeException(401, '工作身份已变化，请重新确认发送结果');
+    }
     return Json.from(result['message']);
   }
 

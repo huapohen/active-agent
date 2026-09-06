@@ -61,6 +61,17 @@ class _OfficeConversationState extends State<OfficeConversation>
     _resumed =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    s.addListener(_draftScopeChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant OfficeConversation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state != widget.state) {
+      oldWidget.state.removeListener(_draftScopeChanged);
+      s.addListener(_draftScopeChanged);
+      _restore();
+    }
   }
 
   @override
@@ -90,17 +101,31 @@ class _OfficeConversationState extends State<OfficeConversation>
   final _input = TextEditingController();
   final _focus = FocusNode();
   final _scroll = ScrollController();
-  String? _key, _hover;
+  String? _key, _hover, _draftIdentity, _draftRoomId;
   bool _sending = false, _loadingHistory = false, _mentionOpen = false;
   int _tab = 0, _messageCount = 0;
   bool _moreTools = false;
   Json? _reply;
   List<String> _mentions = [];
-  bool get _everyoneMentioned {
-    final members = maps(s.detail?['members']);
-    return (s.detail?['room'] as Map?)?['kind'] != 'direct' &&
-        members.isNotEmpty &&
-        _mentions.toSet().containsAll(members.map(personId));
+  bool _mentionAll = false;
+  int _sendOperation = 0;
+  String get _identity =>
+      '${identityHashCode(s)}:${s.identityGeneration}:${s.endpoint}:${personId(s.me ?? {})}';
+  String get _currentDraftKey =>
+      '${s.endpoint}:${personId(s.me ?? {})}:${s.selectedRoomId}';
+  Json? get _selectedRoom =>
+      s.selectedRoomId != null &&
+          (s.detail?['room'] as Map?)?['id'] == s.selectedRoomId
+      ? Json.from(s.detail!['room'] as Map)
+      : s.rooms.where((room) => room['id'] == s.selectedRoomId).firstOrNull;
+  bool get _direct => _selectedRoom?['kind'] == 'direct';
+  void _draftScopeChanged() {
+    if (!mounted) return;
+    if (_draftIdentity != _identity ||
+        _draftRoomId != s.selectedRoomId ||
+        (_direct && _mentionAll)) {
+      setState(_restore);
+    }
   }
 
   List<PendingOfficeAttachment> _attachments = [];
@@ -108,6 +133,7 @@ class _OfficeConversationState extends State<OfficeConversation>
   OfficeState get s => widget.state;
   @override
   void dispose() {
+    s.removeListener(_draftScopeChanged);
     WidgetsBinding.instance.removeObserver(this);
     if (_visibleRoom != null) unawaited(_setVisible(_visibleRoom!, false));
     _saveDraft();
@@ -124,23 +150,34 @@ class _OfficeConversationState extends State<OfficeConversation>
       'content': _input.text,
       'reply': _reply,
       'mentions': [..._mentions],
+      'mention_all': _mentionAll,
       'attachments': [..._attachments],
     };
   }
 
   void _restore() {
-    final next = '${s.endpoint}:${personId(s.me ?? {})}:${s.selectedRoomId}';
-    if (_key == next) return;
+    final next = _currentDraftKey;
+    if (_key == next && _draftIdentity == _identity) {
+      if (_direct && _mentionAll) {
+        _mentionAll = false;
+        _saveDraft();
+      }
+      return;
+    }
     _saveDraft();
     _key = next;
+    _draftIdentity = _identity;
+    _draftRoomId = s.selectedRoomId;
+    _sendOperation++;
+    _sending = false;
     final draft = _drafts[next] ?? {};
     _input.text = str(draft['content']);
     _reply = draft['reply'] is Map
         ? Map<String, dynamic>.from(draft['reply'])
         : null;
-    _mentions = (draft['mentions'] as List? ?? [])
-        .map((e) => e.toString())
-        .toList();
+    final selection = OfficeMentionSelection.fromDraft(draft, group: !_direct);
+    _mentions = selection.selectedIds.toList();
+    _mentionAll = selection.mentionAll;
     _attachments = (draft['attachments'] as List? ?? [])
         .whereType<PendingOfficeAttachment>()
         .toList();
@@ -151,6 +188,13 @@ class _OfficeConversationState extends State<OfficeConversation>
   }
 
   Future<void> _send() async {
+    if (_key != _currentDraftKey ||
+        _draftIdentity != _identity ||
+        _draftRoomId != s.selectedRoomId ||
+        s.me == null ||
+        !s.connected) {
+      return;
+    }
     if (_sending || (_input.text.trim().isEmpty && _attachments.isEmpty)) {
       return;
     }
@@ -160,6 +204,9 @@ class _OfficeConversationState extends State<OfficeConversation>
     }
     final text = _input.text.trim(), key = _key!;
     final mentions = [..._mentions];
+    final mentionAll = !_direct && _mentionAll;
+    final identity = _identity, sourceRoomId = _draftRoomId;
+    final operation = ++_sendOperation;
     final reply = str(_reply?['id']);
     final attachmentIds = _attachments
         .map((a) => str(a.record?['id']))
@@ -167,11 +214,21 @@ class _OfficeConversationState extends State<OfficeConversation>
     final signature = jsonEncode({
       'content': text,
       'mentions': mentions,
+      'mention_all': mentionAll,
       'reply': reply,
       'attachments': attachmentIds,
     });
     final old = _drafts[key] ?? {};
-    final clientId = old['signature'] == signature
+    final legacySignature = jsonEncode({
+      'content': text,
+      'mentions': mentions,
+      'reply': reply,
+      'attachments': attachmentIds,
+    });
+    final clientId =
+        (old['signature'] == signature ||
+                (!mentionAll && old['signature'] == legacySignature)) &&
+            str(old['client_id']).isNotEmpty
         ? str(old['client_id'])
         : OfficeState.newClientId();
     _saveDraft();
@@ -188,15 +245,34 @@ class _OfficeConversationState extends State<OfficeConversation>
       await s.send(
         text,
         mentions: mentions,
+        mentionAll: mentionAll,
+        sourceRoomId: sourceRoomId,
         replyTo: reply.isEmpty ? null : reply,
         clientId: clientId,
         attachmentIds: attachmentIds,
       );
-      if (!mounted) return;
+      if (!mounted || _identity != identity) return;
+      // Acknowledging the source room must not clear a newer draft elsewhere.
+      final stored = _drafts[key];
+      if (stored != null &&
+          jsonEncode({
+                'content': str(stored['content']).trim(),
+                'mentions': (stored['mentions'] as List? ?? []),
+                'mention_all': stored['mention_all'] == true,
+                'reply': str((stored['reply'] as Map?)?['id']),
+                'attachments': (stored['attachments'] as List? ?? [])
+                    .whereType<PendingOfficeAttachment>()
+                    .map((item) => str(item.record?['id']))
+                    .toList(),
+              }) ==
+              signature) {
+        _drafts.remove(key);
+      }
       if (_key == key &&
           jsonEncode({
                 'content': _input.text.trim(),
                 'mentions': _mentions,
+                'mention_all': _mentionAll,
                 'reply': str(_reply?['id']),
                 'attachments': _attachments
                     .map((a) => str(a.record?['id']))
@@ -205,15 +281,23 @@ class _OfficeConversationState extends State<OfficeConversation>
               signature) {
         _input.clear();
         _mentions = [];
+        _mentionAll = false;
         _reply = null;
         _attachments = [];
         _drafts.remove(key);
       }
-      _bottom();
+      if (_key == key) _bottom();
     } catch (e) {
-      if (mounted) setState(() => _error = friendlyError(e));
+      if (mounted &&
+          _identity == identity &&
+          _key == key &&
+          operation == _sendOperation) {
+        setState(() => _error = friendlyError(e));
+      }
     } finally {
-      if (mounted) setState(() => _sending = false);
+      if (mounted && operation == _sendOperation) {
+        setState(() => _sending = false);
+      }
     }
   }
 
@@ -347,20 +431,50 @@ class _OfficeConversationState extends State<OfficeConversation>
     if (_mentionOpen) return;
     _mentionOpen = true;
     final roomId = s.selectedRoomId;
+    final identity = _identity;
+    final draftKey = _key;
+    var expired = false;
+    bool currentScope() =>
+        mounted &&
+        _identity == identity &&
+        s.selectedRoomId == roomId &&
+        _key == draftKey;
     final people = maps(s.detail?['members']);
-    final ids = await showDialog<List<String>>(
-      context: context,
-      builder: (context) => OfficeMentionPicker(
-        people: people,
-        selected: _mentions,
-        mobile: widget.mobile,
-        group: (s.detail?['room'] as Map?)?['kind'] != 'direct',
+    final selection = await _showPanel(
+      () => showDialog<OfficeMentionSelection>(
+        context: context,
+        builder: (context) => AnimatedBuilder(
+          animation: s,
+          builder: (context, _) {
+            expired = expired || !currentScope();
+            if (expired) {
+              return AlertDialog(
+                title: const Text('会话已变化'),
+                content: const Text('当前工作身份或会话已变化，请关闭后重新选择提及对象。'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('关闭'),
+                  ),
+                ],
+              );
+            }
+            return OfficeMentionPicker(
+              people: people,
+              selected: _mentions,
+              mentionAll: _mentionAll,
+              mobile: widget.mobile,
+              group: !_direct,
+            );
+          },
+        ),
       ),
     );
     _mentionOpen = false;
-    if (ids != null && mounted && s.selectedRoomId == roomId) {
+    if (selection != null && !expired && currentScope()) {
       setState(() {
-        _mentions = ids;
+        _mentions = selection.selectedIds.toList();
+        _mentionAll = !_direct && selection.mentionAll;
         if (atPosition != null &&
             atPosition < _input.text.length &&
             _input.text[atPosition] == '@') {
@@ -1038,9 +1152,11 @@ class _OfficeConversationState extends State<OfficeConversation>
                                                       },
                                                     ),
                                                   ),
-                                                  if ((m['mentions'] as List? ??
-                                                          [])
-                                                      .isNotEmpty)
+                                                  if (m['mention_all'] ==
+                                                          true ||
+                                                      (m['mentions'] as List? ??
+                                                              [])
+                                                          .isNotEmpty)
                                                     Padding(
                                                       padding:
                                                           const EdgeInsets.only(
@@ -1048,18 +1164,57 @@ class _OfficeConversationState extends State<OfficeConversation>
                                                           ),
                                                       child: Wrap(
                                                         spacing: 5,
-                                                        children: (m['mentions'] as List)
-                                                            .map(
-                                                              (id) => Text(
-                                                                '@${_name(id.toString())}',
-                                                                style: const TextStyle(
-                                                                  fontSize: 11,
+                                                        runSpacing: 4,
+                                                        children: [
+                                                          if (m['mention_all'] ==
+                                                              true)
+                                                            Chip(
+                                                              key: ValueKey(
+                                                                'message-mention-all-${m['id']}',
+                                                              ),
+                                                              label: const Text(
+                                                                '@所有人',
+                                                                style: TextStyle(
+                                                                  fontSize: 10,
                                                                   color:
                                                                       accentColor,
                                                                 ),
                                                               ),
-                                                            )
-                                                            .toList(),
+                                                              visualDensity:
+                                                                  VisualDensity
+                                                                      .compact,
+                                                              backgroundColor:
+                                                                  selectedColor,
+                                                              side: BorderSide
+                                                                  .none,
+                                                            ),
+                                                          for (final id
+                                                              in (m['mentions']
+                                                                      as List? ??
+                                                                  []))
+                                                            Chip(
+                                                              key: ValueKey(
+                                                                'message-mention-${m['id']}-$id',
+                                                              ),
+                                                              label: Text(
+                                                                '@${_name(str(id))}',
+                                                                style: const TextStyle(
+                                                                  fontSize: 10,
+                                                                  color:
+                                                                      accentColor,
+                                                                ),
+                                                              ),
+                                                              visualDensity:
+                                                                  VisualDensity
+                                                                      .compact,
+                                                              backgroundColor:
+                                                                  const Color(
+                                                                    0xffeef2fa,
+                                                                  ),
+                                                              side: BorderSide
+                                                                  .none,
+                                                            ),
+                                                        ],
                                                       ),
                                                     ),
                                                 ],
@@ -1343,38 +1498,45 @@ class _OfficeConversationState extends State<OfficeConversation>
               ],
             ),
           ),
-        if (_mentions.isNotEmpty)
+        if (_mentionAll || _mentions.isNotEmpty)
           Align(
             alignment: Alignment.centerLeft,
             child: Wrap(
               spacing: 5,
-              children: (_everyoneMentioned ? ['__everyone__'] : _mentions)
-                  .map(
-                    (id) => InputChip(
-                      label: Text(
-                        id == '__everyone__' ? '@所有人' : '@${_name(id)}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: accentColor,
-                        ),
-                      ),
-                      onDeleted: () {
-                        setState(() {
-                          if (id == '__everyone__') {
-                            _mentions.clear();
-                          } else {
-                            _mentions.remove(id);
-                          }
-                        });
-                        _saveDraft();
-                      },
-                      deleteIcon: const Icon(Icons.close, size: 13),
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: selectedColor,
-                      side: BorderSide.none,
+              children: [
+                if (_mentionAll)
+                  InputChip(
+                    key: const ValueKey('composer-mention-all'),
+                    label: const Text(
+                      '@所有人',
+                      style: TextStyle(fontSize: 10, color: accentColor),
                     ),
-                  )
-                  .toList(),
+                    onDeleted: () {
+                      setState(() => _mentionAll = false);
+                      _saveDraft();
+                    },
+                    deleteIcon: const Icon(Icons.close, size: 13),
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: selectedColor,
+                    side: BorderSide.none,
+                  ),
+                for (final id in _mentions)
+                  InputChip(
+                    key: ValueKey('composer-mention-$id'),
+                    label: Text(
+                      '@${_name(id)}',
+                      style: const TextStyle(fontSize: 10, color: accentColor),
+                    ),
+                    onDeleted: () {
+                      setState(() => _mentions.remove(id));
+                      _saveDraft();
+                    },
+                    deleteIcon: const Icon(Icons.close, size: 13),
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: selectedColor,
+                    side: BorderSide.none,
+                  ),
+              ],
             ),
           ),
         Row(
@@ -1468,19 +1630,29 @@ class _OfficeConversationState extends State<OfficeConversation>
                     ),
                     IconButton(
                       tooltip: 'Agent 协作',
-                      onPressed: () => showAgentCollaboration(
-                        context,
-                        s,
-                        onMention: (ids) {
-                          setState(
-                            () => _mentions = {..._mentions, ...ids}.toList(),
-                          );
-                          _saveDraft();
-                          _focus.requestFocus();
-                        },
-                        onRecords: () => setState(() => _tab = 3),
-                        onStore: widget.onAgentStore,
-                      ),
+                      onPressed: () {
+                        final identity = _identity, roomId = s.selectedRoomId;
+                        bool currentScope() =>
+                            mounted &&
+                            identity == _identity &&
+                            roomId == s.selectedRoomId;
+                        showAgentCollaboration(
+                          context,
+                          s,
+                          onMention: (ids) {
+                            if (!currentScope()) return;
+                            setState(
+                              () => _mentions = {..._mentions, ...ids}.toList(),
+                            );
+                            _saveDraft();
+                            _focus.requestFocus();
+                          },
+                          onRecords: () {
+                            if (currentScope()) setState(() => _tab = 3);
+                          },
+                          onStore: widget.onAgentStore,
+                        );
+                      },
                       icon: const Icon(
                         Icons.auto_awesome_outlined,
                         size: 19,
@@ -1559,11 +1731,16 @@ class _OfficeConversationState extends State<OfficeConversation>
   );
 
   Future<void> _expandComposer() async {
+    final identity = _identity, roomId = s.selectedRoomId, draftKey = _key;
     final result = await showDialog<String>(
       context: context,
       builder: (_) => _ExpandedMessageEditor(text: _input.text),
     );
-    if (result != null && mounted) {
+    if (result != null &&
+        mounted &&
+        identity == _identity &&
+        roomId == s.selectedRoomId &&
+        draftKey == _key) {
       _input.value = TextEditingValue(
         text: result,
         selection: TextSelection.collapsed(offset: result.length),

@@ -257,14 +257,14 @@ void main() {
   testWidgets(
     'mention search matches nickname while returning stable agent identity',
     (tester) async {
-      List<String>? selected;
+      OfficeMentionSelection? selected;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
                 onPressed: () async {
-                  selected = await showDialog<List<String>>(
+                  selected = await showDialog<OfficeMentionSelection>(
                     context: context,
                     builder: (_) => const OfficeMentionPicker(
                       people: [
@@ -305,7 +305,8 @@ void main() {
       final confirm = find.textContaining('确定');
       await tester.tap(confirm.first);
       await tester.pumpAndSettle();
-      expect(selected, ['agent-stable']);
+      expect(selected?.selectedIds, ['agent-stable']);
+      expect(selected?.mentionAll, false);
     },
   );
 }

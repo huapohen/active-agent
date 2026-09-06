@@ -11,7 +11,7 @@ import 'office_theme.dart';
 import 'room_nickname.dart';
 
 String _roomIdentity(OfficeState state) =>
-    '${state.endpoint}|${personId(state.me ?? {})}|${state.connected}';
+    '${state.identityGeneration}|${state.endpoint}|${personId(state.me ?? {})}';
 
 /// All actions retain the room and identity that opened this route.
 Future<void> showOfficeRoomDetails(
@@ -85,7 +85,7 @@ class OfficeRoomDetails extends StatefulWidget {
 class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   late final String _identity;
   Json? _detail, _profile, _announcement, _membership;
-  String? _error, _profileError;
+  String? _error, _profileError, _preferenceError;
   bool _loading = true, _saving = false, _expired = false;
   int _generation = 0;
   Timer? _refresh;
@@ -111,8 +111,9 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   bool get _mobile => MediaQuery.sizeOf(context).width < 720;
   bool get _valid =>
       !_expired &&
-      widget.state.connected &&
+      widget.state.me != null &&
       _identity == _roomIdentity(widget.state);
+  bool get _online => _valid && widget.state.connected;
 
   @override
   void initState() {
@@ -123,6 +124,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   }
 
   void _stateChanged() {
+    if (!mounted) return;
     if (!_valid) {
       _refresh?.cancel();
       _generation++;
@@ -133,7 +135,10 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
       return;
     }
     _refresh?.cancel();
-    _refresh = Timer(const Duration(milliseconds: 250), _load);
+    setState(() {});
+    if (_online && !_saving) {
+      _refresh = Timer(const Duration(milliseconds: 250), _load);
+    }
   }
 
   @override
@@ -147,7 +152,11 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
       mounted && _valid && generation == _generation;
 
   Future<void> _load() async {
-    if (!_valid || !mounted) return;
+    if (!_valid || !mounted || _saving) return;
+    if (!_online) {
+      setState(() => _loading = false);
+      return;
+    }
     final generation = ++_generation;
     try {
       final detail = await widget.state.officeRequest(_path);
@@ -198,12 +207,12 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   }
 
   Future<void> _preference(String key, bool value) async {
-    if (!_valid || _saving) return;
+    if (!_online || _saving) return;
     _refresh?.cancel();
     ++_generation;
     setState(() {
       _saving = true;
-      _error = null;
+      _preferenceError = null;
     });
     try {
       final result = await widget.state.officeRequest(
@@ -218,7 +227,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
       widget.onChanged?.call();
     } catch (error) {
       if (mounted && _valid) {
-        setState(() => _error = friendlyError(error));
+        setState(() => _preferenceError = friendlyError(error));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -233,7 +242,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
 
   Future<void> _edit(bool announcement) async {
     final response = announcement ? _announcement : _profile;
-    if (!_valid || response == null) return;
+    if (!_online || response == null) return;
     final saved = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -250,7 +259,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   }
 
   Future<void> _agent(Json member) async {
-    if (!_valid) return;
+    if (!_online) return;
     final self = personId(widget.state.me ?? {});
     final owner = _members.any(
       (member) => personId(member) == self && member['role'] == 'owner',
@@ -277,7 +286,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   }
 
   Future<void> _nickname() async {
-    if (!_valid) return;
+    if (!_online) return;
     final saved = await showOfficeRoomNickname(
       context,
       widget.state,
@@ -419,15 +428,23 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
     onTap: () => _navigate(action),
   );
 
-  Widget _toggle(String title, String key, String roomKey, IconData icon) =>
-      SwitchListTile(
-        key: ValueKey('room-preference-$key'),
-        dense: true,
-        secondary: Icon(icon, size: 20),
-        title: Text(title),
-        value: _room[roomKey] == true,
-        onChanged: _saving ? null : (value) => _preference(key, value),
-      );
+  Widget _toggle(
+    String title,
+    String key,
+    String roomKey,
+    IconData icon, {
+    String? description,
+  }) => SwitchListTile(
+    key: ValueKey('room-preference-$key'),
+    dense: true,
+    secondary: Icon(icon, size: 20),
+    title: Text(title),
+    subtitle: description == null
+        ? null
+        : Text(description, style: const TextStyle(fontSize: 11, height: 1.6)),
+    value: (_room[roomKey] ?? (_room['preferences'] as Map?)?[key]) == true,
+    onChanged: _saving || !_online ? null : (value) => _preference(key, value),
+  );
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -444,7 +461,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
         if (_valid)
           IconButton(
             tooltip: '刷新详情',
-            onPressed: _load,
+            onPressed: !_online || _saving ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
         IconButton(
@@ -463,9 +480,20 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
               children: [
+                if (!_online)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      '暂时离线，会话内容已保留；连接恢复后可继续修改。',
+                      style: TextStyle(fontSize: 12, color: mutedColor),
+                    ),
+                  ),
                 if (_error != null) BusinessError(_error),
                 if (_detail == null)
-                  TextButton(onPressed: _load, child: const Text('重新读取')),
+                  TextButton(
+                    onPressed: _online ? _load : null,
+                    child: const Text('重新读取'),
+                  ),
                 if (_detail != null) ...[
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -611,7 +639,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
                                 true
                             ? IconButton(
                                 tooltip: '编辑群资料',
-                                onPressed: () => _edit(false),
+                                onPressed: _online ? () => _edit(false) : null,
                                 icon: const Icon(Icons.edit_outlined, size: 18),
                               )
                             : null,
@@ -641,7 +669,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
                                 true
                             ? IconButton(
                                 tooltip: '编辑群公告',
-                                onPressed: () => _edit(true),
+                                onPressed: _online ? () => _edit(true) : null,
                                 icon: const Icon(Icons.edit_outlined, size: 18),
                               )
                             : null,
@@ -695,10 +723,32 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
                         trailing: const Icon(Icons.chevron_right, size: 18),
                         onTap:
                             (_membership?['permissions']
-                                    as Map?)?['can_edit'] ==
-                                true
+                                        as Map?)?['can_edit'] ==
+                                    true &&
+                                _online
                             ? _nickname
                             : null,
+                      ),
+                    _toggle(
+                      '消息免打扰',
+                      'muted',
+                      'muted',
+                      Icons.notifications_off_outlined,
+                    ),
+                    _toggle(
+                      '移入“折叠的会话”',
+                      'folded',
+                      'folded',
+                      Icons.unfold_less_outlined,
+                      description: '移入后不再接收消息提醒，可在折叠的会话中查看',
+                    ),
+                    if (_group)
+                      _toggle(
+                        '@所有人的消息不提示',
+                        'mute_all_mentions',
+                        'mute_all_mentions',
+                        Icons.alternate_email,
+                        description: '仅关闭 @所有人提醒，直接 @你的消息仍会提示。',
                       ),
                     _toggle(
                       '置顶聊天',
@@ -712,12 +762,11 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
                       'is_favorite',
                       Icons.star_border,
                     ),
-                    _toggle(
-                      '消息免打扰',
-                      'muted',
-                      'muted',
-                      Icons.notifications_off_outlined,
-                    ),
+                    if (_preferenceError != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: BusinessError(_preferenceError),
+                      ),
                   ]),
                   const Padding(
                     padding: EdgeInsets.fromLTRB(4, 10, 4, 0),
@@ -812,8 +861,9 @@ class _RoomTextEditorState extends State<_RoomTextEditor> {
   String get _path => '/rooms/${Uri.encodeComponent(widget.roomId)}/$_key';
   bool get _valid =>
       !_expired &&
-      widget.state.connected &&
+      widget.state.me != null &&
       _identity == _roomIdentity(widget.state);
+  bool get _online => _valid && widget.state.connected;
 
   @override
   void initState() {
@@ -830,7 +880,10 @@ class _RoomTextEditorState extends State<_RoomTextEditor> {
   }
 
   void _stateChanged() {
-    if (!_valid && mounted) setState(() => _expired = true);
+    if (!mounted) return;
+    setState(() {
+      if (!_valid) _expired = true;
+    });
   }
 
   @override
@@ -842,7 +895,7 @@ class _RoomTextEditorState extends State<_RoomTextEditor> {
   }
 
   Future<void> _save() async {
-    if (!_valid ||
+    if (!_online ||
         !_canEdit ||
         _busy ||
         _conflict ||
@@ -881,7 +934,7 @@ class _RoomTextEditorState extends State<_RoomTextEditor> {
   }
 
   Future<void> _readLatest() async {
-    if (!_valid || _busy) return;
+    if (!_online || _busy) return;
     setState(() => _busy = true);
     try {
       final latest = await widget.state.officeRequest(_path);
@@ -951,12 +1004,13 @@ class _RoomTextEditorState extends State<_RoomTextEditor> {
                         '留空并保存可清空群公告。',
                         style: TextStyle(fontSize: 11, color: mutedColor),
                       ),
+                    if (!_online) const Text('暂时离线，草稿已保留；连接恢复后可继续保存。'),
                     if (!_canEdit) const Text('当前工作身份没有编辑权限。'),
                     BusinessError(_error),
                     if (_conflict) ...[
                       const Text('内容已被更新。你的草稿已保留，请读取最新内容并核对后再保存。'),
                       TextButton(
-                        onPressed: _busy ? null : _readLatest,
+                        onPressed: _busy || !_online ? null : _readLatest,
                         child: const Text('读取最新内容'),
                       ),
                     ],
@@ -991,7 +1045,7 @@ class _RoomTextEditorState extends State<_RoomTextEditor> {
         child: const Text('取消'),
       ),
       FilledButton(
-        onPressed: !_valid || _busy || _conflict || !_canEdit ? null : _save,
+        onPressed: !_online || _busy || _conflict || !_canEdit ? null : _save,
         child: Text(_busy ? '保存中…' : '保存'),
       ),
     ],

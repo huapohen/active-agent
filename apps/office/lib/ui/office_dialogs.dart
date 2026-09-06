@@ -33,10 +33,12 @@ class _OfficeMembersState extends State<_OfficeMembers> {
   String _query = '', _inviteQuery = '';
   int _generation = 0;
   String get _identityKey =>
-      '${widget.state.endpoint}|${personId(widget.state.me ?? {})}|${widget.state.connected}';
+      '${widget.state.identityGeneration}|${widget.state.endpoint}|${personId(widget.state.me ?? {})}';
   String get _path => '/rooms/${Uri.encodeComponent(widget.roomId)}';
   bool get _valid =>
-      !_expired && widget.state.connected && _identityKey == _identity;
+      !_expired && widget.state.me != null && _identityKey == _identity;
+  bool get _online => _valid && widget.state.connected;
+  late bool _wasConnected;
   List<Json> get _members => maps(_detail?['members']);
   Json get _room => Json.from(_detail?['room'] as Map? ?? {});
   String get _self => personId(widget.state.me ?? {});
@@ -60,18 +62,23 @@ class _OfficeMembersState extends State<_OfficeMembers> {
   void initState() {
     super.initState();
     _identity = _identityKey;
+    _wasConnected = widget.state.connected;
     widget.state.addListener(_identityChanged);
     _read();
   }
 
   void _identityChanged() {
-    if (!_valid && mounted) {
-      setState(() {
+    if (!mounted) return;
+    final restored = !_wasConnected && widget.state.connected;
+    _wasConnected = widget.state.connected;
+    setState(() {
+      if (!_valid) {
         _expired = true;
         ++_generation;
         _detail = null;
-      });
-    }
+      }
+    });
+    if (_online && restored && !_busy) _read();
   }
 
   @override
@@ -82,6 +89,10 @@ class _OfficeMembersState extends State<_OfficeMembers> {
 
   Future<void> _read() async {
     if (!_valid) return;
+    if (!_online) {
+      setState(() => _loading = false);
+      return;
+    }
     final generation = ++_generation;
     try {
       final result = await widget.state.officeRequest(_path);
@@ -107,7 +118,7 @@ class _OfficeMembersState extends State<_OfficeMembers> {
   }
 
   Future<void> _remove(Json target) async {
-    if (!_removable(target) || _busy) return;
+    if (!_online || !_removable(target) || _busy) return;
     final pid = personId(target);
     final approved = await showDialog<bool>(
       context: context,
@@ -127,7 +138,7 @@ class _OfficeMembersState extends State<_OfficeMembers> {
               child: const Text('取消'),
             ),
             FilledButton(
-              onPressed: _valid
+              onPressed: _online
                   ? () => Navigator.pop(dialogContext, true)
                   : null,
               child: const Text('确认移除'),
@@ -136,7 +147,7 @@ class _OfficeMembersState extends State<_OfficeMembers> {
         ),
       ),
     );
-    if (!mounted || !_valid || approved != true) return;
+    if (!mounted || !_online || approved != true) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -150,6 +161,7 @@ class _OfficeMembersState extends State<_OfficeMembers> {
           .where((member) => personId(member) == pid)
           .firstOrNull;
       if (current == null) throw OfficeException(404, '该成员已离开本群');
+      if (!_online) return;
       if (!_removable(current)) throw OfficeException(403, '成员权限已变化，不能移除该成员');
       await widget.state.officeRequest(
         '$_path/members/${Uri.encodeComponent(pid)}',
@@ -168,7 +180,7 @@ class _OfficeMembersState extends State<_OfficeMembers> {
   }
 
   Future<void> _invite(Json person) async {
-    if (!_valid || !_owner || !_group || _busy) return;
+    if (!_online || !_owner || !_group || _busy) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -191,7 +203,7 @@ class _OfficeMembersState extends State<_OfficeMembers> {
   }
 
   Future<void> _nickname() async {
-    if (!_valid) return;
+    if (!_online) return;
     final saved = await showOfficeRoomNickname(
       context,
       widget.state,
@@ -208,7 +220,7 @@ class _OfficeMembersState extends State<_OfficeMembers> {
   }
 
   Future<void> _agent(Json member) async {
-    if (!_valid) return;
+    if (!_online) return;
     await showAgentAutonomy(
       context,
       widget.state,
@@ -241,6 +253,14 @@ class _OfficeMembersState extends State<_OfficeMembers> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (!_online)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          '暂时离线，成员与搜索内容已保留；连接恢复后可继续管理。',
+                          style: TextStyle(fontSize: 12, color: mutedColor),
+                        ),
+                      ),
                     Text(
                       str(_room['name']),
                       style: const TextStyle(fontSize: 12, color: mutedColor),
@@ -292,13 +312,17 @@ class _OfficeMembersState extends State<_OfficeMembers> {
                             if (member['kind'] == 'agent')
                               IconButton(
                                 tooltip: '${str(member['name'])} · 人格与参与',
-                                onPressed: _busy ? null : () => _agent(member),
+                                onPressed: _busy || !_online
+                                    ? null
+                                    : () => _agent(member),
                                 icon: const Icon(Icons.tune, size: 18),
                               ),
                             if (_removable(member))
                               IconButton(
                                 tooltip: '移除 ${str(member['name'])}',
-                                onPressed: _busy ? null : () => _remove(member),
+                                onPressed: _busy || !_online
+                                    ? null
+                                    : () => _remove(member),
                                 icon: const Icon(
                                   Icons.person_remove_outlined,
                                   size: 18,
@@ -310,7 +334,7 @@ class _OfficeMembersState extends State<_OfficeMembers> {
                     if (_group &&
                         _members.any((member) => personId(member) == _self))
                       TextButton.icon(
-                        onPressed: _busy ? null : _nickname,
+                        onPressed: _busy || !_online ? null : _nickname,
                         icon: const Icon(Icons.badge_outlined, size: 17),
                         label: const Text('我在本群的昵称'),
                       ),
@@ -344,7 +368,9 @@ class _OfficeMembersState extends State<_OfficeMembers> {
                             style: const TextStyle(fontSize: 12),
                           ),
                           trailing: TextButton(
-                            onPressed: _busy ? null : () => _invite(person),
+                            onPressed: _busy || !_online
+                                ? null
+                                : () => _invite(person),
                             child: const Text('添加'),
                           ),
                         ),
@@ -352,7 +378,7 @@ class _OfficeMembersState extends State<_OfficeMembers> {
                     BusinessError(_error),
                     if (_error != null)
                       TextButton(
-                        onPressed: _busy ? null : _read,
+                        onPressed: _busy || !_online ? null : _read,
                         child: const Text('刷新成员'),
                       ),
                     const Padding(
