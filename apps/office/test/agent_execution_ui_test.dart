@@ -7,6 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 class AutonomyOffice extends OfficeState {
   AutonomyOffice() {
+    connected = true;
+    endpoint = 'https://autonomy-fixture.example';
+    me = {'id': 'human-test', 'kind': 'human'};
     selectedRoomId = 'room-test';
     detail = {
       'room': {'id': 'room-test', 'revision': 4},

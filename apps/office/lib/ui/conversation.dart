@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,8 @@ import 'package:file_picker/file_picker.dart';
 
 import '../office_state.dart' hide Json;
 import 'attachments.dart';
+import 'conversation_details.dart';
+import 'room_details.dart';
 import 'agent_collaboration.dart';
 import 'agent_message_content.dart';
 import 'mentions.dart';
@@ -32,17 +35,60 @@ class OfficeConversation extends StatefulWidget {
   State<OfficeConversation> createState() => _OfficeConversationState();
 }
 
-class _OfficeConversationState extends State<OfficeConversation> {
+class _OfficeConversationState extends State<OfficeConversation>
+    with WidgetsBindingObserver {
+  String? _visibleRoom;
+  bool _resumed = true;
+  int _panels = 0;
+  Future<T?> _showPanel<T>(Future<T?> Function() open) async {
+    _panels++;
+    _syncVisibility();
+    try {
+      return await open();
+    } finally {
+      _panels--;
+      if (mounted) _syncVisibility();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _resumed =
+        WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _resumed = state == AppLifecycleState.resumed;
+    _syncVisibility();
+  }
+
+  Future<void> _setVisible(String roomId, bool visible) async {
+    try {
+      await s.setConversationVisible(roomId, visible);
+    } catch (e) {
+      if (mounted) setState(() => _error = friendlyError(e));
+    }
+  }
+
+  void _syncVisibility() {
+    final roomId = s.selectedRoomId;
+    final next = _resumed && _tab == 0 && _panels == 0 ? roomId : null;
+    if (_visibleRoom == next) return;
+    if (_visibleRoom != null) unawaited(_setVisible(_visibleRoom!, false));
+    _visibleRoom = next;
+    if (next != null) unawaited(_setVisible(next, true));
+  }
+
   static final Map<String, Json> _drafts = {};
   final _input = TextEditingController();
   final _focus = FocusNode();
   final _scroll = ScrollController();
   String? _key, _hover;
-  String _query = '';
-  bool _searchOpen = false,
-      _sending = false,
-      _loadingHistory = false,
-      _mentionOpen = false;
+  bool _sending = false, _loadingHistory = false, _mentionOpen = false;
   int _tab = 0, _messageCount = 0;
   bool _moreTools = false;
   Json? _reply;
@@ -59,6 +105,8 @@ class _OfficeConversationState extends State<OfficeConversation> {
   OfficeState get s => widget.state;
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (_visibleRoom != null) unawaited(_setVisible(_visibleRoom!, false));
     _saveDraft();
     _input.dispose();
     _focus.dispose();
@@ -96,8 +144,6 @@ class _OfficeConversationState extends State<OfficeConversation> {
     _tab = 0;
     _error = null;
     _messageCount = 0;
-    _query = '';
-    _searchOpen = false;
     _moreTools = false;
   }
 
@@ -335,6 +381,10 @@ class _OfficeConversationState extends State<OfficeConversation> {
   }
 
   Future<void> _messageAction(Json message, String action) async {
+    final sourceRoomId = s.selectedRoomId;
+    final identity = '${s.endpoint}:${personId(s.me ?? {})}';
+    bool sameIdentity() =>
+        mounted && identity == '${s.endpoint}:${personId(s.me ?? {})}';
     try {
       if (action == 'reply') {
         setState(() => _reply = message);
@@ -349,55 +399,22 @@ class _OfficeConversationState extends State<OfficeConversation> {
           str(message['content']),
         );
         if (result != null &&
+            sameIdentity() &&
             (result.trim().isNotEmpty ||
                 (message['attachment_ids'] as List? ?? []).isNotEmpty)) {
-          await s.editMessage(message, result);
+          await s.editMessage(message, result, sourceRoomId: sourceRoomId);
         }
       } else if (action == 'retract') {
         await s.retractMessage(message);
       } else if (action == 'pin') {
         await s.pinMessage(message, message['pinned'] != true);
       } else if (action == 'forward') {
-        final target = await showDialog<String>(
-          context: context,
-          builder: (context) => SimpleDialog(
-            title: const Text('转发消息到', style: TextStyle(fontSize: 18)),
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 13),
-                child: Text(
-                  str(message['content'], '附件消息'),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, color: mutedColor),
-                ),
-              ),
-              ...s.rooms.map(
-                (room) => SimpleDialogOption(
-                  onPressed: () => Navigator.pop(context, str(room['id'])),
-                  child: Row(
-                    children: [
-                      PersonAvatar(
-                        name: str(room['name']),
-                        group: room['kind'] != 'direct',
-                        size: 29,
-                      ),
-                      const SizedBox(width: 11),
-                      Expanded(
-                        child: Text(
-                          str(room['name']),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+        final roomId = s.selectedRoomId;
+        final target = await _showPanel(
+          () => showOfficeForwardPicker(context, s.rooms, message),
         );
-        if (target != null) {
-          await s.forwardMessage(message, target);
+        if (target != null && roomId != null && sameIdentity()) {
+          await s.forwardMessage(message, target, sourceRoomId: roomId);
           if (mounted) notifyOffice(context, '消息已转发，附件在目标会话中独立共享。');
         }
       } else if (action.startsWith('react:')) {
@@ -427,11 +444,16 @@ class _OfficeConversationState extends State<OfficeConversation> {
       if (nearBottom) _bottom();
       _messageCount = messages.length;
     }
-    final filtered = messages
-        .where(
-          (m) => str(m['content']).toLowerCase().contains(_query.toLowerCase()),
-        )
-        .toList();
+    if (_reply != null) {
+      final latestReply = messages
+          .where((m) => m['id'] == _reply!['id'])
+          .firstOrNull;
+      if (latestReply != null) _reply = latestReply;
+    }
+    final filtered = messages;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncVisibility();
+    });
     return Column(
       children: [
         Container(
@@ -479,51 +501,50 @@ class _OfficeConversationState extends State<OfficeConversation> {
                 ),
               ),
               IconButton(
-                onPressed: () => setState(() => _searchOpen = !_searchOpen),
+                onPressed: () => _showPanel(
+                  () => showOfficeRoomSearch(context, s, str(room['id'])),
+                ),
                 tooltip: '查找消息',
                 icon: const Icon(Icons.search, size: 19),
               ),
               IconButton(
-                onPressed: () => OfficeDialogs.members(context, s),
+                onPressed: () =>
+                    _showPanel(() => OfficeDialogs.members(context, s)),
                 tooltip: '会话成员',
                 icon: const Icon(Icons.group_outlined, size: 19),
               ),
-              PopupMenuButton<String>(
+              IconButton(
                 tooltip: '会话设置',
                 icon: const Icon(Icons.more_horiz, color: mutedColor, size: 21),
-                onSelected: (v) async {
-                  try {
-                    if (v == 'favorite') {
-                      await s.setPreferences(
-                        favorite:
-                            !(room['is_favorite'] == true ||
-                                (room['preferences'] as Map?)?['favorite'] ==
-                                    true),
-                      );
-                    }
-                    if (v == 'mute') {
-                      await s.setPreferences(muted: room['muted'] != true);
-                    }
-                    if (v == 'export' && context.mounted) {
-                      await OfficeDialogs.export(context, s);
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      notifyOffice(context, friendlyError(e));
+                onPressed: () {
+                  final roomId = str(room['id']);
+                  void openTab(int tab) {
+                    if (mounted && s.selectedRoomId == roomId) {
+                      setState(() => _tab = tab);
                     }
                   }
+
+                  _showPanel(
+                    () => showOfficeRoomDetails(
+                      context,
+                      s,
+                      roomId: roomId,
+                      onSearch: () {
+                        if (mounted && s.selectedRoomId == roomId) {
+                          showOfficeRoomSearch(context, s, roomId);
+                        }
+                      },
+                      onDocuments: () => openTab(1),
+                      onTasks: () => openTab(2),
+                      onRecords: () => openTab(3),
+                      onMembers: () {
+                        if (mounted && s.selectedRoomId == roomId) {
+                          _showPanel(() => OfficeDialogs.members(context, s));
+                        }
+                      },
+                    ),
+                  );
                 },
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'favorite',
-                    child: Text(room['is_favorite'] == true ? '取消收藏' : '收藏会话'),
-                  ),
-                  PopupMenuItem(
-                    value: 'mute',
-                    child: Text(room['muted'] == true ? '开启消息提醒' : '消息免打扰'),
-                  ),
-                  const PopupMenuItem(value: 'export', child: Text('导出工作记录')),
-                ],
               ),
             ],
           ),
@@ -684,14 +705,6 @@ class _OfficeConversationState extends State<OfficeConversation> {
                     ),
                   ),
                 ],
-              ),
-            ),
-          if (_searchOpen)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 10, 22, 0),
-              child: OfficeSearch(
-                hint: '搜索已加载的消息',
-                onChanged: (v) => setState(() => _query = v),
               ),
             ),
           Expanded(
@@ -918,6 +931,19 @@ class _OfficeConversationState extends State<OfficeConversation> {
                                                       ),
                                                     ),
                                                   ),
+                                                if (m['forwarded_from'] is Map)
+                                                  const Padding(
+                                                    padding: EdgeInsets.only(
+                                                      bottom: 6,
+                                                    ),
+                                                    child: Text(
+                                                      '已转发',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: mutedColor,
+                                                      ),
+                                                    ),
+                                                  ),
                                                 if (str(m['content'])
                                                     .isNotEmpty)
                                                   AgentMessageContent(
@@ -1065,11 +1091,19 @@ class _OfficeConversationState extends State<OfficeConversation> {
                                                         top: 5,
                                                         left: 7,
                                                       ),
-                                                  child: Text(
-                                                    '${maps(s.detail?['members']).where((p) => personId(p) != personId(s.me ?? {}) && ((p['read_seq'] as num?)?.toInt() ?? 0) >= ((m['seq'] as num?)?.toInt() ?? 1)).length} 人已读',
-                                                    style: const TextStyle(
-                                                      fontSize: 9,
-                                                      color: accentColor,
+                                                  child: InkWell(
+                                                    onTap: () =>
+                                                        showOfficeMessageReaders(
+                                                          context,
+                                                          s,
+                                                          m,
+                                                        ),
+                                                    child: Text(
+                                                      '${maps(s.detail?['members']).where((p) => personId(p) != personId(s.me ?? {}) && ((p['read_seq'] as num?)?.toInt() ?? 0) >= ((m['seq'] as num?)?.toInt() ?? 1)).length} 人已读',
+                                                      style: const TextStyle(
+                                                        fontSize: 9,
+                                                        color: accentColor,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
@@ -1217,7 +1251,7 @@ class _OfficeConversationState extends State<OfficeConversation> {
               children: [
                 Expanded(
                   child: Text(
-                    '回复 ${str((_reply!['author'] as Map?)?['name'])}：${str(_reply!['content'])}',
+                    '回复 ${str((_reply!['author'] as Map?)?['name'])}：${(_reply!['retracted_at'] != null ? '这条消息已撤回' : str(_reply!['content']))}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 10, color: mutedColor),

@@ -44,6 +44,12 @@ class _AgentAutonomy extends StatefulWidget {
 }
 
 class _AgentAutonomyState extends State<_AgentAutonomy> {
+  late final String _identity;
+  bool _expired = false;
+  String get _identityKey =>
+      '${widget.state.endpoint}|${personId(widget.state.me ?? {})}|${widget.state.connected}';
+  bool get _valid =>
+      !_expired && widget.state.connected && _identityKey == _identity;
   late final Json _initial = widget.member['autonomy'] is Map
       ? Json.from(widget.member['autonomy'])
       : {};
@@ -73,9 +79,26 @@ class _AgentAutonomyState extends State<_AgentAutonomy> {
   Json? _latest;
   bool _busy = false;
   bool get editable =>
-      widget.canEdit && _initial.isNotEmpty && _revision != null;
+      _valid && widget.canEdit && _initial.isNotEmpty && _revision != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _identity = _identityKey;
+    // Capture the room's revision now; a late initializer would read a future
+    // selected room when the first control is used.
+    _revision =
+        widget.roomRevision ??
+        ((widget.state.detail?['room'] as Map?)?['revision'] as num?)?.toInt();
+    widget.state.addListener(_identityChanged);
+  }
+
+  void _identityChanged() {
+    if (!_valid && mounted) setState(() => _expired = true);
+  }
 
   Future<void> _setMode(String mode) async {
+    if (!_valid || !widget.canEdit || _revision == null || _busy) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -87,14 +110,14 @@ class _AgentAutonomyState extends State<_AgentAutonomy> {
         mode: mode,
         baseRevision: _revision!,
       );
-      if (mounted) {
+      if (mounted && _valid) {
         setState(() {
           _mode = str((result['member'] as Map?)?['mode'], mode);
           _revision = (result['room_revision'] as num?)?.toInt() ?? _revision;
         });
       }
     } catch (error) {
-      if (mounted) setState(() => _error = friendlyError(error));
+      if (mounted && _valid) setState(() => _error = friendlyError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -102,11 +125,13 @@ class _AgentAutonomyState extends State<_AgentAutonomy> {
 
   @override
   void dispose() {
+    widget.state.removeListener(_identityChanged);
     _interval.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
+    if (!editable || _busy) return;
     final seconds = int.tryParse(_interval.text.trim());
     if (seconds == null || seconds < 60 || seconds > 86400) {
       setState(() => _error = '主动复核间隔须为 60 至 86400 秒');
@@ -128,15 +153,16 @@ class _AgentAutonomyState extends State<_AgentAutonomy> {
           'review_interval_seconds': seconds,
         },
       );
-      if (mounted) Navigator.pop(context);
+      if (mounted && _valid) Navigator.pop(context);
     } catch (error) {
-      if (mounted) setState(() => _error = friendlyError(error));
+      if (mounted && _valid) setState(() => _error = friendlyError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _readLatest() async {
+    if (!_valid || _busy) return;
     setState(() => _busy = true);
     try {
       final result = await widget.state.officeRequest(
@@ -148,7 +174,7 @@ class _AgentAutonomyState extends State<_AgentAutonomy> {
       if (member == null || member['autonomy'] is! Map) {
         throw OfficeException(404, '该成员或主动性配置已不存在');
       }
-      if (mounted) {
+      if (mounted && _valid) {
         setState(() {
           _revision = ((result['room'] as Map?)?['revision'] as num?)?.toInt();
           _mode = str(member['mode'], _mode);
@@ -157,163 +183,190 @@ class _AgentAutonomyState extends State<_AgentAutonomy> {
         });
       }
     } catch (error) {
-      if (mounted) setState(() => _error = friendlyError(error));
+      if (mounted && _valid) setState(() => _error = friendlyError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text('${str(widget.member['name'])} · 人格与参与'),
-    content: SizedBox(
-      width: 520,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '工作会话：${str(widget.state.rooms.where((room) => room['id'] == widget.roomId).firstOrNull?['name'], widget.roomId)}',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+  Widget build(BuildContext context) => !_valid
+      ? AlertDialog(
+          title: const Text('工作身份已变更'),
+          content: const Text('旧身份的人格与参与设置已锁定，请关闭后重新打开。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('关闭'),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              '每位 Agent 都可主动参与。这里的设置只作用于当前工作会话；自主执行动作另外配置，并继续遵守成员权限。',
-              style: TextStyle(fontSize: 11, height: 1.8, color: mutedColor),
-            ),
-            if (_initial.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 14),
-                child: Text('当前服务尚未提供该成员的主动性策略。请刷新工作会话后重试。'),
-              ),
-            if (!widget.canEdit)
-              const Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: Text(
-                  '你可以查看策略；该 Agent 本人和会话所有者可以修改。',
-                  style: TextStyle(fontSize: 11, color: mutedColor),
-                ),
-              ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('主动参与', style: TextStyle(fontSize: 13)),
-              subtitle: Text(
-                _mode == 'paused'
-                    ? '当前已暂停；恢复参与后可调整。'
-                    : _mode == 'active'
-                    ? '主动关注共同上下文，决定何时推进工作。'
-                    : '被提及或收到直接任务时参与。',
-                style: const TextStyle(fontSize: 11, height: 1.6),
-              ),
-              value: _mode == 'active',
-              onChanged:
-                  widget.canEdit &&
-                      _revision != null &&
-                      !_busy &&
-                      _mode != 'paused'
-                  ? (value) => _setMode(value ? 'active' : 'mentions')
-                  : null,
-            ),
-            TextButton.icon(
-              onPressed: widget.canEdit && _revision != null && !_busy
-                  ? () => _setMode(_mode == 'paused' ? 'mentions' : 'paused')
-                  : null,
-              icon: Icon(
-                _mode == 'paused' ? Icons.play_arrow : Icons.pause,
-                size: 16,
-              ),
-              label: Text(_mode == 'paused' ? '恢复参与（被提及时）' : '暂停参与'),
-            ),
-            const Text(
-              '参与方式切换立即保存；下方动作策略点击保存后生效。',
-              style: TextStyle(fontSize: 11, height: 1.7, color: mutedColor),
-            ),
-            const Divider(height: 26),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('允许主动执行', style: TextStyle(fontSize: 13)),
-              subtitle: const Text(
-                '独立控制工具动作与定时复核。关闭后仍可按参与方式讨论。',
-                style: TextStyle(fontSize: 11, height: 1.6),
-              ),
-              value: _enabled,
-              onChanged: editable && !_busy
-                  ? (value) => setState(() => _enabled = value)
-                  : null,
-            ),
-            DropdownButtonFormField<int>(
-              initialValue: [1, 2, 3, 4].contains(_steps) ? _steps : 1,
-              decoration: const InputDecoration(labelText: '每轮最多执行动作数'),
-              items: [1, 2, 3, 4]
-                  .map((n) => DropdownMenuItem(value: n, child: Text('$n 项')))
-                  .toList(),
-              onChanged: editable && !_busy
-                  ? (value) => setState(() => _steps = value ?? 1)
-                  : null,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _interval,
-              enabled: editable && !_busy,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: '主动复核间隔（秒）',
-                helperText: '60–86400 秒；复核自己的未完成任务和临近日程',
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              '允许执行的动作',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-            ...agentActionNames.entries
-                .where((entry) => _available.contains(entry.key))
-                .map(
-                  (entry) => CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      entry.value,
-                      style: const TextStyle(fontSize: 12),
+          ],
+        )
+      : AlertDialog(
+          title: Text('${str(widget.member['name'])} · 人格与参与'),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '工作会话：${str(widget.state.rooms.where((room) => room['id'] == widget.roomId).firstOrNull?['name'], widget.roomId)}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
-                    value: _operations.contains(entry.key),
-                    onChanged: editable && !_busy
-                        ? (checked) => setState(
-                            () => checked == true
-                                ? _operations.add(entry.key)
-                                : _operations.remove(entry.key),
-                          )
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '每位 Agent 都可主动参与。这里的设置只作用于当前工作会话；自主执行动作另外配置，并继续遵守成员权限。',
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.8,
+                      color: mutedColor,
+                    ),
+                  ),
+                  if (_initial.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 14),
+                      child: Text('当前服务尚未提供该成员的主动性策略。请刷新工作会话后重试。'),
+                    ),
+                  if (!widget.canEdit)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 12),
+                      child: Text(
+                        '你可以查看策略；该 Agent 本人和会话所有者可以修改。',
+                        style: TextStyle(fontSize: 11, color: mutedColor),
+                      ),
+                    ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('主动参与', style: TextStyle(fontSize: 13)),
+                    subtitle: Text(
+                      _mode == 'paused'
+                          ? '当前已暂停；恢复参与后可调整。'
+                          : _mode == 'active'
+                          ? '主动关注共同上下文，决定何时推进工作。'
+                          : '被提及或收到直接任务时参与。',
+                      style: const TextStyle(fontSize: 11, height: 1.6),
+                    ),
+                    value: _mode == 'active',
+                    onChanged:
+                        widget.canEdit &&
+                            _revision != null &&
+                            !_busy &&
+                            _mode != 'paused'
+                        ? (value) => _setMode(value ? 'active' : 'mentions')
                         : null,
                   ),
-                ),
-            CompanionCapabilities(person: widget.member),
-            if (_latest != null)
-              BusinessCard(
-                child: Text(
-                  '最新已保存策略：${_latest!['enabled'] == true ? '允许主动执行' : '暂停主动执行'}；每轮 ${_latest!['max_steps']} 项；间隔 ${_latest!['review_interval_seconds']} 秒；动作：${(_latest!['allowed_operations'] as List? ?? []).map((id) => agentActionNames[id] ?? str(id)).join('、')}',
-                  style: const TextStyle(fontSize: 11, height: 1.8),
-                ),
+                  TextButton.icon(
+                    onPressed: widget.canEdit && _revision != null && !_busy
+                        ? () => _setMode(
+                            _mode == 'paused' ? 'mentions' : 'paused',
+                          )
+                        : null,
+                    icon: Icon(
+                      _mode == 'paused' ? Icons.play_arrow : Icons.pause,
+                      size: 16,
+                    ),
+                    label: Text(_mode == 'paused' ? '恢复参与（被提及时）' : '暂停参与'),
+                  ),
+                  const Text(
+                    '参与方式切换立即保存；下方动作策略点击保存后生效。',
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.7,
+                      color: mutedColor,
+                    ),
+                  ),
+                  const Divider(height: 26),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('允许主动执行', style: TextStyle(fontSize: 13)),
+                    subtitle: const Text(
+                      '独立控制工具动作与定时复核。关闭后仍可按参与方式讨论。',
+                      style: TextStyle(fontSize: 11, height: 1.6),
+                    ),
+                    value: _enabled,
+                    onChanged: editable && !_busy
+                        ? (value) => setState(() => _enabled = value)
+                        : null,
+                  ),
+                  DropdownButtonFormField<int>(
+                    initialValue: [1, 2, 3, 4].contains(_steps) ? _steps : 1,
+                    decoration: const InputDecoration(labelText: '每轮最多执行动作数'),
+                    items: [1, 2, 3, 4]
+                        .map(
+                          (n) =>
+                              DropdownMenuItem(value: n, child: Text('$n 项')),
+                        )
+                        .toList(),
+                    onChanged: editable && !_busy
+                        ? (value) => setState(() => _steps = value ?? 1)
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _interval,
+                    enabled: editable && !_busy,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: '主动复核间隔（秒）',
+                      helperText: '60–86400 秒；复核自己的未完成任务和临近日程',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    '允许执行的动作',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  ...agentActionNames.entries
+                      .where((entry) => _available.contains(entry.key))
+                      .map(
+                        (entry) => CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            entry.value,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          value: _operations.contains(entry.key),
+                          onChanged: editable && !_busy
+                              ? (checked) => setState(
+                                  () => checked == true
+                                      ? _operations.add(entry.key)
+                                      : _operations.remove(entry.key),
+                                )
+                              : null,
+                        ),
+                      ),
+                  CompanionCapabilities(person: widget.member),
+                  if (_latest != null)
+                    BusinessCard(
+                      child: Text(
+                        '最新已保存策略：${_latest!['enabled'] == true ? '允许主动执行' : '暂停主动执行'}；每轮 ${_latest!['max_steps']} 项；间隔 ${_latest!['review_interval_seconds']} 秒；动作：${(_latest!['allowed_operations'] as List? ?? []).map((id) => agentActionNames[id] ?? str(id)).join('、')}',
+                        style: const TextStyle(fontSize: 11, height: 1.8),
+                      ),
+                    ),
+                  BusinessError(_error),
+                  if (_error != null)
+                    TextButton(
+                      onPressed: _busy ? null : _readLatest,
+                      child: const Text('读取最新策略并保留编辑'),
+                    ),
+                ],
               ),
-            BusinessError(_error),
-            if (_error != null)
-              TextButton(
-                onPressed: _busy ? null : _readLatest,
-                child: const Text('读取最新策略并保留编辑'),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: _busy ? null : () => Navigator.pop(context),
+              child: const Text('关闭'),
+            ),
+            if (widget.canEdit)
+              FilledButton(
+                onPressed: editable && !_busy ? _save : null,
+                child: Text(_busy ? '正在保存…' : '保存主动性策略'),
               ),
           ],
-        ),
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: _busy ? null : () => Navigator.pop(context),
-        child: const Text('关闭'),
-      ),
-      if (widget.canEdit)
-        FilledButton(
-          onPressed: editable && !_busy ? _save : null,
-          child: Text(_busy ? '正在保存…' : '保存主动性策略'),
-        ),
-    ],
-  );
+        );
 }

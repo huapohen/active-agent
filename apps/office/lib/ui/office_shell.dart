@@ -952,6 +952,18 @@ class _OfficeShellState extends State<OfficeShell> {
               (!_unreadOnly || ((r['unread_count'] as num?)?.toInt() ?? 0) > 0),
         )
         .toList();
+    final originalOrder = {
+      for (var i = 0; i < rooms.length; i++) str(rooms[i]['id']): i,
+    };
+    rooms.sort((a, b) {
+      final pinned =
+          (b['is_pinned'] == true ? 1 : 0) - (a['is_pinned'] == true ? 1 : 0);
+      return pinned != 0
+          ? pinned
+          : originalOrder[str(a['id'])]!.compareTo(
+              originalOrder[str(b['id'])]!,
+            );
+    });
     return Column(
       children: [
         Padding(
@@ -1240,6 +1252,15 @@ class _OfficeShellState extends State<OfficeShell> {
                                               ),
                                             ),
                                           ),
+                                          if (r['is_pinned'] == true)
+                                            const Tooltip(
+                                              message: '置顶聊天',
+                                              child: Icon(
+                                                Icons.push_pin,
+                                                size: 13,
+                                                color: accentColor,
+                                              ),
+                                            ),
                                           const SizedBox(width: 6),
                                           Text(
                                             clockText(last['at']),

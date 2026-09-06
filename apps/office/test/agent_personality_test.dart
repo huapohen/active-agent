@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 class PersonalityOffice extends OfficeState {
   PersonalityOffice({required this.owner}) {
+    connected = true;
+    endpoint = 'https://personality-fixture.example';
     me = {'id': 'human', 'kind': 'human'};
     selectedRoomId = 'other';
     rooms = [

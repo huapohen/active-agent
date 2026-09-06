@@ -69,6 +69,10 @@ class OfficeState extends ChangeNotifier {
   int _generation = 0, _cursor = 0, _selection = 0, _search = 0;
   bool _disposed = false;
   final Map<String, int> _reads = {};
+  final Map<String, ({int sequence, int visibility, int generation})> _reading =
+      {};
+  String? _visibleConversationRoomId;
+  int _conversationVisibilityVersion = 0;
   final Map<String, String> _outbox = {};
 
   static String newClientId() {
@@ -182,6 +186,7 @@ class OfficeState extends ChangeNotifier {
     searchFilters = {};
     switch (id) {
       case 'im':
+        _clearConversationVisibility();
         rooms = [];
         principals = [];
         agents = [];
@@ -338,8 +343,10 @@ class OfficeState extends ChangeNotifier {
     unavailableModules.clear();
     detail = null;
     selectedRoomId = null;
+    _clearConversationVisibility();
     _cursor = 0;
     _reads.clear();
+    _reading.clear();
     _outbox.clear();
     _notify();
   }
@@ -379,6 +386,7 @@ class OfficeState extends ChangeNotifier {
   }
 
   Future<void> selectRoom(String id) async {
+    if (_visibleConversationRoomId != id) _clearConversationVisibility();
     final selection = ++_selection, generation = _generation;
     selectedRoomId = id;
     _selectAttendance();
@@ -458,23 +466,88 @@ class OfficeState extends ChangeNotifier {
     _notify();
   }
 
+  void _clearConversationVisibility() {
+    _visibleConversationRoomId = null;
+    _conversationVisibilityVersion++;
+  }
+
+  /// The client calls this only for the conversation actually shown while the
+  /// application is foregrounded. Loading or selecting a room is not a receipt.
+  /// A stale widget may hide its own room without hiding a newer visible room.
+  Future<void> setConversationVisible(String roomId, bool visible) async {
+    if (_disposed) return;
+    if (!visible) {
+      if (_visibleConversationRoomId == roomId) _clearConversationVisibility();
+      return;
+    }
+    if (selectedRoomId != roomId || me == null || _token.isEmpty) return;
+    if (_visibleConversationRoomId != roomId) {
+      _visibleConversationRoomId = roomId;
+      _conversationVisibilityVersion++;
+    }
+    final current = detail;
+    if (current != null) await _markRead(roomId, current);
+  }
+
   Future<void> _markRead(String id, Json room) async {
+    if (_disposed || _visibleConversationRoomId != id || selectedRoomId != id) {
+      return;
+    }
+    final generation = _generation, visibility = _conversationVisibilityVersion;
     final messages = _list(room['messages']);
     final sequence = messages.fold<int>(
       0,
       (maxValue, item) => max(maxValue, (item['seq'] as num?)?.toInt() ?? 0),
     );
-    if (sequence <= (_reads[id] ?? 0)) return;
-    await _request(
-      '/rooms/$id/preferences',
-      method: 'PATCH',
-      data: {'read_seq': sequence},
+    final pending = _reading[id];
+    final pendingSequence =
+        pending?.visibility == visibility && pending?.generation == generation
+        ? pending!.sequence
+        : 0;
+    if (sequence <= max(_reads[id] ?? 0, pendingSequence)) return;
+    final receipt = (
+      sequence: sequence,
+      visibility: visibility,
+      generation: generation,
     );
-    _reads[id] = sequence;
+    _reading[id] = receipt;
+    try {
+      await _request(
+        '/rooms/${Uri.encodeComponent(id)}/preferences',
+        method: 'PATCH',
+        data: {'read_seq': sequence},
+      );
+    } finally {
+      if (_reading[id] == receipt) {
+        _reading.remove(id);
+      }
+    }
+    // A receipt already sent cannot be undone. Its delayed response must not
+    // alter another identity, a hidden room, or newer unread state.
+    if (_disposed ||
+        generation != _generation ||
+        visibility != _conversationVisibilityVersion ||
+        _visibleConversationRoomId != id ||
+        selectedRoomId != id) {
+      return;
+    }
+    _reads[id] = max(sequence, _reads[id] ?? 0);
     for (final room in rooms) {
       if (room['id'] == id) {
-        room['unread_count'] = 0;
-        room['read_seq'] = sequence;
+        final acknowledged = max(
+          _reads[id]!,
+          (room['read_seq'] as num?)?.toInt() ?? 0,
+        );
+        final latest = max(
+          ((room['last_message'] as Map?)?['seq'] as num?)?.toInt() ?? 0,
+          _list(detail?['messages']).fold<int>(
+            0,
+            (value, message) =>
+                max(value, (message['seq'] as num?)?.toInt() ?? 0),
+          ),
+        );
+        if (latest <= acknowledged) room['unread_count'] = 0;
+        room['read_seq'] = acknowledged;
       }
     }
     _notify();
@@ -649,9 +722,15 @@ class OfficeState extends ChangeNotifier {
     await _updated();
   }
 
-  Future<void> editMessage(Json message, String content) async {
+  Future<void> editMessage(
+    Json message,
+    String content, {
+    String? sourceRoomId,
+  }) async {
     await _request(
-      _room('/messages/${message['id']}'),
+      sourceRoomId == null
+          ? _room('/messages/${message['id']}')
+          : '/rooms/${Uri.encodeComponent(sourceRoomId)}/messages/${message['id']}',
       method: 'PATCH',
       data: {'content': content, 'base_revision': message['revision'] ?? 1},
     );
@@ -1289,7 +1368,10 @@ class OfficeState extends ChangeNotifier {
     final result = await _request(
       '/settings',
       method: 'PATCH',
-      data: {...changes, 'base_revision': baseRevision ?? settings['revision'] ?? 1},
+      data: {
+        ...changes,
+        'base_revision': baseRevision ?? settings['revision'] ?? 1,
+      },
     );
     settings = Json.from(result['settings']);
     _notify();
@@ -1304,11 +1386,17 @@ class OfficeState extends ChangeNotifier {
     await _updated();
   }
 
-  Future<Json> forwardMessage(Json message, String targetRoomId) =>
-      _createOfficeItem(_room('/messages/${message['id']}/forward'), {
-        'target_room_id': targetRoomId,
-        'base_revision': message['revision'],
-      }, 'message');
+  Future<Json> forwardMessage(
+    Json message,
+    String targetRoomId, {
+    String? sourceRoomId,
+  }) => _createOfficeItem(
+    sourceRoomId == null
+        ? _room('/messages/${message['id']}/forward')
+        : '/rooms/${Uri.encodeComponent(sourceRoomId)}/messages/${message['id']}/forward',
+    {'target_room_id': targetRoomId, 'base_revision': message['revision']},
+    'message',
+  );
 
   Future<Json> uploadAttachment(
     String filename,
@@ -1465,6 +1553,7 @@ class OfficeState extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _clearConversationVisibility();
     _generation++;
     _client.close();
     super.dispose();
