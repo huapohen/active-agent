@@ -26,6 +26,7 @@ Future<void> showOfficeRoomDetails(
   VoidCallback? onChanged,
   VoidCallback? onMarkedMessages,
   VoidCallback? onHiddenMessages,
+  VoidCallback? onUrgencies,
 }) {
   Widget details() => OfficeRoomDetails(
     state: state,
@@ -38,6 +39,7 @@ Future<void> showOfficeRoomDetails(
     onChanged: onChanged,
     onMarkedMessages: onMarkedMessages,
     onHiddenMessages: onHiddenMessages,
+    onUrgencies: onUrgencies,
   );
   if (MediaQuery.sizeOf(context).width < 720) {
     return Navigator.of(context).push<void>(
@@ -78,11 +80,15 @@ class OfficeRoomDetails extends StatefulWidget {
     this.onChanged,
     this.onMarkedMessages,
     this.onHiddenMessages,
+    this.onUrgencies,
   });
   final OfficeState state;
   final String roomId;
   final VoidCallback? onSearch, onDocuments, onTasks, onRecords, onMembers;
-  final VoidCallback? onChanged, onMarkedMessages, onHiddenMessages;
+  final VoidCallback? onChanged,
+      onMarkedMessages,
+      onHiddenMessages,
+      onUrgencies;
 
   @override
   State<OfficeRoomDetails> createState() => _OfficeRoomDetailsState();
@@ -93,6 +99,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   Json? _detail, _profile, _announcement, _membership;
   String? _error, _profileError, _preferenceError;
   bool _loading = true, _saving = false, _expired = false;
+  bool _navigated = false;
   int _generation = 0;
   Timer? _refresh;
   String _memberQuery = '';
@@ -241,7 +248,15 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   }
 
   void _navigate(VoidCallback action) {
-    if (!_valid) return;
+    if (!mounted ||
+        !_valid ||
+        _navigated ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+    // Consume the route before popping: retained callbacks can fire again while
+    // the outgoing panel is still mounted, after action has opened its successor.
+    _navigated = true;
     Navigator.of(context).pop();
     action();
   }
@@ -724,6 +739,10 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
                           Icons.restore_from_trash_outlined,
                           widget.onHiddenMessages!,
                         ),
+                    ]),
+                  if (widget.onUrgencies != null)
+                    _section('消息提醒', [
+                      _link('加急消息', Icons.bolt_outlined, widget.onUrgencies!),
                     ]),
                   _section('个人会话设置', [
                     if (_group)

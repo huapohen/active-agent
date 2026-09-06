@@ -33,6 +33,7 @@ List<(String, String, IconData)> officeMessageActions(Json message, bool own) {
       if (str(message['content']).isNotEmpty)
         ('select', '选择文本', Icons.text_fields),
       ('agent', 'Agent 协作', Icons.auto_awesome),
+      if (own) ('urgency', '加急', Icons.bolt_outlined),
       ('multi_select', '多选', Icons.checklist_outlined),
       ('mark', marked ? '取消标记' : '标记', Icons.bookmark_border),
     ],
@@ -40,9 +41,10 @@ List<(String, String, IconData)> officeMessageActions(Json message, bool own) {
     if (live) ...[
       (
         'pin',
-        message['pinned'] == true ? '取消置顶' : '置顶消息',
+        message['pinned'] == true ? '取消 Pin' : 'Pin',
         Icons.push_pin_outlined,
       ),
+      ('highlight', '置顶消息', Icons.vertical_align_top),
       ('task', '创建任务', Icons.add_task),
     ],
     ('export', '导出消息', Icons.file_download_outlined),
@@ -204,9 +206,9 @@ List<List<(String, String, IconData)>> _mobileActionGroups(
   final byId = {for (final action in actions) action.$1: action};
   return [
     for (final ids in const [
-      ['retract', 'multi_select'],
+      ['retract', 'urgency', 'multi_select'],
       ['mark'],
-      ['pin', 'copy_link', 'forwarding'],
+      ['pin', 'highlight', 'copy_link', 'forwarding'],
       ['select', 'edit', 'agent', 'task', 'export', 'read', 'original'],
       ['hide'],
     ])

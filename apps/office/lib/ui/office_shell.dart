@@ -644,196 +644,302 @@ class _OfficeShellState extends State<OfficeShell> {
     );
   }
 
-  Widget _rail() => SizedBox(
-    width: 180,
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(15, 21, 14, 15),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _profileButton(
-                PersonAvatar(
-                  name: str(s.me?['name']),
-                  agent: s.me?['kind'] == 'agent',
-                  size: 34,
-                ),
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '人机',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      str(s.me?['name']),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 9, color: mutedColor),
-                    ),
-                  ],
-                ),
-              ),
+  bool get _desktopCollapsed => s.settings['desktop_nav_collapsed'] == true;
+  String? _collapsePendingIdentity;
+  Future<void> _toggleDesktopNavigation() async {
+    final identity = _identityKey;
+    if (_collapsePendingIdentity == identity || !s.connected) return;
+    final intended = !_desktopCollapsed;
+    setState(() => _collapsePendingIdentity = identity);
+    try {
+      await s.saveSettings({
+        'desktop_nav_collapsed': intended,
+      }, baseRevision: (s.settings['revision'] as num?)?.toInt() ?? 1);
+    } catch (error) {
+      if (mounted && identity == _identityKey) {
+        notifyOffice(context, friendlyError(error));
+      }
+    } finally {
+      if (mounted && _collapsePendingIdentity == identity) {
+        setState(() => _collapsePendingIdentity = null);
+      }
+    }
+  }
+
+  Widget _rail() {
+    final collapsed = _desktopCollapsed;
+    final avatar = _profileButton(
+      PersonAvatar(
+        name: str(s.me?['name']),
+        agent: s.me?['kind'] == 'agent',
+        size: 34,
+      ),
+    );
+    final toggle = IconButton(
+      key: const ValueKey('desktop-navigation-collapse'),
+      tooltip: collapsed ? '展开导航栏' : '收起导航栏',
+      onPressed: s.connected && _collapsePendingIdentity != _identityKey
+          ? _toggleDesktopNavigation
+          : null,
+      icon: Icon(
+        collapsed
+            ? Icons.keyboard_double_arrow_right
+            : Icons.keyboard_double_arrow_left,
+        size: 19,
+      ),
+    );
+    final editor = IconButton(
+      key: const ValueKey('desktop-navigation-editor'),
+      tooltip: '编辑导航栏',
+      onPressed: () => showOfficeDesktopNavigationEditor(context, s),
+      icon: const Icon(Icons.more_horiz, size: 20),
+    );
+    return SizedBox(
+      key: const ValueKey('desktop-navigation-rail'),
+      width: collapsed ? 72 : 180,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          collapsed ? 8 : 15,
+          21,
+          collapsed ? 8 : 14,
+          15,
+        ),
+        child: Column(
+          children: [
+            if (collapsed) ...[
+              avatar,
               _quickMenu(),
-            ],
-          ),
-          const SizedBox(height: 23),
-          OfficeSearch(hint: '搜索', onChanged: _search),
-          const SizedBox(height: 22),
-          Expanded(
-            child: ListView(
-              children: _desktopNavigation.map((entry) {
-                final i = entry.route;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Material(
-                    color: _nav == i
-                        ? const Color(0xffdde6fc)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                    child: Builder(
-                      builder: (itemContext) => CallbackShortcuts(
-                        bindings: {
-                          const SingleActivator(
-                            LogicalKeyboardKey.f10,
-                            shift: true,
-                          ): () =>
-                              _desktopMenu(itemContext, entry),
-                          const SingleActivator(
-                            LogicalKeyboardKey.contextMenu,
-                          ): () =>
-                              _desktopMenu(itemContext, entry),
-                        },
-                        child: InkWell(
-                          key: ValueKey('desktop-nav-${entry.id}'),
-                          onSecondaryTapDown: (details) => _desktopMenu(
-                            itemContext,
-                            entry,
-                            details.globalPosition,
+            ] else
+              Row(
+                children: [
+                  avatar,
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '人机',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
-                          onLongPress: () => _desktopMenu(itemContext, entry),
-                          onTap: () => _changeNav(i),
-                          borderRadius: BorderRadius.circular(6),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 11,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  entry.icon,
-                                  size: 19,
-                                  color: _nav == i
-                                      ? accentColor
-                                      : const Color(0xff626f87),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  entry.label,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: _nav == i
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                    color: _nav == i
-                                        ? accentColor
-                                        : const Color(0xff43516b),
-                                  ),
-                                ),
-                                if (i == 0 &&
-                                    s.rooms.fold<int>(
-                                          0,
-                                          (a, r) =>
-                                              a + officeNotificationCount(r),
-                                        ) >
-                                        0) ...[
-                                  const Spacer(),
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xfff56c6c),
-                                      shape: BoxShape.circle,
+                        ),
+                        Text(
+                          str(s.me?['name']),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: mutedColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _quickMenu(),
+                ],
+              ),
+            SizedBox(height: collapsed ? 4 : 23),
+            if (collapsed)
+              IconButton(
+                tooltip: '搜索',
+                onPressed: () => _search(''),
+                icon: const Icon(Icons.search, size: 21),
+              )
+            else
+              OfficeSearch(hint: '搜索', onChanged: _search),
+            SizedBox(height: collapsed ? 8 : 22),
+            Expanded(
+              child: ListView(
+                children: _desktopNavigation.map((entry) {
+                  final selected = _nav == entry.route;
+                  final unread =
+                      entry.route == 0 &&
+                      s.rooms.any((room) => officeNotificationCount(room) > 0);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Material(
+                      color: selected
+                          ? const Color(0xffdde6fc)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      child: Builder(
+                        builder: (itemContext) => CallbackShortcuts(
+                          bindings: {
+                            const SingleActivator(
+                              LogicalKeyboardKey.f10,
+                              shift: true,
+                            ): () =>
+                                _desktopMenu(itemContext, entry),
+                            const SingleActivator(
+                              LogicalKeyboardKey.contextMenu,
+                            ): () =>
+                                _desktopMenu(itemContext, entry),
+                          },
+                          child: Tooltip(
+                            message: entry.label,
+                            child: InkWell(
+                              key: ValueKey('desktop-nav-${entry.id}'),
+                              onSecondaryTapDown: (details) => _desktopMenu(
+                                itemContext,
+                                entry,
+                                details.globalPosition,
+                              ),
+                              onLongPress: () =>
+                                  _desktopMenu(itemContext, entry),
+                              onTap: () => _changeNav(entry.route),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Stack(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 11,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: collapsed
+                                          ? MainAxisAlignment.center
+                                          : MainAxisAlignment.start,
+                                      children: [
+                                        Icon(
+                                          entry.icon,
+                                          size: 19,
+                                          color: selected
+                                              ? accentColor
+                                              : const Color(0xff626f87),
+                                        ),
+                                        if (!collapsed) ...[
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              entry.label,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: selected
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                                color: selected
+                                                    ? accentColor
+                                                    : const Color(0xff43516b),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
+                                  if (unread)
+                                    Positioned(
+                                      right: 7,
+                                      top: collapsed ? 7 : 17,
+                                      child: Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xfff56c6c),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-          TextButton.icon(
-            key: const ValueKey('desktop-navigation-editor'),
-            onPressed: () => showOfficeDesktopNavigationEditor(context, s),
-            icon: const Icon(Icons.more_horiz, size: 18),
-            label: const Text('更多 · 编辑导航栏', style: TextStyle(fontSize: 11)),
-          ),
-          if (_media.activeMeeting != null && _nav != 6) _callStrip(),
-          Row(
-            children: [
-              Container(
-                width: 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: s.connected
-                      ? const Color(0xff62b98c)
-                      : const Color(0xffe5b775),
-                  shape: BoxShape.circle,
-                ),
+            if (collapsed) ...[
+              editor,
+              toggle,
+            ] else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [toggle, editor],
               ),
-              const SizedBox(width: 7),
-              Text(
-                s.connected ? '消息已同步' : '正在重新连接',
-                style: const TextStyle(fontSize: 9, color: Color(0xff98a3b7)),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: () async {
-                  try {
-                    await s.refresh();
-                  } catch (e) {
-                    if (mounted) notifyOffice(context, friendlyError(e));
-                  }
-                },
-                tooltip: '刷新工作空间',
-                icon: const Icon(Icons.refresh, size: 16),
-                constraints: const BoxConstraints.tightFor(
-                  width: 24,
-                  height: 24,
+            if (_media.activeMeeting != null && _nav != 6)
+              if (collapsed)
+                IconButton(
+                  tooltip: '返回当前会议',
+                  onPressed: () => _changeNav(6),
+                  icon: const Icon(Icons.videocam),
+                )
+              else
+                _callStrip(),
+            Row(
+              mainAxisAlignment: collapsed
+                  ? MainAxisAlignment.center
+                  : MainAxisAlignment.start,
+              children: [
+                Tooltip(
+                  message: s.connected ? '消息已同步' : '正在重新连接',
+                  child: Container(
+                    width: 5,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: s.connected
+                          ? const Color(0xff62b98c)
+                          : const Color(0xffe5b775),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 ),
-                padding: EdgeInsets.zero,
+                if (!collapsed) ...[
+                  const SizedBox(width: 7),
+                  Text(
+                    s.connected ? '消息已同步' : '正在重新连接',
+                    style: const TextStyle(
+                      fontSize: 9,
+                      color: Color(0xff98a3b7),
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+                IconButton(
+                  onPressed: () async {
+                    final identity = _identityKey;
+                    try {
+                      await s.refresh();
+                    } catch (error) {
+                      if (mounted && identity == _identityKey) {
+                        notifyOffice(context, friendlyError(error));
+                      }
+                    }
+                  },
+                  tooltip: '刷新工作空间',
+                  icon: const Icon(Icons.refresh, size: 16),
+                  constraints: const BoxConstraints.tightFor(
+                    width: 24,
+                    height: 24,
+                  ),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+            if (!collapsed) ...[
+              const SizedBox(height: 10),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'ACTIVE AGENT × DOC FREE',
+                  style: TextStyle(
+                    fontSize: 7,
+                    color: Color(0xff9da8bd),
+                    letterSpacing: .8,
+                  ),
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'ACTIVE AGENT × DOC FREE',
-              style: TextStyle(
-                fontSize: 7,
-                color: Color(0xff9da8bd),
-                letterSpacing: .8,
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+
   Widget _mobile() {
     if (_nav == 11) return Material(color: Colors.white, child: _main(true));
     if (!_navAvailable) {
@@ -1336,10 +1442,6 @@ class _OfficeShellState extends State<OfficeShell> {
                     ],
                   ),
                 ),
-              ),
-              Text(
-                '${rooms.length}',
-                style: const TextStyle(fontSize: 10, color: mutedColor),
               ),
             ],
           ),

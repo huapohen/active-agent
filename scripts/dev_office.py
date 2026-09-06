@@ -135,7 +135,8 @@ def main():
         "COLLAB_URL": "http://127.0.0.1:%s" % args.collab_port,
         "DOC_FREE_DATA": str(data / "documents.json"), "DOC_FREE_CRDT_DIR": str(data / "crdt"),
         "DOC_FREE_OFFICE_BUILD": str(ROOT / "apps" / "office" / "build" / "web"),
-        "DOC_FREE_IM_DATA": str(data / "native-im.json"), "HOST": "127.0.0.1"}
+        "DOC_FREE_IM_DATA": str(data / "native-im.json"), "HOST": "127.0.0.1",
+        "NODE_ENV": "development", "DOC_FREE_LOCAL_PASSWORD_MIN_LENGTH": "6"}
     access_path = data / "access.json"
     if access_path.exists():
         existing_access = json.loads(access_path.read_text())

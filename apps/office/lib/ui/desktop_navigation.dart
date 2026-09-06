@@ -94,15 +94,20 @@ class _DesktopNavigationSession extends ChangeNotifier {
     _notify();
   }
 
-  Future<bool> save() async {
+  Future<bool> save({bool? collapsed}) async {
     if (!canSave) return false;
     busy = true;
     error = null;
     _notify();
     try {
-      await state.saveSettings({
-        'desktop_nav': [...selected],
-      }, baseRevision: revision);
+      await state.saveSettings(
+        collapsed == null
+            ? {
+                'desktop_nav': [...selected],
+              }
+            : {'desktop_nav_collapsed': collapsed},
+        baseRevision: revision,
+      );
       return valid;
     } catch (exception) {
       if (valid) {
@@ -521,6 +526,37 @@ class _DesktopNavigationMenu extends StatelessWidget {
                         child: const Text('从导航栏移除'),
                       ),
                       const Divider(height: 1),
+                      MenuItemButton(
+                        leadingIcon: Icon(
+                          session.state.settings['desktop_nav_collapsed'] ==
+                                  true
+                              ? Icons.keyboard_double_arrow_right
+                              : Icons.keyboard_double_arrow_left,
+                          size: 18,
+                        ),
+                        onPressed: session.canSave
+                            ? () async {
+                                final saved = await session.save(
+                                  collapsed:
+                                      session
+                                          .state
+                                          .settings['desktop_nav_collapsed'] !=
+                                      true,
+                                );
+                                if (saved &&
+                                    context.mounted &&
+                                    ModalRoute.of(context)?.isCurrent == true) {
+                                  Navigator.pop(context);
+                                }
+                              }
+                            : null,
+                        child: Text(
+                          session.state.settings['desktop_nav_collapsed'] ==
+                                  true
+                              ? '展开导航栏'
+                              : '收起导航栏',
+                        ),
+                      ),
                       MenuItemButton(
                         leadingIcon: const Icon(Icons.tune, size: 18),
                         onPressed: session.canEdit

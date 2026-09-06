@@ -345,6 +345,65 @@ void main() {
   );
 
   testWidgets(
+    'retained navigation callbacks cannot pop covering or successor routes',
+    (tester) async {
+      final state = RoomDetailsFixture();
+      late NavigatorState navigator;
+      var searches = 0, successorPops = 0;
+      await launchRoom(
+        tester,
+        state,
+        search: () {
+          searches++;
+          final route = MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('后继搜索面板')),
+          );
+          route.popped.then((_) => successorPops++);
+          navigator.push(route);
+        },
+      );
+      navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      final retained = tester
+          .widget<ListTile>(find.widgetWithText(ListTile, '查找聊天内容'))
+          .onTap!;
+
+      final coveringRoute = MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Text('详情之上的临时面板')),
+      );
+      navigator.push(coveringRoute);
+      await tester.pumpAndSettle();
+      retained();
+      await tester.pumpAndSettle();
+      expect(searches, 0);
+      expect(coveringRoute.isCurrent, isTrue);
+      expect(find.text('详情之上的临时面板'), findsOneWidget);
+
+      navigator.pop();
+      await tester.pumpAndSettle();
+      retained();
+      retained(); // Same frame: details is still mounted during its exit.
+      await tester.pumpAndSettle();
+      expect(searches, 1);
+      expect(successorPops, 0);
+      expect(find.text('后继搜索面板'), findsOneWidget);
+      expect(find.byType(OfficeRoomDetails), findsNothing);
+
+      retained(); // A caller can also retain it after details was disposed.
+      await tester.pumpAndSettle();
+      expect(searches, 1);
+      expect(successorPops, 0);
+      expect(find.text('后继搜索面板'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      navigator.pop();
+      await tester.pumpAndSettle();
+      expect(successorPops, 1);
+      expect(find.text('打开详情'), findsOneWidget);
+      expect(navigator.canPop(), isFalse);
+    },
+  );
+
+  testWidgets(
     'identity switch hides profile draft and suppresses stale mutation',
     (tester) async {
       final state = RoomDetailsFixture();

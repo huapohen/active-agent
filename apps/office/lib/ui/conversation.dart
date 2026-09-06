@@ -13,6 +13,8 @@ import 'message_actions.dart';
 import 'message_work_actions.dart';
 import 'message_personal.dart';
 import 'message_links.dart';
+import 'message_highlights.dart';
+import 'message_urgency.dart';
 import 'message_hover_tools.dart';
 import 'message_thread.dart';
 import 'message_receipts.dart';
@@ -90,7 +92,9 @@ class _OfficeConversationState extends State<OfficeConversation>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _pageActive = TickerMode.valuesOf(context).enabled;
+    _pageActive =
+        TickerMode.valuesOf(context).enabled &&
+        ModalRoute.isCurrentOf(context) != false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _syncVisibility();
     });
@@ -852,6 +856,21 @@ class _OfficeConversationState extends State<OfficeConversation>
         if (confirmed == true && sameIdentity()) {
           await s.retractMessage(message, sourceRoomId: sourceRoomId);
         }
+      } else if (action == 'highlight' && sourceRoomId != null) {
+        await _showPanel(
+          () => showOfficeMessageHighlight(
+            context,
+            s,
+            sourceRoomId,
+            message: message,
+            onOpenMessage: (id) =>
+                _focusMessageFromPanel(sourceRoomId, id, identity),
+          ),
+        );
+      } else if (action == 'urgency' && sourceRoomId != null) {
+        await _showPanel(
+          () => showOfficeMessageUrgency(context, s, sourceRoomId, message),
+        );
       } else if (action == 'pin') {
         await s.pinMessage(message, message['pinned'] != true);
       } else if (action == 'forward') {
@@ -872,6 +891,21 @@ class _OfficeConversationState extends State<OfficeConversation>
       if (mounted && sameIdentity()) notifyOffice(context, friendlyError(e));
     } finally {
       _actingMessages.remove(operationKey);
+    }
+  }
+
+  Future<void> _focusMessageFromPanel(
+    String roomId,
+    String messageId,
+    String identity,
+  ) async {
+    if (!mounted || _identity != identity || s.selectedRoomId != roomId) return;
+    try {
+      await s.focusMessage(roomId, messageId);
+    } catch (error) {
+      if (mounted && _identity == identity) {
+        notifyOffice(context, friendlyError(error));
+      }
     }
   }
 
@@ -1245,6 +1279,9 @@ class _OfficeConversationState extends State<OfficeConversation>
                       onRecords: () => openTab(3),
                       onMarkedMessages: () => _personalMessages(),
                       onHiddenMessages: () => _personalMessages(hidden: true),
+                      onUrgencies: () => _showPanel(
+                        () => showOfficeRoomUrgencies(context, s, roomId),
+                      ),
                       onMembers: () {
                         if (mounted && s.selectedRoomId == roomId) {
                           _showPanel(() => OfficeDialogs.members(context, s));
@@ -1321,6 +1358,24 @@ class _OfficeConversationState extends State<OfficeConversation>
             ),
           )
         else ...[
+          if ((detail['native_features'] as Map?)?['message_highlights'] ==
+              true)
+            OfficeMessageHighlightsBanner(
+              key: ValueKey('highlights-$_identity-${room['id']}'),
+              state: s,
+              roomId: str(room['id']),
+              onOpenMessage: (id) =>
+                  _focusMessageFromPanel(str(room['id']), id, viewIdentity),
+              onManage: () => _showPanel(
+                () => showOfficeMessageHighlight(
+                  context,
+                  s,
+                  str(room['id']),
+                  onOpenMessage: (id) =>
+                      _focusMessageFromPanel(str(room['id']), id, viewIdentity),
+                ),
+              ),
+            ),
           if (maps(s.detail?['pins']).isNotEmpty)
             Container(
               margin: const EdgeInsets.fromLTRB(18, 10, 18, 0),
@@ -1339,7 +1394,7 @@ class _OfficeConversationState extends State<OfficeConversation>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '置顶：${str(maps(s.detail?['pins']).first['content'], '附件消息')}',
+                      'Pin：${str(maps(s.detail?['pins']).first['content'], '附件消息')}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -1353,7 +1408,7 @@ class _OfficeConversationState extends State<OfficeConversation>
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text(
-                          '置顶消息',
+                          'Pin 消息',
                           style: TextStyle(fontSize: 18),
                         ),
                         content: SizedBox(
@@ -1394,7 +1449,7 @@ class _OfficeConversationState extends State<OfficeConversation>
                                             Navigator.pop(context);
                                             _messageAction(m, 'pin');
                                           },
-                                          child: const Text('取消置顶'),
+                                          child: const Text('取消 Pin'),
                                         ),
                                       ],
                                     ),

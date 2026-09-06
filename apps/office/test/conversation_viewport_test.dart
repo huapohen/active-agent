@@ -1,5 +1,6 @@
 import 'package:active_office/office_state.dart' show OfficeConversationWindow;
 import 'package:active_office/ui/conversation.dart';
+import 'package:active_office/ui/desktop_navigation.dart';
 import 'package:active_office/ui/office_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -177,6 +178,30 @@ void main() {
     expect(t.takeException(), isNull);
     await finish(t, s);
   });
+  testWidgets(
+    'shell navigation editor blocks receipts until the route becomes current again',
+    (t) async {
+      final s = ViewportOffice();
+      await host(t, s);
+      final context = t.element(find.byType(OfficeConversation));
+      final editing = showOfficeDesktopNavigationEditor(context, s);
+      await t.pumpAndSettle();
+      expect(s.visibility.last, isFalse);
+      final count = s.visible.length;
+      s.notifyListeners();
+      await t.pumpAndSettle();
+      await t.pump(const Duration(milliseconds: 300));
+      expect(s.visible.length, count);
+      Navigator.of(context).pop();
+      await t.pumpAndSettle();
+      await editing;
+      await t.pump(const Duration(milliseconds: 150));
+      expect(s.visibility.last, isTrue);
+      expect(s.visible.length, greaterThan(count));
+      expect(t.takeException(), isNull);
+      await finish(t, s);
+    },
+  );
   testWidgets(
     'mobile starts at unread and its long press panel blocks underlying receipts',
     (t) async {
