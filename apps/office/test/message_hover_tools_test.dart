@@ -44,47 +44,58 @@ Future<void> mountHover(
   bool enabled = true,
   bool active = true,
   bool mounted = true,
+  bool use24Hours = true,
+  String? sentAt = '2026-09-06T13:04:05',
+  Offset messageOffset = const Offset(250, 240),
   ValueChanged<Offset>? onOpenMore,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: officeTheme(),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        data: MediaQuery.of(context)
+            .copyWith(alwaysUse24HourFormat: use24Hours),
         child: child!,
       ),
       home: Scaffold(
         body: TickerMode(
           enabled: active,
-          child: Column(
+          child: Stack(
             children: [
-              const SizedBox(height: 240),
-              if (mounted)
-                OfficeMessageHoverTools(
-                  messageId: 'm1',
-                  state: state,
-                  enabled: enabled,
-                  timestamp: '2026-09-06T13:04:05',
-                  onAction: actions.add,
-                  onOpenMore: onOpenMore,
-                  child: const SizedBox(
-                    key: messageKey,
-                    width: 300,
-                    height: 80,
-                    child: ColoredBox(
-                      color: Color(0xffeaf2ff),
-                      child: Center(child: Text('项目更新消息')),
+              Positioned(
+                left: messageOffset.dx,
+                top: messageOffset.dy,
+                child: Column(
+                  children: [
+                    if (mounted)
+                      OfficeMessageHoverTools(
+                        messageId: 'm1',
+                        state: state,
+                        enabled: enabled,
+                        timestamp: sentAt,
+                        onAction: actions.add,
+                        onOpenMore: onOpenMore,
+                        child: const SizedBox(
+                          key: messageKey,
+                          width: 300,
+                          height: 80,
+                          child: ColoredBox(
+                            color: Color(0xffeaf2ff),
+                            child: Center(child: Text('项目更新消息')),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 18),
+                    const SizedBox(
+                      key: followingKey,
+                      width: 280,
+                      height: 65,
+                      child: ColoredBox(
+                        color: Color(0xfff1f3f5),
+                        child: Center(child: Text('后续工作消息')),
+                      ),
                     ),
-                  ),
-                ),
-              const SizedBox(height: 18),
-              const SizedBox(
-                key: followingKey,
-                width: 280,
-                height: 65,
-                child: ColoredBox(
-                  color: Color(0xfff1f3f5),
-                  child: Center(child: Text('后续工作消息')),
+                  ],
                 ),
               ),
             ],
@@ -129,10 +140,20 @@ void main() {
       final mouse = await enterMessage(tester);
       expect(toolbar(), findsOneWidget);
       expect(timestamp(), findsOneWidget);
-      expect(find.text('2026/09/06 13:04:05'), findsOneWidget);
+      expect(find.text('13:04'), findsOneWidget);
+      expect(find.text('2026/09/06 13:04:05'), findsNothing);
+      expect(find.byTooltip('2026/09/06 13:04:05'), findsOneWidget);
       expect(tester.getRect(find.byKey(messageKey)), messageBefore);
       expect(tester.getRect(find.byKey(followingKey)), followingBefore);
-      expect(tester.getRect(timestamp()).bottom, lessThan(messageBefore.top));
+      final timeRect = tester.getRect(timestamp());
+      final toolbarRect = tester.getRect(toolbar());
+      // The test font has wider digits than the desktop font. The label
+      // expands leftward while retaining the same 8 px gap beside the bubble.
+      expect(timeRect.left, lessThanOrEqualTo(messageBefore.left - 44));
+      expect(timeRect.right, messageBefore.left - 8);
+      expect(timeRect.center.dy, messageBefore.center.dy);
+      expect(toolbarRect.right, messageBefore.right);
+      expect(toolbarRect.top, messageBefore.top - 36);
 
       await mouse.moveTo(const Offset(700, 550));
       await tester.pump(const Duration(milliseconds: 200));
@@ -144,6 +165,104 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('12-hour preference changes only the independent time label', (
+    tester,
+  ) async {
+    final state = HoverFixture();
+    addTearDown(state.dispose);
+    await mountHover(tester, state, [], use24Hours: false);
+    final messageBefore = tester.getRect(find.byKey(messageKey));
+    final followingBefore = tester.getRect(find.byKey(followingKey));
+    final mouse = await enterMessage(tester);
+    expect(find.text('下午 1:04'), findsOneWidget);
+    expect(find.byTooltip('2026/09/06 下午 1:04:05'), findsOneWidget);
+    expect(tester.getRect(timestamp()).right, messageBefore.left - 8);
+    expect(tester.getRect(timestamp()).center.dy, messageBefore.center.dy);
+    expect(tester.getRect(toolbar()).top, messageBefore.top - 36);
+    expect(tester.getRect(find.byKey(messageKey)), messageBefore);
+    expect(tester.getRect(find.byKey(followingKey)), followingBefore);
+    await mouse.removePointer();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'moving onto the time exposes full precision without moving rows',
+    (tester) async {
+      final state = HoverFixture();
+      addTearDown(state.dispose);
+      await mountHover(tester, state, []);
+      final messageBefore = tester.getRect(find.byKey(messageKey));
+      final followingBefore = tester.getRect(find.byKey(followingKey));
+      final mouse = await enterMessage(tester);
+      await mouse.moveTo(tester.getCenter(timestamp()));
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(toolbar(), findsOneWidget);
+      expect(find.text('2026/09/06 13:04:05'), findsOneWidget);
+      expect(tester.getRect(find.byKey(messageKey)), messageBefore);
+      expect(tester.getRect(find.byKey(followingKey)), followingBefore);
+      await mouse.moveTo(const Offset(700, 550));
+      await tester.pump(const Duration(seconds: 1));
+      await mouse.removePointer();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final edge in [
+    ('top left', const Offset(0, -30)),
+    ('bottom right', const Offset(550, 560)),
+  ]) {
+    testWidgets('time and toolbar stay inside the $edge overlay boundary', (
+      tester,
+    ) async {
+      final state = HoverFixture();
+      addTearDown(state.dispose);
+      await mountHover(tester, state, [], messageOffset: edge.$2);
+      final messageBefore = tester.getRect(find.byKey(messageKey));
+      final followingBefore = tester.getRect(find.byKey(followingKey));
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: const Offset(400, 350));
+      await mouse.moveTo(
+        Offset(
+          messageBefore.center.dx.clamp(1.0, 799.0),
+          messageBefore.center.dy.clamp(1.0, 599.0),
+        ),
+      );
+      await tester.pump();
+      for (final finder in [timestamp(), toolbar()]) {
+        expect(finder, findsOneWidget);
+        final bounds = tester.getRect(finder);
+        expect(bounds.left, greaterThanOrEqualTo(8));
+        expect(bounds.top, greaterThanOrEqualTo(8));
+        expect(bounds.right, lessThanOrEqualTo(792));
+        expect(bounds.bottom, lessThanOrEqualTo(592));
+      }
+      expect(tester.getRect(find.byKey(messageKey)), messageBefore);
+      expect(tester.getRect(find.byKey(followingKey)), followingBefore);
+      await mouse.removePointer();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('missing timestamp does not alter the toolbar anchor', (
+    tester,
+  ) async {
+    final state = HoverFixture();
+    addTearDown(state.dispose);
+    await mountHover(tester, state, [], sentAt: null);
+    final messageBefore = tester.getRect(find.byKey(messageKey));
+    final mouse = await enterMessage(tester);
+    expect(timestamp(), findsNothing);
+    expect(toolbar(), findsOneWidget);
+    expect(tester.getRect(toolbar()).top, messageBefore.top - 36);
+    expect(tester.getRect(toolbar()).right, messageBefore.right);
+    await mouse.removePointer();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'moving from a message into its toolbar preserves hover controls',
@@ -260,9 +379,12 @@ void main() {
       await mouse.moveTo(tester.getCenter(find.byTooltip('表情回应')));
       await loadOpenPicker(tester);
       expect(find.byType(OfficeEmojiPicker), findsOneWidget);
-      expect(find.text('最近使用'), findsOneWidget);
-      expect(find.text('全部'), findsOneWidget);
-      expect(find.text('经典表情'), findsOneWidget);
+      expect(find.text('最常使用'), findsOneWidget);
+      expect(find.text('默认表情'), findsOneWidget);
+      expect(find.byType(ChoiceChip), findsNothing);
+      expect(find.byType(TextField), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('emoji-open-search')));
+      await tester.pumpAndSettle();
       expect(
         find.widgetWithText(TextField, '搜索表情（中文 / English）'),
         findsOneWidget,

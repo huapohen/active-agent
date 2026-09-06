@@ -107,6 +107,9 @@ Future<void> tap(WidgetTester tester, Finder finder) async {
 }
 
 Future<void> search(WidgetTester tester, String text) async {
+  if (find.byType(TextField).evaluate().isEmpty) {
+    await tap(tester, find.byKey(const ValueKey('emoji-open-search')));
+  }
   await tester.enterText(find.byType(TextField), text);
   await tester.pumpAndSettle();
 }
@@ -202,7 +205,7 @@ void main() {
           'method': 'POST',
           'data': {'emoji': 'feishu:OK'},
         });
-        await tap(tester, find.widgetWithText(ChoiceChip, '最近使用'));
+        await tap(tester, find.byKey(const ValueKey('emoji-open-recents')));
         expect(emoji('feishu:OK'), findsOneWidget);
         expect(emoji('😀'), findsOneWidget);
         await finish(tester);
@@ -222,13 +225,256 @@ void main() {
       expect(emoji('feishu:THUMBSUP'), findsNothing);
       await tap(tester, emoji('😀'));
       expect(selected.single, '😀');
-      await tap(tester, find.widgetWithText(ChoiceChip, '全部'));
-      final grid = tester.widget<GridView>(find.byType(GridView));
-      expect(
-        (grid.childrenDelegate as SliverChildBuilderDelegate).childCount,
-        4126,
+      await tap(tester, find.byKey(const ValueKey('emoji-open-library')));
+      final grid = tester.widget<SliverGrid>(
+        find.byKey(const ValueKey('emoji-grid')),
       );
+      expect((grid.delegate as SliverChildBuilderDelegate).childCount, 4126);
       expect(find.byType(OfficeEmojiGlyph).evaluate().length, lessThan(150));
+      await finish(tester);
+    },
+  );
+
+  testWidgets(
+    'default view shows fourteen shortcuts and defaults in one seven-column scroll',
+    (tester) async {
+      final state = EmojiFixture()
+        ..recents = officeClassicEmoji.keys.take(32).toList();
+      final selected = <String>[];
+      await mountPicker(tester, state, selected);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byType(ChoiceChip), findsNothing);
+      expect(find.text('最常使用'), findsOneWidget);
+      expect(find.text('默认表情'), findsOneWidget);
+      final recentGrid = tester.widget<SliverGrid>(
+        find.byKey(const ValueKey('emoji-recent-shortcuts')),
+      );
+      final defaultGrid = tester.widget<SliverGrid>(
+        find.byKey(const ValueKey('emoji-grid')),
+      );
+      expect(
+        (recentGrid.delegate as SliverChildBuilderDelegate).childCount,
+        14,
+      );
+      expect(
+        (defaultGrid.delegate as SliverChildBuilderDelegate).childCount,
+        182,
+      );
+      for (final grid in [recentGrid, defaultGrid]) {
+        expect(
+          (grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+              .crossAxisCount,
+          7,
+        );
+        expect(
+          (grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+              .mainAxisExtent,
+          42,
+        );
+      }
+      final shortcuts = state.recents
+          .take(14)
+          .map((id) => find.byKey(ValueKey('emoji-recent-$id')))
+          .toList();
+      final firstRow = shortcuts
+          .take(7)
+          .map((finder) => tester.getRect(finder))
+          .toList();
+      final secondRow = shortcuts
+          .skip(7)
+          .map((finder) => tester.getRect(finder))
+          .toList();
+      expect(firstRow.map((rect) => rect.top).toSet().length, 1);
+      expect(secondRow.map((rect) => rect.top).toSet().length, 1);
+      expect(secondRow.first.top - firstRow.first.top, 42);
+      expect(
+        tester.getRect(find.text('默认表情')).top,
+        greaterThan(secondRow.first.bottom),
+      );
+      expect(
+        tester.getRect(find.text('默认表情')).bottom,
+        lessThan(
+          tester.getRect(find.byKey(const ValueKey('emoji-fixed-footer'))).top,
+        ),
+      );
+      expect(
+        tester
+            .widgetList<OfficeEmojiGlyph>(find.byType(OfficeEmojiGlyph))
+            .every((glyph) => glyph.size == 28),
+        isTrue,
+      );
+      final footerBefore = tester.getRect(
+        find.byKey(const ValueKey('emoji-fixed-footer')),
+      );
+      await tester.drag(
+        find.byKey(const ValueKey('emoji-scroll')),
+        const Offset(0, -400),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(find.byKey(const ValueKey('emoji-fixed-footer'))),
+        footerBefore,
+      );
+      final scroll = tester
+          .widget<CustomScrollView>(find.byKey(const ValueKey('emoji-scroll')))
+          .controller!;
+      expect(scroll.offset, greaterThan(100));
+      expect(find.byType(OfficeEmojiGlyph).evaluate().length, lessThan(150));
+      await finish(tester);
+    },
+  );
+
+  testWidgets(
+    'library and search keep Unicode categories and canonical code matching available',
+    (tester) async {
+      final state = EmojiFixture(), selected = <String>[];
+      await mountPicker(tester, state, selected);
+      await tap(tester, find.byKey(const ValueKey('emoji-open-library')));
+      expect(find.text('表情库'), findsOneWidget);
+      await tap(tester, find.widgetWithText(ChoiceChip, '旗帜'));
+      final grid = tester.widget<SliverGrid>(
+        find.byKey(const ValueKey('emoji-grid')),
+      );
+      expect(
+        (grid.delegate as SliverChildBuilderDelegate).childCount,
+        greaterThan(100),
+      );
+      expect(
+        (grid.delegate as SliverChildBuilderDelegate).childCount,
+        lessThan(4126),
+      );
+      await search(tester, 'feishu:THUMBSUP');
+      expect(emoji('feishu:THUMBSUP'), findsOneWidget);
+      await search(tester, '😀');
+      expect(emoji('😀'), findsOneWidget);
+      await tap(tester, find.byTooltip('收起搜索'));
+      expect(find.byType(TextField), findsNothing);
+      await tap(tester, find.byKey(const ValueKey('emoji-open-classic')));
+      expect(find.byType(ChoiceChip), findsNothing);
+      expect(find.text('最常使用'), findsOneWidget);
+      expect(find.text('默认表情'), findsOneWidget);
+      await finish(tester);
+    },
+  );
+
+  testWidgets(
+    'shortcut selection and management retain all thirty-two personal recents',
+    (tester) async {
+      final state = EmojiFixture()
+        ..recents = officeClassicEmoji.keys.take(32).toList();
+      final selected = <String>[];
+      await mountPicker(tester, state, selected);
+      final chosen = state.recents[5];
+      await tap(tester, find.byKey(ValueKey('emoji-recent-$chosen')));
+      expect(selected, [chosen]);
+      expect(state.requests.last['data'], {'emoji': chosen});
+      await tap(tester, find.byKey(const ValueKey('emoji-open-recents')));
+      final grid = tester.widget<SliverGrid>(
+        find.byKey(const ValueKey('emoji-grid')),
+      );
+      expect((grid.delegate as SliverChildBuilderDelegate).childCount, 32);
+      expect(find.text('最近使用 · 32/32'), findsOneWidget);
+      expect(emoji(chosen), findsOneWidget);
+      await tap(tester, find.byKey(const ValueKey('emoji-open-classic')));
+      final retained = tester
+          .widget<InkWell>(
+            find.descendant(
+              of: find.byKey(ValueKey('emoji-recent-$chosen')),
+              matching: find.byType(InkWell),
+            ),
+          )
+          .onTap!;
+      state.changeIdentity();
+      await tester.pumpAndSettle();
+      retained();
+      expect(selected, [chosen]);
+      expect(find.text('工作身份已变化，请重新打开表情。'), findsOneWidget);
+      await finish(tester);
+    },
+  );
+
+  testWidgets(
+    'mobile emoji sheet drags from forty-five to eighty-five percent before scrolling',
+    (tester) async {
+      final state = EmojiFixture()
+        ..recents = officeClassicEmoji.keys.take(14).toList();
+      addTearDown(state.dispose);
+      tester.view.physicalSize = const Size(390, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: officeTheme(),
+          home: Scaffold(
+            body: Column(
+              children: [
+                const Text('聊天仍在背景中'),
+                Builder(
+                  builder: (context) => TextButton(
+                    onPressed: () => showOfficeEmojiPicker(context, state),
+                    child: const Text('打开选择器'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tap(tester, find.text('打开选择器'));
+      final pickerFinder = find.byType(OfficeEmojiPicker);
+      final initialRect = tester.getRect(pickerFinder);
+      expect(initialRect.height, closeTo(800 * .45, 1));
+      expect(initialRect.top, greaterThan(400));
+      expect(find.text('聊天仍在背景中'), findsOneWidget);
+      expect(find.text('最常使用'), findsOneWidget);
+      expect(find.text('默认表情'), findsOneWidget);
+      final picker = tester.widget<OfficeEmojiPicker>(pickerFinder);
+      final scroll = tester.widget<CustomScrollView>(
+        find.byKey(const ValueKey('emoji-scroll')),
+      );
+      expect(picker.scrollController, isNotNull);
+      expect(scroll.controller, same(picker.scrollController));
+      await tester.timedDrag(
+        find.byKey(const ValueKey('emoji-drag-handle')),
+        const Offset(0, -320),
+        const Duration(milliseconds: 600),
+      );
+      await tester.pumpAndSettle();
+      final expandedRect = tester.getRect(pickerFinder);
+      expect(expandedRect.height, closeTo(800 * .85, 1));
+      expect(expandedRect.top, closeTo(120, 1));
+      final footerBefore = tester.getRect(
+        find.byKey(const ValueKey('emoji-fixed-footer')),
+      );
+      await tester.timedDrag(
+        find.byKey(const ValueKey('emoji-scroll')),
+        const Offset(0, -250),
+        const Duration(milliseconds: 500),
+      );
+      await tester.pumpAndSettle();
+      expect(scroll.controller!.offset, greaterThan(100));
+      expect(tester.getRect(pickerFinder), expandedRect);
+      expect(
+        tester.getRect(find.byKey(const ValueKey('emoji-fixed-footer'))),
+        footerBefore,
+      );
+      expect(pickerFinder, findsOneWidget);
+      await tap(tester, find.byKey(const ValueKey('emoji-open-classic')));
+      await tap(tester, find.byKey(const ValueKey('emoji-open-search')));
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(find.byType(TextField)).bottom,
+        lessThanOrEqualTo(500),
+      );
+      expect(
+        tester.getRect(find.byKey(const ValueKey('emoji-fixed-footer'))).bottom,
+        lessThanOrEqualTo(500),
+      );
+      await search(tester, 'THUMBSUP');
+      expect(emoji('feishu:THUMBSUP'), findsOneWidget);
       await finish(tester);
     },
   );
@@ -268,7 +514,7 @@ void main() {
     final selected = <String>[];
     await mountPicker(tester, state, selected);
     await tap(tester, emoji('feishu:THUMBSUP'));
-    await tap(tester, find.widgetWithText(ChoiceChip, '最近使用'));
+    await tap(tester, find.byKey(const ValueKey('emoji-open-recents')));
     expect(emoji('feishu:THUMBSUP'), findsOneWidget);
     state.pendingGet!.complete({
       'emoji_ids': ['😀'],
@@ -300,7 +546,7 @@ void main() {
       await tap(tester, emoji('feishu:OK'));
       expect(selected, ['feishu:OK']);
       expect(state.requests.length, count);
-      await tap(tester, find.widgetWithText(ChoiceChip, '最近使用'));
+      await tap(tester, find.byKey(const ValueKey('emoji-open-recents')));
       expect(
         tester
             .widget<TextButton>(find.widgetWithText(TextButton, '清空最近使用'))
@@ -337,7 +583,7 @@ void main() {
     (tester) async {
       final state = EmojiFixture(), selected = <String>[];
       await mountPicker(tester, state, selected);
-      await tap(tester, find.widgetWithText(ChoiceChip, '最近使用'));
+      await tap(tester, find.byKey(const ValueKey('emoji-open-recents')));
       state.failure = OfficeException(503, '无法清空');
       await tap(tester, find.widgetWithText(TextButton, '清空最近使用'));
       expect(emoji('feishu:OK'), findsOneWidget);
@@ -359,7 +605,7 @@ void main() {
     (tester) async {
       final state = EmojiFixture(), selected = <String>[];
       await mountPicker(tester, state, selected);
-      await tap(tester, find.widgetWithText(ChoiceChip, '最近使用'));
+      await tap(tester, find.byKey(const ValueKey('emoji-open-recents')));
       state.pendingDelete = Completer<Json>();
       await tap(tester, find.widgetWithText(TextButton, '清空最近使用'));
       await tap(tester, emoji('feishu:OK'));

@@ -165,12 +165,16 @@ void main() {
       await tester.longPressAt(tester.getTopLeft(region) + const Offset(4, 4));
       await tester.pumpAndSettle();
       expect(find.text('查看原文'), findsOneWidget);
+      await tester.ensureVisible(find.text('撤回消息'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('撤回消息'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       expect(state.retractions, isEmpty);
       await tester.tap(find.byTooltip('消息操作').first);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('撤回消息'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('撤回消息'));
       await tester.pumpAndSettle();

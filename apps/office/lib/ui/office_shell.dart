@@ -23,6 +23,8 @@ import 'message_group_editor.dart';
 import 'message_group_labels.dart';
 import 'calendar.dart';
 import 'conversation.dart';
+import 'message_personal.dart';
+import 'message_links.dart';
 import 'conversation_list.dart';
 import 'enterprise.dart';
 import 'meetings.dart';
@@ -95,6 +97,12 @@ class _OfficeShellState extends State<OfficeShell> {
   void initState() {
     super.initState();
     _media.addListener(_mediaChanged);
+    final target = officeMessageTarget(Uri.base);
+    if (target != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_openMessageTarget(target.$1, target.$2));
+      });
+    }
   }
 
   void _groupsChanged() {
@@ -347,6 +355,36 @@ class _OfficeShellState extends State<OfficeShell> {
       await s.selectRoom(id);
     } catch (e) {
       if (mounted) notifyOffice(context, friendlyError(e));
+    }
+  }
+
+  Future<void> _openMessageTarget(String roomId, String messageId) async {
+    _searchTimer?.cancel();
+    _searchIntent++;
+    final identity = _identityKey;
+    setState(() {
+      _nav = 0;
+      _roomOpen = true;
+      _searchOpen = false;
+      _globalQuery = '';
+    });
+    try {
+      await s.focusMessage(roomId, messageId);
+    } catch (error) {
+      if (mounted && identity == _identityKey) {
+        notifyOffice(context, friendlyError(error));
+      }
+    }
+  }
+
+  Future<void> _openMarkedMessages() async {
+    final identity = _identityKey;
+    final chosen = await showOfficePersonalMessages(context, s);
+    if (chosen != null && mounted && identity == _identityKey) {
+      await _openMessageTarget(
+        str(chosen['room_id']),
+        str((chosen['message'] as Map?)?['id']),
+      );
     }
   }
 
@@ -1306,6 +1344,16 @@ class _OfficeShellState extends State<OfficeShell> {
             ],
           ),
         ),
+        if (_messageGroups.selectedId == 'marked')
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const ValueKey('open-marked-messages'),
+              onPressed: _openMarkedMessages,
+              icon: const Icon(Icons.bookmark_outline, size: 18),
+              label: const Text('查看已标记消息'),
+            ),
+          ),
         if (_messageGroups.group(_messageGroups.selectedId)?['type'] == 'label')
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 10, 4),

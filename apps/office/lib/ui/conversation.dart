@@ -10,6 +10,9 @@ import 'attachments.dart';
 import 'conversation_details.dart';
 import 'room_details.dart';
 import 'message_actions.dart';
+import 'message_work_actions.dart';
+import 'message_personal.dart';
+import 'message_links.dart';
 import 'message_hover_tools.dart';
 import 'message_thread.dart';
 import 'message_receipts.dart';
@@ -197,7 +200,9 @@ class _OfficeConversationState extends State<OfficeConversation>
       }
       if (_scroll.hasClients) {
         _scroll.jumpTo(
-          window.startAtUnread ? 0 : _scroll.position.maxScrollExtent,
+          (window.startAtUnread || window.anchorSeq != null)
+              ? 0
+              : _scroll.position.maxScrollExtent,
         );
       }
       _positioning = false;
@@ -311,6 +316,9 @@ class _OfficeConversationState extends State<OfficeConversation>
     _error = null;
     _messageCount = 0;
     _moreTools = false;
+    _selectedMessages.clear();
+    _selectingMessages = false;
+    _selectionBusy = false;
     _positionVersion = -1;
     _messageKeys.clear();
     _positioning = false;
@@ -576,6 +584,7 @@ class _OfficeConversationState extends State<OfficeConversation>
         message,
         own: message['author_id'] == personId(s.me ?? {}),
         position: position,
+        state: s,
       ),
     );
     if (action != null &&
@@ -681,7 +690,59 @@ class _OfficeConversationState extends State<OfficeConversation>
     final operationKey = '$identity:$sourceRoomId:${message['id']}';
     if (!_actingMessages.add(operationKey)) return;
     try {
-      if (action == 'original') {
+      if (action == 'multi_select') {
+        setState(() {
+          _selectingMessages = true;
+          _selectedMessages[str(message['id'])] = Json.from(message);
+        });
+        _focus.unfocus();
+      } else if (action == 'mark' && sourceRoomId != null) {
+        await s.setMessagePersonal(
+          sourceRoomId,
+          str(message['id']),
+          marked: (message['personal_preferences'] as Map?)?['marked'] != true,
+        );
+      } else if (action == 'hide' && sourceRoomId != null) {
+        await s.setMessagePersonal(
+          sourceRoomId,
+          str(message['id']),
+          hidden: true,
+        );
+        if (mounted && sameIdentity()) {
+          notifyOffice(context, '已从你的聊天中删除，可在会话详情的已删除消息中恢复。');
+        }
+      } else if (action == 'forwarding' && sourceRoomId != null) {
+        await s.setMessageForwarding(
+          sourceRoomId,
+          message,
+          message['forwarding_own_no_forward'] != true,
+        );
+      } else if (action == 'copy_link' && sourceRoomId != null) {
+        await Clipboard.setData(
+          ClipboardData(
+            text: officeMessageLink(
+              s.endpoint,
+              sourceRoomId,
+              str(message['id']),
+            ),
+          ),
+        );
+        if (mounted && sameIdentity()) {
+          notifyOffice(context, '消息链接已复制，仅有会话权限的成员可打开。');
+        }
+      } else if ((action == 'task' || action == 'export') &&
+          sourceRoomId != null) {
+        final result = await _showPanel(
+          () => action == 'task'
+              ? showOfficeMessageTask(context, s, sourceRoomId, [message])
+              : showOfficeMessageExport(context, s, sourceRoomId, [message]),
+        );
+        if (result != null &&
+            sameIdentity() &&
+            s.selectedRoomId == sourceRoomId) {
+          setState(() => _tab = action == 'task' ? 2 : 1);
+        }
+      } else if (action == 'original') {
         if (sourceRoomId != null) {
           await _showPanel(
             () => showOfficeMessageOriginal(
@@ -718,10 +779,10 @@ class _OfficeConversationState extends State<OfficeConversation>
               _focus.requestFocus();
             },
             onRecords: () {
-              if (current()) setState(() => _tab = 3);
+              if (mounted && current()) setState(() => _tab = 3);
             },
             onStore: () {
-              if (current()) widget.onAgentStore?.call();
+              if (mounted && current()) widget.onAgentStore?.call();
             },
           ),
         );
@@ -744,7 +805,7 @@ class _OfficeConversationState extends State<OfficeConversation>
         _focus.requestFocus();
       } else if (action == 'copy') {
         await Clipboard.setData(ClipboardData(text: str(message['content'])));
-        if (mounted) notifyOffice(context, '消息已复制');
+        if (mounted && sameIdentity()) notifyOffice(context, '消息已复制');
       } else if (action == 'select') {
         await _showPanel(
           () => showDialog<void>(
@@ -800,15 +861,251 @@ class _OfficeConversationState extends State<OfficeConversation>
         );
         if (target != null && roomId != null && sameIdentity()) {
           await s.forwardMessage(message, target, sourceRoomId: roomId);
-          if (mounted) notifyOffice(context, '消息已转发，附件在目标会话中独立共享。');
+          if (mounted && sameIdentity()) {
+            notifyOffice(context, '消息已转发，附件在目标会话中独立共享。');
+          }
         }
       } else if (action.startsWith('react:')) {
         await s.react(str(message['id']), action.substring(6));
       }
     } catch (e) {
-      if (mounted) notifyOffice(context, friendlyError(e));
+      if (mounted && sameIdentity()) notifyOffice(context, friendlyError(e));
     } finally {
       _actingMessages.remove(operationKey);
+    }
+  }
+
+  final _selectedMessages = <String, Json>{};
+  bool _selectingMessages = false, _selectionBusy = false;
+
+  Future<void> _personalMessages({bool hidden = false}) async {
+    final roomId = s.selectedRoomId, identity = _identity;
+    final chosen = await _showPanel(
+      () => showOfficePersonalMessages(
+        context,
+        s,
+        roomId: roomId,
+        hidden: hidden,
+      ),
+    );
+    if (chosen != null && mounted && identity == _identity) {
+      try {
+        await s.focusMessage(
+          str(chosen['room_id']),
+          str((chosen['message'] as Map?)?['id']),
+        );
+      } catch (error) {
+        if (mounted && identity == _identity) {
+          notifyOffice(context, friendlyError(error));
+        }
+      }
+    }
+  }
+
+  void _toggleSelected(Json message) {
+    if (_selectionBusy) return;
+    final id = str(message['id']);
+    if (!_selectedMessages.containsKey(id) && _selectedMessages.length >= 50) {
+      notifyOffice(context, '一次最多选择 50 条消息');
+      return;
+    }
+    setState(() {
+      if (_selectedMessages.containsKey(id)) {
+        _selectedMessages.remove(id);
+      } else {
+        _selectedMessages[id] = Json.from(message);
+      }
+    });
+  }
+
+  Widget _selectionWrapper(Json message, Widget child) {
+    if (!_selectingMessages) return child;
+    return InkWell(
+      key: ValueKey('message-actions-${message['id']}'),
+      onTap: _selectionBusy ? null : () => _toggleSelected(message),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            key: ValueKey('select-message-${message['id']}'),
+            value: _selectedMessages.containsKey(str(message['id'])),
+            onChanged: _selectionBusy ? null : (_) => _toggleSelected(message),
+          ),
+          Expanded(child: IgnorePointer(child: child)),
+        ],
+      ),
+    );
+  }
+
+  Widget _selectionBar() => Material(
+    color: Theme.of(context).colorScheme.surface,
+    child: SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Text('已选择 ${_selectedMessages.length} / 50 条'),
+                const Spacer(),
+                if (_selectionBusy)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                TextButton(
+                  onPressed: _selectionBusy
+                      ? null
+                      : () => setState(() {
+                          _selectingMessages = false;
+                          _selectedMessages.clear();
+                        }),
+                  child: const Text('取消多选'),
+                ),
+              ],
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final action in [
+                    ('forward', '逐条转发', Icons.forward_outlined),
+                    ('copy_link', '复制消息链接', Icons.link),
+                    ('task', '添加任务', Icons.task_alt),
+                    ('export', '导出到文档', Icons.description_outlined),
+                    ('copy', '复制文本', Icons.copy_outlined),
+                    ('hide', '删除', Icons.delete_outline),
+                  ])
+                    SizedBox(
+                      width: widget.mobile ? 82 : 102,
+                      child: TextButton(
+                        key: ValueKey('selected-messages-${action.$1}'),
+                        onPressed: _selectionBusy || _selectedMessages.isEmpty
+                            ? null
+                            : () => _selectionAction(action.$1),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(action.$3, size: 23),
+                            const SizedBox(height: 8),
+                            Text(
+                              action.$2,
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Future<void> _selectionAction(String action) async {
+    if (_selectionBusy || _selectedMessages.isEmpty) return;
+    final identity = _identity, roomId = s.selectedRoomId;
+    if (roomId == null) return;
+    final messages = _selectedMessages.values.map(Json.from).toList()
+      ..sort(
+        (a, b) => ((a['seq'] as num?) ?? 0).compareTo((b['seq'] as num?) ?? 0),
+      );
+    bool current() =>
+        mounted && identity == _identity && s.selectedRoomId == roomId;
+    setState(() => _selectionBusy = true);
+    try {
+      if (action == 'task' || action == 'export') {
+        final result = await _showPanel(
+          () => action == 'task'
+              ? showOfficeMessageTask(context, s, roomId, messages)
+              : showOfficeMessageExport(context, s, roomId, messages),
+        );
+        if (result == null || !current()) return;
+        setState(() {
+          _selectedMessages.clear();
+          _tab = action == 'task' ? 2 : 1;
+        });
+      } else if (action == 'copy' || action == 'copy_link') {
+        final fresh = <Json>[];
+        for (final message in messages) {
+          if (!current()) return;
+          final result = await s.officeRequest(
+            '/rooms/${Uri.encodeComponent(roomId)}/messages/${Uri.encodeComponent(str(message['id']))}',
+          );
+          if (!current()) return;
+          final value = Json.from(result['message'] as Map? ?? {});
+          if (value['id'] != message['id'] ||
+              value['hidden'] == true ||
+              value['retracted_at'] != null) {
+            throw OfficeException(409, '所选消息已删除或撤回，请重新选择');
+          }
+          fresh.add(value);
+        }
+        if (!current()) return;
+        await Clipboard.setData(
+          ClipboardData(
+            text: fresh
+                .map(
+                  (m) => action == 'copy_link'
+                      ? officeMessageLink(s.endpoint, roomId, str(m['id']))
+                      : str(m['content']),
+                )
+                .join('\n\n'),
+          ),
+        );
+        if (mounted && current()) {
+          notifyOffice(
+            context,
+            '已复制 ${messages.length} 条消息${action == 'copy_link' ? '链接' : ''}',
+          );
+        }
+        return;
+      } else {
+        String? target;
+        if (action == 'forward') {
+          target = await _showPanel(
+            () => showOfficeForwardPicker(context, s.rooms, {
+              'content': '逐条转发 ${messages.length} 条消息',
+            }),
+          );
+          if (target == null || !current()) return;
+        }
+        for (final message in messages) {
+          if (!current()) return;
+          if (action == 'hide') {
+            await s.setMessagePersonal(
+              roomId,
+              str(message['id']),
+              hidden: true,
+            );
+          } else {
+            await s.forwardMessage(message, target!, sourceRoomId: roomId);
+          }
+          if (!current()) return;
+          setState(() => _selectedMessages.remove(str(message['id'])));
+        }
+        if (mounted && current()) {
+          notifyOffice(
+            context,
+            action == 'hide' ? '已从你的聊天中删除，可在会话详情中恢复。' : '消息已逐条转发',
+          );
+        }
+      }
+      if (current() && _selectedMessages.isEmpty) {
+        setState(() => _selectingMessages = false);
+      }
+    } catch (error) {
+      if (mounted && current()) {
+        notifyOffice(context, '${friendlyError(error)}，未完成的消息仍保留选择。');
+      }
+    } finally {
+      if (mounted && current()) setState(() => _selectionBusy = false);
     }
   }
 
@@ -823,7 +1120,7 @@ class _OfficeConversationState extends State<OfficeConversation>
       );
     }
     final room = detail['room'] as Map? ?? {};
-    final viewIdentity = '${s.endpoint}:${personId(s.me ?? {})}';
+    final viewIdentity = _identity;
     final messages = maps(detail['messages']);
     final loadedIds = messages.map((message) => str(message['id'])).toSet();
     _messageKeys.removeWhere((id, _) => !loadedIds.contains(id));
@@ -847,7 +1144,8 @@ class _OfficeConversationState extends State<OfficeConversation>
           !_positioning &&
           !_loadingHistory &&
           window?.hasMoreAfter != true &&
-          window?.startAtUnread != true) {
+          window?.startAtUnread != true &&
+          window?.anchorSeq == null) {
         _bottom();
       }
       _messageCount = messages.length;
@@ -945,6 +1243,8 @@ class _OfficeConversationState extends State<OfficeConversation>
                       onDocuments: () => openTab(1),
                       onTasks: () => openTab(2),
                       onRecords: () => openTab(3),
+                      onMarkedMessages: () => _personalMessages(),
+                      onHiddenMessages: () => _personalMessages(hidden: true),
                       onMembers: () {
                         if (mounted && s.selectedRoomId == roomId) {
                           _showPanel(() => OfficeDialogs.members(context, s));
@@ -1230,235 +1530,259 @@ class _OfficeConversationState extends State<OfficeConversation>
                               onPressed: () => _openMessageActions(m),
                               icon: const Icon(Icons.more_horiz),
                             );
-                            return OfficeMessageActionRegion(
-                              key: ValueKey('message-actions-${m['id']}'),
-                              onOpen: (position) =>
-                                  _openMessageActions(m, position),
-                              child: Column(
-                                key: _messageKeys.putIfAbsent(
-                                  str(m['id']),
-                                  GlobalKey.new,
-                                ),
-                                children: [
-                                  if (m['seq'] == window?.entryFirstUnreadSeq)
-                                    Padding(
-                                      key: const ValueKey(
-                                        'first-unread-divider',
-                                      ),
-                                      padding: const EdgeInsets.only(
-                                        bottom: 18,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Expanded(child: Divider()),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                            ),
-                                            child: Text(
-                                              '以下为未读消息 · ${window?.entryUnreadCount ?? 0} 条',
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: accentColor,
+                            return _selectionWrapper(
+                              m,
+                              OfficeMessageActionRegion(
+                                key: ValueKey('message-actions-${m['id']}'),
+                                onOpen: (position) =>
+                                    _openMessageActions(m, position),
+                                child: Column(
+                                  key: _messageKeys.putIfAbsent(
+                                    str(m['id']),
+                                    GlobalKey.new,
+                                  ),
+                                  children: [
+                                    if (m['seq'] == window?.entryFirstUnreadSeq)
+                                      Padding(
+                                        key: const ValueKey(
+                                          'first-unread-divider',
+                                        ),
+                                        padding: const EdgeInsets.only(
+                                          bottom: 18,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Expanded(child: Divider()),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                  ),
+                                              child: Text(
+                                                '以下为未读消息 · ${window?.entryUnreadCount ?? 0} 条',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: accentColor,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          const Expanded(child: Divider()),
-                                        ],
+                                            const Expanded(child: Divider()),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  if (index == 0 ||
-                                      clockText(
-                                            filtered[index - 1]['at'],
-                                            date: true,
-                                            context: context,
-                                          ) !=
+                                    if (index == 0 ||
+                                        clockText(
+                                              filtered[index - 1]['at'],
+                                              date: true,
+                                              context: context,
+                                            ) !=
+                                            clockText(
+                                              m['at'],
+                                              date: true,
+                                              context: context,
+                                            ))
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 4,
+                                          bottom: 18,
+                                        ),
+                                        child: Text(
                                           clockText(
                                             m['at'],
                                             date: true,
                                             context: context,
-                                          ))
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        top: 4,
-                                        bottom: 18,
-                                      ),
-                                      child: Text(
-                                        clockText(
-                                          m['at'],
-                                          date: true,
-                                          context: context,
-                                        ),
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          color: Color(0xffb2b6bd),
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Color(0xffb2b6bd),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  MouseRegion(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 18,
-                                      ),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisAlignment: alignRight
-                                            ? MainAxisAlignment.end
-                                            : MainAxisAlignment.start,
-                                        children: [
-                                          if (!alignRight) ...[
-                                            PersonAvatar(
-                                              name: officeDisplayName(author),
-                                              agent: author['kind'] == 'agent',
-                                              size: 32,
-                                            ),
-                                            const SizedBox(width: 10),
-                                          ],
-                                          Flexible(
-                                            child: OfficeMessageHoverTools(
-                                              key: ValueKey(
-                                                'hover-$actionIdentity-${room['id']}-${m['id']}',
+                                    MouseRegion(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 18,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment: alignRight
+                                              ? MainAxisAlignment.end
+                                              : MainAxisAlignment.start,
+                                          children: [
+                                            if (!alignRight) ...[
+                                              PersonAvatar(
+                                                name: officeDisplayName(author),
+                                                agent:
+                                                    author['kind'] == 'agent',
+                                                size: 32,
                                               ),
-                                              messageId: str(m['id']),
-                                              timestamp: str(m['at']),
-                                              state: s,
-                                              onOpenMore: (position) {
-                                                if (_identity ==
-                                                        actionIdentity &&
-                                                    s.selectedRoomId ==
-                                                        room['id']) {
-                                                  _openMessageActions(
-                                                    m,
-                                                    position,
-                                                  );
-                                                }
-                                              },
-                                              enabled: !widget.mobile,
-                                              onAction: (action) {
-                                                if (_identity !=
-                                                        actionIdentity ||
-                                                    s.selectedRoomId !=
-                                                        room['id']) {
-                                                  return;
-                                                }
-                                                if (action == 'more') {
-                                                  _openMessageActions(m);
-                                                } else {
-                                                  _messageAction(m, action);
-                                                }
-                                              },
-                                              child: ConstrainedBox(
-                                                constraints: BoxConstraints(
-                                                  maxWidth: widget.mobile
-                                                      ? MediaQuery.sizeOf(
-                                                              context,
-                                                            ).width *
-                                                            .74
-                                                      : 600,
+                                              const SizedBox(width: 10),
+                                            ],
+                                            Flexible(
+                                              child: OfficeMessageHoverTools(
+                                                key: ValueKey(
+                                                  'hover-$actionIdentity-${room['id']}-${m['id']}',
                                                 ),
-                                                child: Column(
-                                                  crossAxisAlignment: alignRight
-                                                      ? CrossAxisAlignment.end
-                                                      : CrossAxisAlignment
-                                                            .start,
-                                                  children: [
-                                                    Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Flexible(
-                                                          child: Text(
-                                                            officeDisplayName(
-                                                              author,
-                                                            ),
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontSize: 10,
-                                                                  color:
-                                                                      mutedColor,
-                                                                ),
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 6,
-                                                        ),
-                                                        IdentityBadge(
-                                                          agent:
-                                                              author['kind'] ==
-                                                              'agent',
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    const SizedBox(height: 7),
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 13,
-                                                            vertical: 10,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: own
-                                                            ? const Color(
-                                                                0xffe8efff,
-                                                              )
-                                                            : const Color(
-                                                                0xfff4f5f7,
-                                                              ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              7,
-                                                            ),
-                                                      ),
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                messageId: str(m['id']),
+                                                timestamp: str(m['at']),
+                                                state: s,
+                                                onOpenMore: (position) {
+                                                  if (_identity ==
+                                                          actionIdentity &&
+                                                      s.selectedRoomId ==
+                                                          room['id']) {
+                                                    _openMessageActions(
+                                                      m,
+                                                      position,
+                                                    );
+                                                  }
+                                                },
+                                                enabled:
+                                                    !widget.mobile &&
+                                                    !_selectingMessages,
+                                                onAction: (action) {
+                                                  if (_identity !=
+                                                          actionIdentity ||
+                                                      s.selectedRoomId !=
+                                                          room['id']) {
+                                                    return;
+                                                  }
+                                                  if (action == 'more') {
+                                                    _openMessageActions(m);
+                                                  } else {
+                                                    _messageAction(m, action);
+                                                  }
+                                                },
+                                                child: ConstrainedBox(
+                                                  constraints: BoxConstraints(
+                                                    maxWidth: widget.mobile
+                                                        ? MediaQuery.sizeOf(
+                                                                context,
+                                                              ).width *
+                                                              .74
+                                                        : 600,
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        alignRight
+                                                        ? CrossAxisAlignment.end
+                                                        : CrossAxisAlignment
+                                                              .start,
+                                                    children: [
+                                                      Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
                                                         children: [
-                                                          if (m['reply_to'] !=
-                                                              null)
-                                                            Container(
-                                                              margin:
-                                                                  const EdgeInsets.only(
-                                                                    bottom: 8,
-                                                                  ),
-                                                              padding:
-                                                                  const EdgeInsets.only(
-                                                                    left: 9,
-                                                                  ),
-                                                              decoration: const BoxDecoration(
-                                                                border: Border(
-                                                                  left: BorderSide(
-                                                                    color: Color(
-                                                                      0xffc2cbdc,
+                                                          Flexible(
+                                                            child: Text(
+                                                              officeDisplayName(
+                                                                author,
+                                                              ),
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style: const TextStyle(
+                                                                fontSize: 10,
+                                                                color:
+                                                                    mutedColor,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 6,
+                                                          ),
+                                                          IdentityBadge(
+                                                            agent:
+                                                                author['kind'] ==
+                                                                'agent',
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 7),
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 13,
+                                                              vertical: 10,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color: own
+                                                              ? const Color(
+                                                                  0xffe8efff,
+                                                                )
+                                                              : const Color(
+                                                                  0xfff4f5f7,
+                                                                ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                7,
+                                                              ),
+                                                        ),
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            if (m['reply_to'] !=
+                                                                null)
+                                                              Container(
+                                                                margin:
+                                                                    const EdgeInsets.only(
+                                                                      bottom: 8,
                                                                     ),
-                                                                    width: 2,
+                                                                padding:
+                                                                    const EdgeInsets.only(
+                                                                      left: 9,
+                                                                    ),
+                                                                decoration: const BoxDecoration(
+                                                                  border: Border(
+                                                                    left: BorderSide(
+                                                                      color: Color(
+                                                                        0xffc2cbdc,
+                                                                      ),
+                                                                      width: 2,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                child: InkWell(
+                                                                  onTap: () => _showPanel(
+                                                                    () => showOfficeMessageOriginal(
+                                                                      context,
+                                                                      s,
+                                                                      str(
+                                                                        room['id'],
+                                                                      ),
+                                                                      str(
+                                                                        m['reply_to'],
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  child: Text(
+                                                                    '回复 ${parent == null ? '更早消息' : officeDisplayName(Json.from(parent['author'] as Map? ?? {}))}：${parent?['retracted_at'] != null ? '这条消息已撤回' : str(parent?['content'], '点击查看原文')}',
+                                                                    maxLines: 2,
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    style: const TextStyle(
+                                                                      fontSize:
+                                                                          10,
+                                                                      color:
+                                                                          mutedColor,
+                                                                    ),
                                                                   ),
                                                                 ),
                                                               ),
-                                                              child: InkWell(
-                                                                onTap: () => _showPanel(
-                                                                  () => showOfficeMessageOriginal(
-                                                                    context,
-                                                                    s,
-                                                                    str(
-                                                                      room['id'],
+                                                            if (m['forwarded_from']
+                                                                is Map)
+                                                              const Padding(
+                                                                padding:
+                                                                    EdgeInsets.only(
+                                                                      bottom: 6,
                                                                     ),
-                                                                    str(
-                                                                      m['reply_to'],
-                                                                    ),
-                                                                  ),
-                                                                ),
                                                                 child: Text(
-                                                                  '回复 ${parent == null ? '更早消息' : officeDisplayName(Json.from(parent['author'] as Map? ?? {}))}：${parent?['retracted_at'] != null ? '这条消息已撤回' : str(parent?['content'], '点击查看原文')}',
-                                                                  maxLines: 2,
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .ellipsis,
-                                                                  style: const TextStyle(
+                                                                  '已转发',
+                                                                  style: TextStyle(
                                                                     fontSize:
                                                                         10,
                                                                     color:
@@ -1466,309 +1790,310 @@ class _OfficeConversationState extends State<OfficeConversation>
                                                                   ),
                                                                 ),
                                                               ),
+                                                            if (str(
+                                                              m['content'],
+                                                            ).isNotEmpty)
+                                                              AgentMessageContent(
+                                                                key: ValueKey(
+                                                                  'message-content-${m['id']}',
+                                                                ),
+                                                                message: m,
+                                                                onOpenMessageMenu:
+                                                                    widget
+                                                                        .mobile
+                                                                    ? null
+                                                                    : (offset) {
+                                                                        if (mounted &&
+                                                                            !_selectingMessages &&
+                                                                            _identity ==
+                                                                                actionIdentity &&
+                                                                            s.selectedRoomId ==
+                                                                                room['id']) {
+                                                                          _openMessageActions(
+                                                                            m,
+                                                                            offset,
+                                                                          );
+                                                                        }
+                                                                      },
+                                                                selectable:
+                                                                    !widget
+                                                                        .mobile,
+                                                                onAction: (action) {
+                                                                  if (s.selectedRoomId !=
+                                                                          room['id'] ||
+                                                                      viewIdentity !=
+                                                                          _identity) {
+                                                                    return;
+                                                                  }
+                                                                  if (action ==
+                                                                      'menu') {
+                                                                    _openMessageActions(
+                                                                      m,
+                                                                    );
+                                                                  } else {
+                                                                    _messageAction(
+                                                                      m,
+                                                                      action,
+                                                                    );
+                                                                  }
+                                                                },
+                                                                runs: maps(
+                                                                  s.detail?['runs'],
+                                                                ),
+                                                                onRecords: (id) =>
+                                                                    OfficeDialogs.run(
+                                                                      context,
+                                                                      s,
+                                                                      id,
+                                                                    ),
+                                                              ),
+                                                            ...maps(
+                                                              m['attachments'],
+                                                            ).map(
+                                                              (
+                                                                a,
+                                                              ) => MessageAttachment(
+                                                                key: ValueKey(
+                                                                  a['id'],
+                                                                ),
+                                                                state: s,
+                                                                attachment: {
+                                                                  ...a,
+                                                                  'room_id':
+                                                                      a['room_id'] ??
+                                                                      s.selectedRoomId,
+                                                                },
+                                                              ),
                                                             ),
-                                                          if (m['forwarded_from']
-                                                              is Map)
+                                                            if (m['mention_all'] ==
+                                                                    true ||
+                                                                (m['mentions']
+                                                                            as List? ??
+                                                                        [])
+                                                                    .isNotEmpty)
+                                                              Padding(
+                                                                padding:
+                                                                    const EdgeInsets.only(
+                                                                      top: 7,
+                                                                    ),
+                                                                child: Wrap(
+                                                                  spacing: 5,
+                                                                  runSpacing: 4,
+                                                                  children: [
+                                                                    if (m['mention_all'] ==
+                                                                        true)
+                                                                      Chip(
+                                                                        key: ValueKey(
+                                                                          'message-mention-all-${m['id']}',
+                                                                        ),
+                                                                        label: const Text(
+                                                                          '@所有人',
+                                                                          style: TextStyle(
+                                                                            fontSize:
+                                                                                10,
+                                                                            color:
+                                                                                accentColor,
+                                                                          ),
+                                                                        ),
+                                                                        visualDensity:
+                                                                            VisualDensity.compact,
+                                                                        backgroundColor:
+                                                                            selectedColor,
+                                                                        side: BorderSide
+                                                                            .none,
+                                                                      ),
+                                                                    for (final id
+                                                                        in (m['mentions']
+                                                                                as List? ??
+                                                                            []))
+                                                                      Chip(
+                                                                        key: ValueKey(
+                                                                          'message-mention-${m['id']}-$id',
+                                                                        ),
+                                                                        label: Text(
+                                                                          '@${_name(str(id))}',
+                                                                          style: const TextStyle(
+                                                                            fontSize:
+                                                                                10,
+                                                                            color:
+                                                                                accentColor,
+                                                                          ),
+                                                                        ),
+                                                                        visualDensity:
+                                                                            VisualDensity.compact,
+                                                                        backgroundColor:
+                                                                            const Color(
+                                                                              0xffeef2fa,
+                                                                            ),
+                                                                        side: BorderSide
+                                                                            .none,
+                                                                      ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      if (reactions.isNotEmpty)
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                top: 5,
+                                                              ),
+                                                          child: Wrap(
+                                                            spacing: 5,
+                                                            runSpacing: 4,
+                                                            children: reactions
+                                                                .entries
+                                                                .where(
+                                                                  (e) =>
+                                                                      e.value
+                                                                          is List &&
+                                                                      (e.value
+                                                                              as List)
+                                                                          .isNotEmpty,
+                                                                )
+                                                                .map(
+                                                                  (
+                                                                    e,
+                                                                  ) => InkWell(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                          12,
+                                                                        ),
+                                                                    onTap: () =>
+                                                                        _messageAction(
+                                                                          m,
+                                                                          'react:${e.key}',
+                                                                        ),
+                                                                    child: Container(
+                                                                      padding: const EdgeInsets.symmetric(
+                                                                        horizontal:
+                                                                            8,
+                                                                        vertical:
+                                                                            3,
+                                                                      ),
+                                                                      decoration: BoxDecoration(
+                                                                        color:
+                                                                            (e.value as List).contains(
+                                                                              personId(
+                                                                                s.me ?? {},
+                                                                              ),
+                                                                            )
+                                                                            ? selectedColor
+                                                                            : const Color(
+                                                                                0xfff5f6f8,
+                                                                              ),
+                                                                        border: Border.all(
+                                                                          color:
+                                                                              borderColor,
+                                                                        ),
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(
+                                                                              12,
+                                                                            ),
+                                                                      ),
+                                                                      child: Row(
+                                                                        mainAxisSize:
+                                                                            MainAxisSize.min,
+                                                                        children: [
+                                                                          OfficeEmojiGlyph(
+                                                                            id: e.key,
+                                                                            size:
+                                                                                19,
+                                                                          ),
+                                                                          const SizedBox(
+                                                                            width:
+                                                                                4,
+                                                                          ),
+                                                                          Text(
+                                                                            '${(e.value as List).length}',
+                                                                            style: const TextStyle(
+                                                                              fontSize: 10,
+                                                                            ),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                )
+                                                                .toList(),
+                                                          ),
+                                                        ),
+                                                      Wrap(
+                                                        crossAxisAlignment:
+                                                            WrapCrossAlignment
+                                                                .center,
+                                                        children: [
+                                                          if (m['edited_at'] !=
+                                                              null)
                                                             const Padding(
                                                               padding:
                                                                   EdgeInsets.only(
-                                                                    bottom: 6,
+                                                                    top: 5,
                                                                   ),
                                                               child: Text(
-                                                                '已转发',
+                                                                '已编辑',
                                                                 style: TextStyle(
-                                                                  fontSize: 10,
+                                                                  fontSize: 9,
                                                                   color:
                                                                       mutedColor,
                                                                 ),
                                                               ),
                                                             ),
-                                                          if (str(m['content'])
-                                                              .isNotEmpty)
-                                                            AgentMessageContent(
-                                                              key: ValueKey(
-                                                                'message-content-${m['id']}',
-                                                              ),
-                                                              message: m,
-                                                              selectable:
-                                                                  !widget
-                                                                      .mobile,
-                                                              onAction: (action) {
-                                                                if (s.selectedRoomId !=
-                                                                        room['id'] ||
-                                                                    viewIdentity !=
-                                                                        '${s.endpoint}:${personId(s.me ?? {})}') {
-                                                                  return;
-                                                                }
-                                                                if (action ==
-                                                                    'menu') {
-                                                                  _openMessageActions(
-                                                                    m,
-                                                                  );
-                                                                } else {
-                                                                  _messageAction(
-                                                                    m,
-                                                                    action,
-                                                                  );
-                                                                }
-                                                              },
-                                                              runs: maps(
-                                                                s.detail?['runs'],
-                                                              ),
-                                                              onRecords: (id) =>
-                                                                  OfficeDialogs.run(
-                                                                    context,
-                                                                    s,
-                                                                    id,
-                                                                  ),
-                                                            ),
-                                                          ...maps(
-                                                            m['attachments'],
-                                                          ).map(
-                                                            (
-                                                              a,
-                                                            ) => MessageAttachment(
-                                                              key: ValueKey(
-                                                                a['id'],
-                                                              ),
-                                                              state: s,
-                                                              attachment: {
-                                                                ...a,
-                                                                'room_id':
-                                                                    a['room_id'] ??
-                                                                    s.selectedRoomId,
-                                                              },
-                                                            ),
-                                                          ),
-                                                          if (m['mention_all'] ==
-                                                                  true ||
-                                                              (m['mentions']
-                                                                          as List? ??
-                                                                      [])
-                                                                  .isNotEmpty)
+                                                          if (own)
                                                             Padding(
                                                               padding:
                                                                   const EdgeInsets.only(
-                                                                    top: 7,
+                                                                    top: 5,
+                                                                    left: 7,
                                                                   ),
-                                                              child: Wrap(
-                                                                spacing: 5,
-                                                                runSpacing: 4,
-                                                                children: [
-                                                                  if (m['mention_all'] ==
-                                                                      true)
-                                                                    Chip(
-                                                                      key: ValueKey(
-                                                                        'message-mention-all-${m['id']}',
-                                                                      ),
-                                                                      label: const Text(
-                                                                        '@所有人',
-                                                                        style: TextStyle(
-                                                                          fontSize:
-                                                                              10,
-                                                                          color:
-                                                                              accentColor,
-                                                                        ),
-                                                                      ),
-                                                                      visualDensity:
-                                                                          VisualDensity
-                                                                              .compact,
-                                                                      backgroundColor:
-                                                                          selectedColor,
-                                                                      side: BorderSide
-                                                                          .none,
+                                                              child: OfficeMessageReceiptIndicator(
+                                                                message: m,
+                                                                roomKind: str(
+                                                                  room['kind'],
+                                                                ),
+                                                                onOpen: () =>
+                                                                    _messageAction(
+                                                                      m,
+                                                                      'read',
                                                                     ),
-                                                                  for (final id
-                                                                      in (m['mentions']
-                                                                              as List? ??
-                                                                          []))
-                                                                    Chip(
-                                                                      key: ValueKey(
-                                                                        'message-mention-${m['id']}-$id',
-                                                                      ),
-                                                                      label: Text(
-                                                                        '@${_name(str(id))}',
-                                                                        style: const TextStyle(
-                                                                          fontSize:
-                                                                              10,
-                                                                          color:
-                                                                              accentColor,
-                                                                        ),
-                                                                      ),
-                                                                      visualDensity:
-                                                                          VisualDensity
-                                                                              .compact,
-                                                                      backgroundColor:
-                                                                          const Color(
-                                                                            0xffeef2fa,
-                                                                          ),
-                                                                      side: BorderSide
-                                                                          .none,
-                                                                    ),
-                                                                ],
                                                               ),
+                                                            ),
+                                                          if (widget.mobile)
+                                                            SizedBox(
+                                                              width:
+                                                                  widget.mobile
+                                                                  ? 44
+                                                                  : 28,
+                                                              height:
+                                                                  widget.mobile
+                                                                  ? 44
+                                                                  : 28,
+                                                              child: menu,
                                                             ),
                                                         ],
                                                       ),
-                                                    ),
-                                                    if (reactions.isNotEmpty)
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets.only(
-                                                              top: 5,
-                                                            ),
-                                                        child: Wrap(
-                                                          spacing: 5,
-                                                          runSpacing: 4,
-                                                          children: reactions
-                                                              .entries
-                                                              .where(
-                                                                (e) =>
-                                                                    e.value
-                                                                        is List &&
-                                                                    (e.value
-                                                                            as List)
-                                                                        .isNotEmpty,
-                                                              )
-                                                              .map(
-                                                                (e) => InkWell(
-                                                                  borderRadius:
-                                                                      BorderRadius.circular(
-                                                                        12,
-                                                                      ),
-                                                                  onTap: () =>
-                                                                      _messageAction(
-                                                                        m,
-                                                                        'react:${e.key}',
-                                                                      ),
-                                                                  child: Container(
-                                                                    padding: const EdgeInsets.symmetric(
-                                                                      horizontal:
-                                                                          8,
-                                                                      vertical:
-                                                                          3,
-                                                                    ),
-                                                                    decoration: BoxDecoration(
-                                                                      color:
-                                                                          (e.value as List).contains(
-                                                                            personId(
-                                                                              s.me ?? {},
-                                                                            ),
-                                                                          )
-                                                                          ? selectedColor
-                                                                          : const Color(
-                                                                              0xfff5f6f8,
-                                                                            ),
-                                                                      border: Border.all(
-                                                                        color:
-                                                                            borderColor,
-                                                                      ),
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                            12,
-                                                                          ),
-                                                                    ),
-                                                                    child: Row(
-                                                                      mainAxisSize:
-                                                                          MainAxisSize
-                                                                              .min,
-                                                                      children: [
-                                                                        OfficeEmojiGlyph(
-                                                                          id: e
-                                                                              .key,
-                                                                          size:
-                                                                              19,
-                                                                        ),
-                                                                        const SizedBox(
-                                                                          width:
-                                                                              4,
-                                                                        ),
-                                                                        Text(
-                                                                          '${(e.value as List).length}',
-                                                                          style: const TextStyle(
-                                                                            fontSize:
-                                                                                10,
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              )
-                                                              .toList(),
-                                                        ),
-                                                      ),
-                                                    Wrap(
-                                                      crossAxisAlignment:
-                                                          WrapCrossAlignment
-                                                              .center,
-                                                      children: [
-                                                        if (m['edited_at'] !=
-                                                            null)
-                                                          const Padding(
-                                                            padding:
-                                                                EdgeInsets.only(
-                                                                  top: 5,
-                                                                ),
-                                                            child: Text(
-                                                              '已编辑',
-                                                              style: TextStyle(
-                                                                fontSize: 9,
-                                                                color:
-                                                                    mutedColor,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        if (own)
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets.only(
-                                                                  top: 5,
-                                                                  left: 7,
-                                                                ),
-                                                            child: OfficeMessageReceiptIndicator(
-                                                              message: m,
-                                                              roomKind: str(
-                                                                room['kind'],
-                                                              ),
-                                                              onOpen: () =>
-                                                                  _messageAction(
-                                                                    m,
-                                                                    'read',
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                        if (widget.mobile)
-                                                          SizedBox(
-                                                            width: widget.mobile
-                                                                ? 44
-                                                                : 28,
-                                                            height:
-                                                                widget.mobile
-                                                                ? 44
-                                                                : 28,
-                                                            child: menu,
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  ],
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          if (alignRight) ...[
-                                            const SizedBox(width: 10),
-                                            PersonAvatar(
-                                              name: officeDisplayName(author),
-                                              agent: author['kind'] == 'agent',
-                                              size: 32,
-                                            ),
+                                            if (alignRight) ...[
+                                              const SizedBox(width: 10),
+                                              PersonAvatar(
+                                                name: officeDisplayName(author),
+                                                agent:
+                                                    author['kind'] == 'agent',
+                                                size: 32,
+                                              ),
+                                            ],
                                           ],
-                                        ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -1794,7 +2119,7 @@ class _OfficeConversationState extends State<OfficeConversation>
               ],
             ),
           ),
-          _composer(),
+          if (_selectingMessages) _selectionBar() else _composer(),
         ],
       ],
     );

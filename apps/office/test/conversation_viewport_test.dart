@@ -190,13 +190,20 @@ void main() {
       expect(s.visible.expand((v) => v), isNot(contains(120)));
       await t.longPress(find.textContaining('第 21 条协作消息'));
       await t.pumpAndSettle();
-      expect(find.text('表情回应'), findsOneWidget);
+      expect(find.byTooltip('全部表情'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('message-action-reply')),
+        findsOneWidget,
+      );
       expect(find.text('Agent 协作'), findsOneWidget);
       expect(s.visibility.last, isFalse);
       final count = s.visible.length;
       s.notifyListeners();
       await t.pumpAndSettle();
       await t.pump(const Duration(milliseconds: 200));
+      expect(s.visible.length, count);
+      await t.ensureVisible(find.text('取消'));
+      await t.pumpAndSettle();
       expect(s.visible.length, count);
       await t.tap(find.text('取消'));
       await t.pumpAndSettle();

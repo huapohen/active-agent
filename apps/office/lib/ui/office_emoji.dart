@@ -59,11 +59,13 @@ class OfficeEmojiText extends StatelessWidget {
     required this.content,
     this.style,
     this.onAction,
+    this.onOpenMessageMenu,
     this.selectable = true,
   });
   final String content;
   final TextStyle? style;
   final ValueChanged<String>? onAction;
+  final ValueChanged<Offset>? onOpenMessageMenu;
   final bool selectable;
   static final _tokens = RegExp(r':(feishu:[A-Za-z0-9_-]+):');
 
@@ -91,19 +93,25 @@ class OfficeEmojiText extends StatelessWidget {
         .toList();
     if (matches.isEmpty) {
       if (!selectable) return Text(content, style: style);
-      return onAction == null
+      return onAction == null && onOpenMessageMenu == null
           ? SelectableText(content, style: style)
           : SelectableText(
               content,
               style: style,
-              contextMenuBuilder: (context, editable) =>
-                  AdaptiveTextSelectionToolbar.buttonItems(
-                    anchors: editable.contextMenuAnchors,
-                    buttonItems: [
-                      ...editable.contextMenuButtonItems,
-                      ..._actions(editable.hideToolbar),
-                    ],
-                  ),
+              contextMenuBuilder: (_, editable) => onOpenMessageMenu != null
+                  ? _OfficeMessageMenuRedirect(
+                      sourceContext: context,
+                      dismiss: editable.hideToolbar,
+                      position: editable.contextMenuAnchors.primaryAnchor,
+                      onOpen: onOpenMessageMenu!,
+                    )
+                  : AdaptiveTextSelectionToolbar.buttonItems(
+                      anchors: editable.contextMenuAnchors,
+                      buttonItems: [
+                        ...editable.contextMenuButtonItems,
+                        ..._actions(editable.hideToolbar),
+                      ],
+                    ),
             );
     }
     final spans = <InlineSpan>[];
@@ -127,20 +135,61 @@ class OfficeEmojiText extends StatelessWidget {
     }
     final text = Text.rich(TextSpan(children: spans), style: style);
     if (!selectable) return text;
-    return onAction == null
+    return onAction == null && onOpenMessageMenu == null
         ? SelectionArea(child: text)
         : SelectionArea(
-            contextMenuBuilder: (context, selection) =>
-                AdaptiveTextSelectionToolbar.buttonItems(
-                  anchors: selection.contextMenuAnchors,
-                  buttonItems: [
-                    ...selection.contextMenuButtonItems,
-                    ..._actions(selection.hideToolbar),
-                  ],
-                ),
+            contextMenuBuilder: (_, selection) => onOpenMessageMenu != null
+                ? _OfficeMessageMenuRedirect(
+                    sourceContext: context,
+                    dismiss: selection.hideToolbar,
+                    position: selection.contextMenuAnchors.primaryAnchor,
+                    onOpen: onOpenMessageMenu!,
+                  )
+                : AdaptiveTextSelectionToolbar.buttonItems(
+                    anchors: selection.contextMenuAnchors,
+                    buttonItems: [
+                      ...selection.contextMenuButtonItems,
+                      ..._actions(selection.hideToolbar),
+                    ],
+                  ),
             child: text,
           );
   }
+}
+
+/// Text selection owns a secondary click before the message's outer gesture
+/// region. Hand the same anchor to the full menu after the overlay's frame.
+class _OfficeMessageMenuRedirect extends StatefulWidget {
+  const _OfficeMessageMenuRedirect({
+    required this.sourceContext,
+    required this.dismiss,
+    required this.position,
+    required this.onOpen,
+  });
+  final BuildContext sourceContext;
+  final VoidCallback dismiss;
+  final Offset position;
+  final ValueChanged<Offset> onOpen;
+  @override
+  State<_OfficeMessageMenuRedirect> createState() =>
+      _OfficeMessageMenuRedirectState();
+}
+
+class _OfficeMessageMenuRedirectState
+    extends State<_OfficeMessageMenuRedirect> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.sourceContext.mounted) return;
+      final onOpen = widget.onOpen, position = widget.position;
+      widget.dismiss();
+      onOpen(position);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
 class _EmojiEntry {
@@ -192,16 +241,24 @@ class OfficeEmojiPicker extends StatefulWidget {
     required this.onSelected,
     this.width,
     this.height,
+    this.scrollController,
+    this.showDragHandle = false,
+    this.onClose,
   });
   final OfficeState state;
   final ValueChanged<String> onSelected;
   final double? width, height;
+  final ScrollController? scrollController;
+  final bool showDragHandle;
+  final VoidCallback? onClose;
   @override
   State<OfficeEmojiPicker> createState() => _OfficeEmojiPickerState();
 }
 
 class _OfficeEmojiPickerState extends State<OfficeEmojiPicker> {
   final _query = TextEditingController();
+  final _scroll = ScrollController();
+  bool _searchOpen = false, _library = false;
   late final (OfficeState, int, String, String) _identity;
   _EmojiCatalog? _data;
   String _category = '经典表情';
@@ -247,6 +304,7 @@ class _OfficeEmojiPickerState extends State<OfficeEmojiPicker> {
   void dispose() {
     _identity.$1.removeListener(_changed);
     _query.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -382,257 +440,455 @@ class _OfficeEmojiPickerState extends State<OfficeEmojiPicker> {
         : data.entries.where((entry) => entry.category == _category).toList();
   }
 
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: widget.width ?? 440,
-    height: widget.height ?? 420,
-    child: Material(
-      color: Colors.white,
-      child: !_current
-          ? const Center(child: Text('工作身份已变化，请重新打开表情。'))
-          : Column(
+  List<_EmojiEntry> get _recentEntries {
+    final byId = {
+      for (final entry in _data?.entries ?? <_EmojiEntry>[]) entry.id: entry,
+    };
+    return [
+      for (final id in _recents)
+        if (byId[id] != null) byId[id]!,
+    ];
+  }
+
+  void _navigate(String category, {bool library = false}) {
+    setState(() {
+      _category = category;
+      _library = library;
+      _searchOpen = false;
+      _query.clear();
+    });
+    final scroll = widget.scrollController ?? _scroll;
+    if (scroll.hasClients) scroll.jumpTo(0);
+    if (category == '最近使用') _loadRecents();
+  }
+
+  Widget _tile(_EmojiEntry entry, {bool recentShortcut = false}) => Tooltip(
+    key: ValueKey('emoji-${recentShortcut ? 'recent-' : ''}${entry.id}'),
+    waitDuration: const Duration(milliseconds: 350),
+    richMessage: WidgetSpan(
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OfficeEmojiGlyph(id: entry.id, size: 54),
+            const SizedBox(height: 6),
+            Text(
+              entry.name,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    ),
+    child: Semantics(
+      label: entry.name,
+      button: true,
+      child: InkWell(
+        onTap: _clearing ? null : () => _choose(entry.id),
+        borderRadius: BorderRadius.circular(6),
+        child: Center(child: OfficeEmojiGlyph(id: entry.id, size: 28)),
+      ),
+    ),
+  );
+
+  Widget _grid(List<_EmojiEntry> entries, {bool recentShortcut = false}) =>
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        sliver: SliverGrid(
+          key: ValueKey(
+            recentShortcut ? 'emoji-recent-shortcuts' : 'emoji-grid',
+          ),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            mainAxisExtent: 42,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, index) =>
+                _tile(entries[index], recentShortcut: recentShortcut),
+            childCount: entries.length,
+          ),
+        ),
+      );
+
+  Widget _section(String title, {Widget? trailing}) => SliverToBoxAdapter(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(14, 9, 10, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 12, color: mutedColor),
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    ),
+  );
+
+  Widget _empty(String text) => SliverToBoxAdapter(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 12, color: mutedColor),
+      ),
+    ),
+  );
+
+  Widget _header() => SliverToBoxAdapter(
+    child: Column(
+      children: [
+        if (widget.showDragHandle)
+          SizedBox(
+            key: const ValueKey('emoji-drag-handle'),
+            height: 24,
+            width: double.infinity,
+            child: Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xffc9cdd3),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+        if (_searchOpen)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
+            child: Row(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                Expanded(
                   child: TextField(
+                    key: const ValueKey('emoji-search-field'),
                     controller: _query,
+                    autofocus: true,
                     decoration: const InputDecoration(
                       hintText: '搜索表情（中文 / English）',
-                      prefixIcon: Icon(Icons.search, size: 20),
+                      prefixIcon: Icon(Icons.search, size: 18),
                       isDense: true,
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(
-                    children: [
-                      for (final category in [
-                        '最近使用',
-                        '全部',
-                        ...?_data?.categories,
-                      ])
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ChoiceChip(
-                            label: Text(
-                              category,
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                            selected: _category == category,
-                            showCheckmark: false,
-                            onSelected: (_) {
-                              setState(() {
-                                _category = category;
-                                _query.clear();
-                              });
-                              if (category == '最近使用') _loadRecents();
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (_recentError != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _recentError!,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.redAccent,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: s.connected && !_recentBusy
-                              ? () => _retryClear
-                                    ? _clearRecents()
-                                    : _retryEmoji == null
-                                    ? _loadRecents()
-                                    : _record(_retryEmoji!)
-                              : null,
-                          child: const Text('重试'),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (_category == '最近使用')
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed:
-                          s.connected &&
-                              !_recentBusy &&
-                              _recording == 0 &&
-                              _recents.isNotEmpty
-                          ? _clearRecents
-                          : null,
-                      child: const Text(
-                        '清空最近使用',
-                        style: TextStyle(fontSize: 11),
-                      ),
-                    ),
-                  ),
-                if (!s.connected)
-                  const Padding(
-                    padding: EdgeInsets.all(6),
-                    child: Text(
-                      '离线可选表情，最近使用暂未同步。',
-                      style: TextStyle(fontSize: 10, color: mutedColor),
-                    ),
-                  ),
-                Expanded(
-                  child: _data == null
-                      ? Center(
-                          child: _catalogError == null
-                              ? const CircularProgressIndicator()
-                              : Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(_catalogError!),
-                                    TextButton(
-                                      onPressed: _loadCatalog,
-                                      child: const Text('重试加载目录'),
-                                    ),
-                                  ],
-                                ),
-                        )
-                      : LayoutBuilder(
-                          builder: (context, constraints) {
-                            final entries = _entries;
-                            if (entries.isEmpty) {
-                              return Center(
-                                child: Text(
-                                  _category == '最近使用' && _query.text.isEmpty
-                                      ? '还没有最近使用的表情'
-                                      : '没有匹配的表情',
-                                  style: const TextStyle(color: mutedColor),
-                                ),
-                              );
-                            }
-                            return GridView.builder(
-                              key: ValueKey(
-                                'emoji-grid-$_category-${_query.text}',
-                              ),
-                              padding: const EdgeInsets.all(10),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount:
-                                        ((constraints.maxWidth - 20) / 46)
-                                            .floor()
-                                            .clamp(3, 12),
-                                    mainAxisExtent: 46,
-                                  ),
-                              itemCount: entries.length,
-                              itemBuilder: (context, index) {
-                                final entry = entries[index];
-                                return Tooltip(
-                                  key: ValueKey('emoji-${entry.id}'),
-                                  waitDuration: const Duration(
-                                    milliseconds: 350,
-                                  ),
-                                  richMessage: WidgetSpan(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(6),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          OfficeEmojiGlyph(
-                                            id: entry.id,
-                                            size: 54,
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            entry.name,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  child: Semantics(
-                                    label: entry.name,
-                                    button: true,
-                                    child: InkWell(
-                                      onTap: _clearing
-                                          ? null
-                                          : () => _choose(entry.id),
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: Center(
-                                        child: OfficeEmojiGlyph(
-                                          id: entry.id,
-                                          size: 28,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
+                IconButton(
+                  tooltip: '收起搜索',
+                  onPressed: () => setState(() {
+                    _searchOpen = false;
+                    _query.clear();
+                  }),
+                  icon: const Icon(Icons.close, size: 18),
                 ),
               ],
             ),
+          )
+        else
+          SizedBox(
+            height: 30,
+            child: Row(
+              children: [
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    _library
+                        ? '表情库'
+                        : _category == '最近使用'
+                        ? '最近使用'
+                        : '',
+                    style: const TextStyle(fontSize: 12, color: mutedColor),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('emoji-open-search'),
+                  tooltip: '搜索表情',
+                  onPressed: () => setState(() => _searchOpen = true),
+                  icon: const Icon(Icons.search, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 32,
+                    height: 30,
+                  ),
+                ),
+                if (widget.onClose != null)
+                  IconButton(
+                    tooltip: '关闭表情',
+                    onPressed: widget.onClose,
+                    icon: const Icon(Icons.close, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 32,
+                      height: 30,
+                    ),
+                  ),
+                const SizedBox(width: 6),
+              ],
+            ),
+          ),
+      ],
     ),
   );
+
+  Widget _footer() => Container(
+    key: const ValueKey('emoji-fixed-footer'),
+    height: 44,
+    decoration: const BoxDecoration(
+      border: Border(top: BorderSide(color: borderColor)),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: Row(
+      children: [
+        IconButton(
+          key: const ValueKey('emoji-open-library'),
+          tooltip: '全部表情与分类',
+          onPressed: () => _navigate('全部', library: true),
+          icon: Icon(
+            Icons.add,
+            size: 21,
+            color: _library ? accentColor : mutedColor,
+          ),
+        ),
+        IconButton(
+          key: const ValueKey('emoji-open-classic'),
+          tooltip: '默认表情',
+          onPressed: () => _navigate('经典表情'),
+          icon: Icon(
+            Icons.sentiment_satisfied_alt,
+            size: 22,
+            color: !_library && _category == '经典表情' ? accentColor : mutedColor,
+          ),
+        ),
+        const Spacer(),
+        IconButton(
+          key: const ValueKey('emoji-open-recents'),
+          tooltip: '最近使用与管理',
+          onPressed: () => _navigate('最近使用'),
+          icon: Icon(
+            Icons.settings_outlined,
+            size: 20,
+            color: _category == '最近使用' ? accentColor : mutedColor,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final home = !_library && _category == '经典表情' && _query.text.trim().isEmpty;
+    final entries = _entries;
+    return SizedBox(
+      width: widget.width ?? 340,
+      height: widget.height ?? 400,
+      child: Material(
+        color: Colors.white,
+        child: !_current
+            ? const Center(child: Text('工作身份已变化，请重新打开表情。'))
+            : Column(
+                children: [
+                  Expanded(
+                    child: CustomScrollView(
+                      key: const ValueKey('emoji-scroll'),
+                      controller: widget.scrollController ?? _scroll,
+                      physics: const ClampingScrollPhysics(),
+                      slivers: [
+                        _header(),
+                        if (_library && !_searchOpen)
+                          SliverToBoxAdapter(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                              child: Row(
+                                children: [
+                                  for (final category in [
+                                    '全部',
+                                    ...?_data?.categories,
+                                  ])
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 6),
+                                      child: ChoiceChip(
+                                        label: Text(
+                                          category,
+                                          style: const TextStyle(fontSize: 11),
+                                        ),
+                                        selected: _category == category,
+                                        showCheckmark: false,
+                                        onSelected: (_) =>
+                                            _navigate(category, library: true),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (_data == null)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(
+                              child: _catalogError == null
+                                  ? const CircularProgressIndicator()
+                                  : Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(_catalogError!),
+                                        TextButton(
+                                          onPressed: _loadCatalog,
+                                          child: const Text('重试加载目录'),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          )
+                        else if (home) ...[
+                          _section(
+                            '最常使用',
+                            trailing: Tooltip(
+                              message: '按最近使用排序，显示前 14 个',
+                              child: Icon(
+                                Icons.history,
+                                size: 13,
+                                color: mutedColor,
+                              ),
+                            ),
+                          ),
+                          if (_recentEntries.isEmpty)
+                            _empty('还没有最近使用的表情')
+                          else
+                            _grid(
+                              _recentEntries.take(14).toList(),
+                              recentShortcut: true,
+                            ),
+                          _section('默认表情'),
+                          _grid(entries),
+                        ] else ...[
+                          if (_category == '最近使用' && _query.text.trim().isEmpty)
+                            _section(
+                              '最近使用 · ${_recentEntries.length}/32',
+                              trailing: TextButton(
+                                onPressed:
+                                    s.connected &&
+                                        !_recentBusy &&
+                                        _recording == 0 &&
+                                        _recents.isNotEmpty
+                                    ? _clearRecents
+                                    : null,
+                                child: const Text(
+                                  '清空最近使用',
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                              ),
+                            ),
+                          if (entries.isEmpty)
+                            _empty(
+                              _category == '最近使用' && _query.text.trim().isEmpty
+                                  ? '还没有最近使用的表情'
+                                  : '没有匹配的表情',
+                            )
+                          else
+                            _grid(entries),
+                        ],
+                        const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                      ],
+                    ),
+                  ),
+                  if (_recentError != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _recentError!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.redAccent,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: s.connected && !_recentBusy
+                                ? () => _retryClear
+                                      ? _clearRecents()
+                                      : _retryEmoji == null
+                                      ? _loadRecents()
+                                      : _record(_retryEmoji!)
+                                : null,
+                            child: const Text('重试'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (!s.connected)
+                    const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Text(
+                        '离线可选表情，最近使用暂未同步。',
+                        style: TextStyle(fontSize: 10, color: mutedColor),
+                      ),
+                    ),
+                  _footer(),
+                ],
+              ),
+      ),
+    );
+  }
 }
 
 Future<String?> showOfficeEmojiPicker(BuildContext context, OfficeState state) {
   final mobile = MediaQuery.sizeOf(context).width < 760;
-  Widget content(BuildContext context) => Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 6, 0),
-        child: Row(
-          children: [
-            const Expanded(
-              child: Text(
-                '表情',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-            IconButton(
-              tooltip: '关闭表情',
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close, size: 20),
-            ),
-          ],
-        ),
-      ),
-      Flexible(
-        child: OfficeEmojiPicker(
-          state: state,
-          width: mobile ? MediaQuery.sizeOf(context).width : 440,
-          height: mobile ? MediaQuery.sizeOf(context).height * .55 : 420,
-          onSelected: (id) => Navigator.pop(context, id),
-        ),
-      ),
-    ],
-  );
   if (mobile) {
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       useSafeArea: true,
-      builder: (context) => SafeArea(child: content(context)),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: DraggableScrollableSheet(
+          key: const ValueKey('emoji-draggable-sheet'),
+          initialChildSize: .45,
+          minChildSize: .45,
+          maxChildSize: .85,
+          expand: false,
+          snap: true,
+          snapSizes: const [.45, .85],
+          shouldCloseOnMinExtent: false,
+          builder: (context, scrollController) => SafeArea(
+            top: false,
+            child: OfficeEmojiPicker(
+              state: state,
+              width: MediaQuery.sizeOf(context).width,
+              height: double.infinity,
+              scrollController: scrollController,
+              showDragHandle: true,
+              onClose: () => Navigator.pop(context),
+              onSelected: (id) => Navigator.pop(context, id),
+            ),
+          ),
+        ),
+      ),
     );
   }
   return showDialog<String>(
     context: context,
-    builder: (context) =>
-        Dialog(child: SizedBox(width: 440, child: content(context))),
+    builder: (context) => Dialog(
+      clipBehavior: Clip.antiAlias,
+      child: OfficeEmojiPicker(
+        state: state,
+        width: 340,
+        height: 400,
+        onClose: () => Navigator.pop(context),
+        onSelected: (id) => Navigator.pop(context, id),
+      ),
+    ),
   );
 }

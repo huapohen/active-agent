@@ -664,6 +664,84 @@ class OfficeState extends ChangeNotifier {
 
   Future<void> loadEarlierMessages() => _loadAdjacentMessages(later: false);
 
+  /// Open a shared message link without first displaying/acknowledging another
+  /// unread window. The target is the first row of the requested forward page.
+  Future<void> focusMessage(String roomId, String messageId) async {
+    _clearConversationVisibility();
+    final selection = ++_selection, identity = _identity;
+    _resetMessageWindow();
+    final epoch = _windowEpoch;
+    selectedRoomId = roomId;
+    detail = null;
+    loadingMessageWindow = true;
+    _notify();
+    try {
+      final path = '/rooms/${Uri.encodeComponent(roomId)}';
+      final result = await Future.wait([
+        _request(path),
+        _request('$path/messages/${Uri.encodeComponent(messageId)}'),
+      ]);
+      if (!_windowCurrent(roomId, selection, epoch, identity)) return;
+      final message = Json.from(result[1]['message'] as Map);
+      if (message['hidden'] == true) {
+        throw OfficeException(404, '这条消息已从你的聊天中删除，可在已删除消息中恢复');
+      }
+      final seq = (message['seq'] as num).toInt();
+      final page = Json.from(
+        await _request('$path/messages?after=${seq - 1}&limit=100'),
+      );
+      if (!_windowCurrent(roomId, selection, epoch, identity)) return;
+      final messages = _list(page['messages']);
+      if (messages.isEmpty ||
+          messages.first['id'] != messageId ||
+          messages.first['hidden'] == true) {
+        throw OfficeException(404, '目标消息已不可见，请从已删除消息中恢复或重新打开链接');
+      }
+      _acceptMessageWindow(
+        roomId,
+        Json.from(result[0]),
+        {...page, 'anchor_seq': seq},
+        messages,
+        relocate: true,
+        startAtUnread: false,
+      );
+    } finally {
+      if (_windowCurrent(roomId, selection, epoch, identity)) {
+        loadingMessageWindow = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<void> setMessagePersonal(
+    String roomId,
+    String messageId, {
+    bool? marked,
+    bool? hidden,
+  }) async {
+    final identity = _identity;
+    await _request(
+      '/rooms/${Uri.encodeComponent(roomId)}/messages/${Uri.encodeComponent(messageId)}/preferences',
+      method: 'PATCH',
+      data: {'marked': ?marked, 'hidden': ?hidden},
+    );
+    if (identity == _identity) await _updated();
+  }
+
+  Future<void> setMessageForwarding(
+    String roomId,
+    Json message,
+    bool noForward,
+  ) async {
+    final identity = _identity;
+    await _request(
+      '/rooms/${Uri.encodeComponent(roomId)}/messages/${Uri.encodeComponent(message['id'])}/forwarding',
+      method: 'PATCH',
+      data: {'base_revision': message['revision'], 'no_forward': noForward},
+    );
+    if (identity == _identity) await _updated();
+  }
+
   Future<void> loadLaterMessages() => _loadAdjacentMessages(later: true);
 
   Future<void> _loadAdjacentMessages({required bool later}) async {
@@ -948,11 +1026,15 @@ class OfficeState extends ChangeNotifier {
   Future<void> _updated() async {
     // The preceding mutation already succeeded. A refresh failure must never
     // make the UI resend that successful operation as a new intent.
+    final identity = _identity;
     try {
       await refresh();
+      if (identity != _identity) return;
       await refreshBusiness();
+      if (identity != _identity) return;
       await _loadCurrent();
     } catch (e) {
+      if (identity != _identity) return;
       connected = false;
       error = e.toString();
       _notify();
@@ -1889,6 +1971,7 @@ class OfficeState extends ChangeNotifier {
   }
 
   Future<Json> _createOfficeItem(String route, Json body, String key) async {
+    final identity = _identity;
     final intent = jsonEncode([route, body]);
     final clientId = _outbox.putIfAbsent(intent, newClientId);
     final result = await _request(
@@ -1896,8 +1979,10 @@ class OfficeState extends ChangeNotifier {
       method: 'POST',
       data: {...body, 'client_id': clientId},
     );
+    _requireIdentity(identity);
     _outbox.remove(intent);
     await _updated();
+    _requireIdentity(identity);
     return Json.from(result[key]);
   }
 

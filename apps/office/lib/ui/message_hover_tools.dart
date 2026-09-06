@@ -115,9 +115,7 @@ class _OfficeMessageHoverToolsState extends State<OfficeMessageHoverTools> {
     ),
   );
 
-  String _time(BuildContext context) {
-    final date = DateTime.tryParse(widget.timestamp ?? '')?.toLocal();
-    if (date == null) return '';
+  String _fullTime(DateTime date, BuildContext context) {
     return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} '
         '${officeHourMinute(date, context: context)}:${date.second.toString().padLeft(2, '0')}';
   }
@@ -138,112 +136,134 @@ class _OfficeMessageHoverToolsState extends State<OfficeMessageHoverTools> {
         8.0,
         math.max(8.0, info.overlaySize.width - width - 8),
       );
-      final time = _time(context);
-      final height = time.isEmpty ? 42.0 : 64.0;
+      final date = DateTime.tryParse(widget.timestamp ?? '')?.toLocal();
+      final time = date == null ? '' : officeHourMinute(date, context: context);
+      const timeStyle = TextStyle(fontSize: 10, color: mutedColor);
+      final timePainter = TextPainter(
+        text: TextSpan(text: time, style: timeStyle),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final timeWidth = math.min(
+        math.max(36.0, timePainter.width + 8),
+        math.max(0.0, info.overlaySize.width - 16),
+      );
+      final timeHeight = math.max(18.0, timePainter.height);
+      timePainter.dispose();
+      final timeLeft = (rect.left - timeWidth - 8).clamp(
+        8.0,
+        math.max(8.0, info.overlaySize.width - timeWidth - 8),
+      );
+      final timeTop = (rect.center.dy - timeHeight / 2).clamp(
+        8.0,
+        math.max(8.0, info.overlaySize.height - timeHeight - 8),
+      );
+      const height = 42.0;
       final top = (rect.top - height + 6).clamp(
         8.0,
         math.max(8.0, info.overlaySize.height - height - 8),
       );
-      return Positioned(
-        left: left.toDouble(),
-        top: top.toDouble(),
-        width: width,
-        child: MouseRegion(
-          onEnter: (_) => _enter(),
-          onExit: (_) => _exit(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (time.isNotEmpty)
-                Container(
-                  key: ValueKey('message-hover-time-${widget.messageId}'),
-                  margin: const EdgeInsets.only(bottom: 3),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xf5ffffff),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    time,
-                    style: const TextStyle(fontSize: 10, color: mutedColor),
-                  ),
-                ),
-              Material(
-                key: ValueKey('message-hover-toolbar-${widget.messageId}'),
-                color: Colors.white,
-                elevation: 5,
-                shadowColor: Colors.black26,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(color: borderColor),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      MenuAnchor(
-                        controller: _reactions,
-                        onOpen: () {
-                          _menuOpen = true;
-                          _leave?.cancel();
-                        },
-                        onClose: () {
-                          _menuOpen = false;
-                          _exit();
-                        },
-                        menuChildren: [
-                          SizedBox(
-                            width: math.min(380, info.overlaySize.width - 24),
-                            height: math.min(
-                              430,
-                              info.overlaySize.height - 100,
-                            ),
-                            child: OfficeEmojiPicker(
-                              state: widget.state,
-                              onSelected: (emoji) => _act('react:$emoji'),
-                            ),
-                          ),
-                        ],
-                        builder: (context, controller, child) => MouseRegion(
-                          onEnter: (_) {
-                            if (!controller.isOpen) controller.open();
-                          },
-                          child: IconButton(
-                            tooltip: '表情回应',
-                            style: IconButton.styleFrom(
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              minimumSize: const Size(34, 34),
-                              maximumSize: const Size(34, 34),
-                            ),
-                            constraints: const BoxConstraints.tightFor(
-                              width: 34,
-                              height: 34,
-                            ),
-                            padding: EdgeInsets.zero,
-                            iconSize: 18,
-                            onPressed: () => controller.isOpen
-                                ? controller.close()
-                                : controller.open(),
-                            icon: const Icon(Icons.thumb_up_outlined),
-                          ),
-                        ),
-                      ),
-                      _button('reply', '回复', Icons.reply_outlined),
-                      _button('forward', '转发', Icons.forward_outlined),
-                      _button('topic', '创建话题', Icons.forum_outlined),
-                      _button('agent', 'Agent 协作', Icons.auto_awesome),
-                      _button('more', '更多', Icons.more_horiz),
-                    ],
+      return Positioned.fill(
+        child: Stack(
+          children: [
+            if (date != null)
+              Positioned(
+                left: timeLeft.toDouble(),
+                top: timeTop.toDouble(),
+                width: timeWidth,
+                height: timeHeight,
+                child: MouseRegion(
+                  onEnter: (_) => _enter(),
+                  onExit: (_) => _exit(),
+                  child: Tooltip(
+                    message: _fullTime(date, context),
+                    child: Center(
+                      key: ValueKey('message-hover-time-${widget.messageId}'),
+                      child: Text(time, style: timeStyle),
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
+            Positioned(
+              left: left.toDouble(),
+              top: top.toDouble(),
+              width: width,
+              child: MouseRegion(
+                onEnter: (_) => _enter(),
+                onExit: (_) => _exit(),
+                child: Material(
+                  key: ValueKey('message-hover-toolbar-${widget.messageId}'),
+                  color: Colors.white,
+                  elevation: 5,
+                  shadowColor: Colors.black26,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: borderColor),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        MenuAnchor(
+                          controller: _reactions,
+                          onOpen: () {
+                            _menuOpen = true;
+                            _leave?.cancel();
+                          },
+                          onClose: () {
+                            _menuOpen = false;
+                            _exit();
+                          },
+                          menuChildren: [
+                            SizedBox(
+                              width: math.min(380, info.overlaySize.width - 24),
+                              height: math.min(
+                                430,
+                                info.overlaySize.height - 100,
+                              ),
+                              child: OfficeEmojiPicker(
+                                state: widget.state,
+                                onSelected: (emoji) => _act('react:$emoji'),
+                              ),
+                            ),
+                          ],
+                          builder: (context, controller, child) => MouseRegion(
+                            onEnter: (_) {
+                              if (!controller.isOpen) controller.open();
+                            },
+                            child: IconButton(
+                              tooltip: '表情回应',
+                              style: IconButton.styleFrom(
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                minimumSize: const Size(34, 34),
+                                maximumSize: const Size(34, 34),
+                              ),
+                              constraints: const BoxConstraints.tightFor(
+                                width: 34,
+                                height: 34,
+                              ),
+                              padding: EdgeInsets.zero,
+                              iconSize: 18,
+                              onPressed: () => controller.isOpen
+                                  ? controller.close()
+                                  : controller.open(),
+                              icon: const Icon(Icons.thumb_up_outlined),
+                            ),
+                          ),
+                        ),
+                        _button('reply', '回复', Icons.reply_outlined),
+                        _button('forward', '转发', Icons.forward_outlined),
+                        _button('topic', '创建话题', Icons.forum_outlined),
+                        _button('agent', 'Agent 协作', Icons.auto_awesome),
+                        _button('more', '更多', Icons.more_horiz),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     },

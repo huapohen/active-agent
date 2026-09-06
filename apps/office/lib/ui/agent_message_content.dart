@@ -12,10 +12,12 @@ class AgentMessageContent extends StatefulWidget {
     required this.runs,
     required this.onRecords,
     this.onAction,
+    this.onOpenMessageMenu,
     this.selectable = true,
   });
   final Json message;
   final ValueChanged<String>? onAction;
+  final ValueChanged<Offset>? onOpenMessageMenu;
   final bool selectable;
   final List<Json> runs;
   final void Function(String turnId) onRecords;
@@ -31,6 +33,7 @@ class _AgentMessageContentState extends State<AgentMessageContent> {
     content: content,
     style: _bodyStyle,
     onAction: widget.onAction,
+    onOpenMessageMenu: widget.onOpenMessageMenu,
     selectable: widget.selectable,
   );
   @override
@@ -150,18 +153,12 @@ class _AgentMessageContentState extends State<AgentMessageContent> {
             ),
           ],
         ),
-        if (_expanded && widget.selectable)
-          SelectableText(
-            appendix.trimLeft(),
-            style: const TextStyle(
-              fontSize: 10,
-              height: 1.6,
-              color: mutedColor,
-            ),
-          ),
-        if (_expanded && !widget.selectable)
-          Text(
-            appendix.trimLeft(),
+        if (_expanded)
+          OfficeEmojiText(
+            content: appendix.trimLeft(),
+            selectable: widget.selectable,
+            onAction: widget.onAction,
+            onOpenMessageMenu: widget.onOpenMessageMenu,
             style: const TextStyle(
               fontSize: 10,
               height: 1.6,

@@ -24,6 +24,8 @@ Future<void> showOfficeRoomDetails(
   VoidCallback? onRecords,
   VoidCallback? onMembers,
   VoidCallback? onChanged,
+  VoidCallback? onMarkedMessages,
+  VoidCallback? onHiddenMessages,
 }) {
   Widget details() => OfficeRoomDetails(
     state: state,
@@ -34,6 +36,8 @@ Future<void> showOfficeRoomDetails(
     onRecords: onRecords,
     onMembers: onMembers,
     onChanged: onChanged,
+    onMarkedMessages: onMarkedMessages,
+    onHiddenMessages: onHiddenMessages,
   );
   if (MediaQuery.sizeOf(context).width < 720) {
     return Navigator.of(context).push<void>(
@@ -72,11 +76,13 @@ class OfficeRoomDetails extends StatefulWidget {
     this.onRecords,
     this.onMembers,
     this.onChanged,
+    this.onMarkedMessages,
+    this.onHiddenMessages,
   });
   final OfficeState state;
   final String roomId;
   final VoidCallback? onSearch, onDocuments, onTasks, onRecords, onMembers;
-  final VoidCallback? onChanged;
+  final VoidCallback? onChanged, onMarkedMessages, onHiddenMessages;
 
   @override
   State<OfficeRoomDetails> createState() => _OfficeRoomDetailsState();
@@ -702,6 +708,22 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
                         _link('任务', Icons.task_alt, widget.onTasks!),
                       if (widget.onRecords != null)
                         _link('工作记录', Icons.history, widget.onRecords!),
+                    ]),
+                  if (widget.onMarkedMessages != null ||
+                      widget.onHiddenMessages != null)
+                    _section('我的消息', [
+                      if (widget.onMarkedMessages != null)
+                        _link(
+                          '已标记消息',
+                          Icons.bookmark_outline,
+                          widget.onMarkedMessages!,
+                        ),
+                      if (widget.onHiddenMessages != null)
+                        _link(
+                          '已删除消息',
+                          Icons.restore_from_trash_outlined,
+                          widget.onHiddenMessages!,
+                        ),
                     ]),
                   _section('个人会话设置', [
                     if (_group)
