@@ -1,0 +1,175 @@
+{
+  "schema": "renji-release-evidence/v1",
+  "version": "0.6.0",
+  "flutter_version": "0.6.0+3",
+  "branch": "equal_rights",
+  "recorded_at_utc": "2026-09-06T10:08:18.593105+00:00",
+  "implementation": {
+    "active_agent": {
+      "commit": "bcce780c61ff2dcb9a82d6a74f7c919c7a8b7d7d",
+      "committed_at": "2026-09-06T17:51:52+08:00",
+      "description": "feat: ship native office 0.6 collaboration and message groups"
+    },
+    "doc_free": {
+      "commit": "5618e90e370bb43ee7c4cd5b2cfd86156b1366a5",
+      "committed_at": "2026-09-06T17:39:33+08:00",
+      "description": "fix: expose optional participation revision checks through MCP"
+    }
+  },
+  "validation": {
+    "flutter": {
+      "passed": 79,
+      "analyzer": "pass"
+    },
+    "python": {
+      "passed": 57
+    },
+    "doc_free_node": {
+      "passed": 218
+    },
+    "companion_browser": {
+      "passed": 9
+    },
+    "indexed_secret_scan": {
+      "passed": true,
+      "paths": 289,
+      "scope": "implementation commit"
+    },
+    "local_web_release": "passed",
+    "live_ui": [
+      "macos-debug",
+      "ios-simulator",
+      "web-four-isolated-members"
+    ],
+    "live_workflows": [
+      "personal message labels and rules across three clients",
+      "agent-scoped MCP label creation",
+      "shared minutes with four segments and document/task association",
+      "editable mobile navigation",
+      "default activate-agent and companion contacts"
+    ]
+  },
+  "ci": {
+    "run_id": 34025836439,
+    "url": "https://github.com/huapohen/active-agent/actions/runs/34025836439",
+    "status": "completed",
+    "artifact_verification": "passed",
+    "conclusion": "success",
+    "verified_at_utc": "2026-09-06T10:04:16.989820+00:00",
+    "jobs": [
+      {
+        "name": "android",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T09:51:59Z",
+        "completedAt": "2026-09-06T09:57:48Z",
+        "url": "https://github.com/huapohen/active-agent/actions/runs/34025836439/job/101466516573"
+      },
+      {
+        "name": "macos",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T09:52:03Z",
+        "completedAt": "2026-09-06T09:55:36Z",
+        "url": "https://github.com/huapohen/active-agent/actions/runs/34025836439/job/101466516658"
+      },
+      {
+        "name": "ios-unsigned",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T09:52:03Z",
+        "completedAt": "2026-09-06T09:56:20Z",
+        "url": "https://github.com/huapohen/active-agent/actions/runs/34025836439/job/101466516727"
+      },
+      {
+        "name": "web",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T09:51:59Z",
+        "completedAt": "2026-09-06T09:54:18Z",
+        "url": "https://github.com/huapohen/active-agent/actions/runs/34025836439/job/101466516744"
+      },
+      {
+        "name": "windows",
+        "conclusion": "success",
+        "startedAt": "2026-09-06T09:51:59Z",
+        "completedAt": "2026-09-06T09:57:01Z",
+        "url": "https://github.com/huapohen/active-agent/actions/runs/34025836439/job/101466516760"
+      }
+    ]
+  },
+  "limitations": [
+    "No production signing, notarization or store submission",
+    "Companion browser service not yet integrated with IM execution permissions or system device control",
+    "Minutes ASR not configured; assigned summarization task is open with no fleet running",
+    "Agent participation settings are per-room, not a global personality editor",
+    "Feishu feature parity remains incomplete"
+  ],
+  "artifacts": [
+    {
+      "target": "android",
+      "github_artifact_id": 9987086560,
+      "built_at_utc": "2026-09-06T09:57:39.465100+00:00",
+      "github_archive_sha256": "sha256:1ede7c4563c9196aeabae25ab7b18007b8dfc61c75a584e8347d9411823269cf",
+      "github_archive_bytes": 46182170,
+      "local_path": "output/builds/bcce780/android/active-office-android-preview.apk",
+      "file": "active-office-android-preview.apk",
+      "bytes": 97521719,
+      "sha256": "b00495d075e382a1b17e67550404dff0fa5c2da13ef35f0a431231bdbdb37756",
+      "integrity": "passed"
+    },
+    {
+      "target": "ios-unsigned",
+      "github_artifact_id": 9987064157,
+      "built_at_utc": "2026-09-06T09:55:56.621443+00:00",
+      "github_archive_sha256": "sha256:c5d0dfd351b2270cfcb2f2c38ee511e6116b6529d12738f4295a22cd601f7116",
+      "github_archive_bytes": 14703765,
+      "local_path": "output/builds/bcce780/ios-unsigned/active-office-ios-unsigned.zip",
+      "file": "active-office-ios-unsigned.zip",
+      "bytes": 14752338,
+      "sha256": "4d717c592515a25359d849d6f118c1303d8d13b8a53c87940cd9ef75f75a80f9",
+      "integrity": "passed"
+    },
+    {
+      "target": "macos",
+      "github_artifact_id": 9987056791,
+      "built_at_utc": "2026-09-06T09:55:25.192608+00:00",
+      "github_archive_sha256": "sha256:f9f0b6f8311cda4e4d31c9db02308bb8b341a6c9ada04216fade28e42e948cef",
+      "github_archive_bytes": 34978178,
+      "local_path": "output/builds/bcce780/macos/active-office-macos.zip",
+      "file": "active-office-macos.zip",
+      "bytes": 35069243,
+      "sha256": "288847d5c868df0e480588d51e33387e237ae13c77b59babe03357a39c38b9b4",
+      "integrity": "passed"
+    },
+    {
+      "target": "web",
+      "github_artifact_id": 9987040587,
+      "built_at_utc": "2026-09-06T09:54:10.450645+00:00",
+      "github_archive_sha256": "sha256:8806d4ed85934d866f58c138c2b3d97e46fc6d7a5155399ff5b0b87c66d6909a",
+      "github_archive_bytes": 14601094,
+      "local_path": "output/builds/bcce780/web/active-office-web.tar.gz",
+      "file": "active-office-web.tar.gz",
+      "bytes": 14611848,
+      "sha256": "b35ac3ea6330d0de64c6bf5e7e0d4c2529ae6ae5e348a5dfdd8c01edd8e708d4",
+      "integrity": "passed"
+    },
+    {
+      "target": "windows",
+      "github_artifact_id": 9987075503,
+      "built_at_utc": "2026-09-06T09:56:51.265737+00:00",
+      "github_archive_sha256": "sha256:4b7fee448bb5dde4ebb4a7f593b6b2b0b17f85dd3c03f1caa30e9ada4e48fe53",
+      "github_archive_bytes": 22897018,
+      "local_path": "output/builds/bcce780/windows/active-office-windows.zip",
+      "file": "active-office-windows.zip",
+      "bytes": 22936976,
+      "sha256": "73400dfae252455f611544016a5c4c2af26851059e0e0d7c4cda576084bf24ce",
+      "integrity": "passed"
+    }
+  ],
+  "shared_document": {
+    "id": "bd73ed44",
+    "revision": 3,
+    "room_id": "room-653437e5-042e-43d0-aa99-0e7b744e6e00",
+    "title": "人机 0.6 · 本批交付记录 · bcce780 · 2026-09-06 17:52",
+    "readback_verified": true,
+    "readback_scope": "both commits and all five artifact filenames, byte counts and hashes",
+    "canonical_content_sha256": "6fa3b84135f831a281f0acac322154b8c6c0c2a413c0a48885bb7098af64f16d"
+  }
+}
