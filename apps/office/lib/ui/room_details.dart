@@ -8,6 +8,7 @@ import 'agent_autonomy.dart';
 import 'business_widgets.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
+import 'room_nickname.dart';
 
 String _roomIdentity(OfficeState state) =>
     '${state.endpoint}|${personId(state.me ?? {})}|${state.connected}';
@@ -83,7 +84,7 @@ class OfficeRoomDetails extends StatefulWidget {
 
 class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   late final String _identity;
-  Json? _detail, _profile, _announcement;
+  Json? _detail, _profile, _announcement, _membership;
   String? _error, _profileError;
   bool _loading = true, _saving = false, _expired = false;
   int _generation = 0;
@@ -94,13 +95,20 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
   List<Json> get _members => maps(_detail?['members']);
   List<Json> get _visibleMembers => _members
       .where(
-        (member) => '${str(member['name'])} ${personId(member)}'
-            .toLowerCase()
-            .contains(_memberQuery.trim().toLowerCase()),
+        (member) =>
+            '${officeDisplayName(member)} ${str(member['name'])} ${personId(member)}'
+                .toLowerCase()
+                .contains(_memberQuery.trim().toLowerCase()),
       )
       .take(_memberQuery.trim().isEmpty ? 8 : _members.length)
       .toList();
   bool get _group => _room['kind'] != 'direct';
+  bool get _owner => _members.any(
+    (member) =>
+        personId(member) == personId(widget.state.me ?? {}) &&
+        member['role'] == 'owner',
+  );
+  bool get _mobile => MediaQuery.sizeOf(context).width < 720;
   bool get _valid =>
       !_expired &&
       widget.state.connected &&
@@ -120,7 +128,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
       _generation++;
       setState(() {
         _expired = true;
-        _detail = _profile = _announcement = null;
+        _detail = _profile = _announcement = _membership = null;
       });
       return;
     }
@@ -155,11 +163,13 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
         final results = await Future.wait([
           widget.state.officeRequest('$_path/profile'),
           widget.state.officeRequest('$_path/announcement'),
+          widget.state.officeRequest('$_path/membership-profile'),
         ]);
         if (!_accept(generation)) return;
         setState(() {
           _profile = results[0];
           _announcement = results[1];
+          _membership = results[2];
           _profileError = null;
         });
       } catch (error) {
@@ -169,7 +179,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
           rethrow;
         }
         setState(() {
-          _profile = _announcement = null;
+          _profile = _announcement = _membership = null;
           _profileError = friendlyError(error);
         });
       }
@@ -181,7 +191,7 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
         // A failed access check must not keep private content on screen.
         if (error is OfficeException &&
             [401, 403, 404].contains(error.status)) {
-          _detail = _profile = _announcement = null;
+          _detail = _profile = _announcement = _membership = null;
         }
       });
     }
@@ -255,6 +265,129 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
     );
     if (mounted && _valid) await _load();
   }
+
+  Future<void> _openMembers() async {
+    if (!_valid) return;
+    if (widget.onMembers != null) {
+      _navigate(widget.onMembers!);
+      return;
+    }
+    await OfficeDialogs.members(context, widget.state, roomId: widget.roomId);
+    if (mounted && _valid) await _load();
+  }
+
+  Future<void> _nickname() async {
+    if (!_valid) return;
+    final saved = await showOfficeRoomNickname(
+      context,
+      widget.state,
+      roomId: widget.roomId,
+    );
+    if (!mounted || !_valid || saved != true) return;
+    widget.onChanged?.call();
+    await _load();
+  }
+
+  Widget _memberStrip() => Column(
+    children: [
+      SizedBox(
+        height: 122,
+        child: ListView(
+          key: const ValueKey('room-member-strip'),
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
+          children: [
+            for (final member in _members.take(8))
+              SizedBox(
+                width: 76,
+                child: Tooltip(
+                  message: member['kind'] == 'agent'
+                      ? '${str(member['name'])} · 人格与参与'
+                      : str(member['name']),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: member['kind'] == 'agent'
+                        ? () => _agent(member)
+                        : _openMembers,
+                    child: Column(
+                      children: [
+                        PersonAvatar(
+                          name: officeDisplayName(member),
+                          agent: member['kind'] == 'agent',
+                          size: 42,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          officeDisplayName(member),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        const SizedBox(height: 3),
+                        IdentityBadge(agent: member['kind'] == 'agent'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            if (_owner && _group)
+              SizedBox(
+                width: 68,
+                child: Column(
+                  children: [
+                    IconButton.filledTonal(
+                      tooltip: '添加群成员',
+                      onPressed: _openMembers,
+                      icon: const Icon(Icons.add),
+                      constraints: const BoxConstraints.tightFor(
+                        width: 42,
+                        height: 42,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text('添加', style: TextStyle(fontSize: 11)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+      ListTile(
+        dense: true,
+        title: Text('查看全部 ${_members.length} 位成员'),
+        trailing: const Icon(Icons.chevron_right, size: 18),
+        onTap: _openMembers,
+      ),
+    ],
+  );
+
+  Widget _application(String name, IconData icon, VoidCallback action) =>
+      SizedBox(
+        width: 76,
+        child: InkWell(
+          onTap: action,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: selectedColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: accentColor, size: 21),
+                ),
+                const SizedBox(height: 7),
+                Text(name, style: const TextStyle(fontSize: 11)),
+              ],
+            ),
+          ),
+        ),
+      );
 
   Widget _section(String title, List<Widget> children) => Padding(
     padding: const EdgeInsets.only(top: 18),
@@ -367,58 +500,101 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
                       ),
                     ],
                   ),
-                  _section('共同成员 · ${_members.length}', [
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: TextField(
-                        decoration: const InputDecoration(
-                          hintText: '搜索群成员',
-                          prefixIcon: Icon(Icons.search, size: 18),
+                  if (_mobile)
+                    _section('共同成员 · ${_members.length}', [_memberStrip()])
+                  else
+                    _section('共同成员 · ${_members.length}', [
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: TextField(
+                          decoration: const InputDecoration(
+                            hintText: '搜索群成员',
+                            prefixIcon: Icon(Icons.search, size: 18),
+                          ),
+                          onChanged: (value) =>
+                              setState(() => _memberQuery = value),
                         ),
-                        onChanged: (value) =>
-                            setState(() => _memberQuery = value),
                       ),
-                    ),
-                    if (_visibleMembers.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('没有匹配的成员'),
-                      ),
-                    for (final member in _visibleMembers)
+                      if (_visibleMembers.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text('没有匹配的成员'),
+                        ),
+                      for (final member in _visibleMembers)
+                        ListTile(
+                          dense: true,
+                          leading: PersonAvatar(
+                            name: officeDisplayName(member),
+                            agent: member['kind'] == 'agent',
+                            size: 32,
+                          ),
+                          title: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  officeDisplayName(member),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              IdentityBadge(agent: member['kind'] == 'agent'),
+                            ],
+                          ),
+                          subtitle: Text(
+                            '${member['role'] == 'owner' ? '会话负责人' : '工作成员'}${officeDisplayName(member) == str(member['name']) ? '' : ' · ${str(member['name'])}'}',
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                          trailing: member['kind'] == 'agent'
+                              ? IconButton(
+                                  tooltip: '${str(member['name'])} · 人格与参与',
+                                  onPressed: () => _agent(member),
+                                  icon: const Icon(Icons.tune, size: 18),
+                                )
+                              : null,
+                        ),
                       ListTile(
                         dense: true,
-                        leading: PersonAvatar(
-                          name: str(member['name']),
-                          agent: member['kind'] == 'agent',
-                          size: 32,
-                        ),
-                        title: Row(
+                        leading: const Icon(Icons.people_outline, size: 20),
+                        title: const Text('查看全部成员'),
+                        trailing: const Icon(Icons.chevron_right, size: 18),
+                        onTap: _openMembers,
+                      ),
+                    ]),
+                  if (_mobile && _group)
+                    _section('群应用', [
+                      SizedBox(
+                        width: double.infinity,
+                        child: Wrap(
+                          alignment: WrapAlignment.spaceEvenly,
                           children: [
-                            Flexible(
-                              child: Text(
-                                str(member['name']),
-                                overflow: TextOverflow.ellipsis,
+                            if (_announcement != null)
+                              _application(
+                                '群公告',
+                                Icons.campaign_outlined,
+                                _viewAnnouncement,
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            IdentityBadge(agent: member['kind'] == 'agent'),
+                            if (widget.onDocuments != null)
+                              _application(
+                                '群文档',
+                                Icons.description_outlined,
+                                () => _navigate(widget.onDocuments!),
+                              ),
+                            if (widget.onTasks != null)
+                              _application(
+                                '任务',
+                                Icons.task_alt,
+                                () => _navigate(widget.onTasks!),
+                              ),
+                            if (widget.onRecords != null)
+                              _application(
+                                '工作记录',
+                                Icons.history,
+                                () => _navigate(widget.onRecords!),
+                              ),
                           ],
                         ),
-                        subtitle: Text(
-                          member['role'] == 'owner' ? '会话负责人' : '工作成员',
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                        trailing: member['kind'] == 'agent'
-                            ? IconButton(
-                                tooltip: '${str(member['name'])} · 人格与参与',
-                                onPressed: () => _agent(member),
-                                icon: const Icon(Icons.tune, size: 18),
-                              )
-                            : null,
                       ),
-                    if (widget.onMembers != null)
-                      _link('查看全部成员', Icons.people_outline, widget.onMembers!),
-                  ]),
+                    ]),
                   if (_group)
                     _section('群资料', [
                       ListTile(
@@ -500,6 +676,30 @@ class _OfficeRoomDetailsState extends State<OfficeRoomDetails> {
                         _link('工作记录', Icons.history, widget.onRecords!),
                     ]),
                   _section('个人会话设置', [
+                    if (_group)
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.badge_outlined, size: 20),
+                        title: const Text('我在本群的昵称'),
+                        subtitle: Text(
+                          str(
+                                (_membership?['membership_profile']
+                                    as Map?)?['nickname'],
+                              ).isEmpty
+                              ? '未设置，使用工作身份本名'
+                              : str(
+                                  (_membership?['membership_profile']
+                                      as Map?)?['nickname'],
+                                ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, size: 18),
+                        onTap:
+                            (_membership?['permissions']
+                                    as Map?)?['can_edit'] ==
+                                true
+                            ? _nickname
+                            : null,
+                      ),
                     _toggle(
                       '置顶聊天',
                       'pinned',

@@ -276,6 +276,7 @@ class _WorkDocumentsState extends State<WorkDocuments> {
                                           clockText(
                                             doc['updated_at'],
                                             date: true,
+                                            context: context,
                                           ),
                                           style: const TextStyle(
                                             fontSize: 10,
@@ -777,7 +778,11 @@ class Workbench extends StatelessWidget {
               ),
             ),
             Text(
-              clockText(DateTime.now().toIso8601String(), date: true),
+              clockText(
+                DateTime.now().toIso8601String(),
+                date: true,
+                context: context,
+              ),
               style: const TextStyle(fontSize: 11, color: mutedColor),
             ),
           ],
@@ -902,7 +907,11 @@ class Workbench extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      clockText(run['created_at'], date: true),
+                      clockText(
+                        run['created_at'],
+                        date: true,
+                        context: context,
+                      ),
                       style: const TextStyle(fontSize: 10, color: mutedColor),
                     ),
                   ],

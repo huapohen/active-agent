@@ -38,7 +38,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
         }).toList()
         ..sort((a, b) => str(a['starts_at']).compareTo(str(b['starts_at'])));
   String _fullTime(DateTime date) =>
-      '${date.year}/${date.month}/${date.day} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      '${date.year}/${date.month}/${date.day} ${officeHourMinute(date, context: context)}';
   Future<DateTime?> _pickDateTime(BuildContext context, DateTime value) async {
     final date = await showDatePicker(
       context: context,
@@ -832,7 +832,10 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                                         ),
                                         if (height > 45)
                                           Text(
-                                            clockText(event['starts_at']),
+                                            clockText(
+                                              event['starts_at'],
+                                              context: context,
+                                            ),
                                             maxLines: 1,
                                             style: const TextStyle(
                                               fontSize: 8,
@@ -941,7 +944,10 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  clockText(event['starts_at']),
+                                  clockText(
+                                    event['starts_at'],
+                                    context: context,
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
@@ -949,7 +955,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                                 ),
                                 const SizedBox(height: 7),
                                 Text(
-                                  clockText(event['ends_at']),
+                                  clockText(event['ends_at'], context: context),
                                   style: const TextStyle(
                                     fontSize: 10,
                                     color: mutedColor,

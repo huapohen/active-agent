@@ -224,7 +224,11 @@ class OfficeMeetingsState extends State<OfficeMeetings> {
                       },
                       icon: const Icon(Icons.schedule_outlined, size: 18),
                       label: Text(
-                        clockText(starts.toIso8601String(), date: true),
+                        clockText(
+                          starts.toIso8601String(),
+                          date: true,
+                          context: context,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -501,7 +505,7 @@ class OfficeMeetingsState extends State<OfficeMeetings> {
                         ),
                         const SizedBox(height: 7),
                         Text(
-                          '${clockText(meeting['starts_at'] ?? meeting['created_at'], date: true)} · ${meeting['duration_minutes'] ?? 30} 分钟',
+                          '${clockText(meeting['starts_at'] ?? meeting['created_at'], date: true, context: context)} · ${meeting['duration_minutes'] ?? 30} 分钟',
                           style: const TextStyle(
                             fontSize: 10,
                             color: mutedColor,

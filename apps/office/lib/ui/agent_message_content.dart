@@ -10,8 +10,10 @@ class AgentMessageContent extends StatefulWidget {
     required this.message,
     required this.runs,
     required this.onRecords,
+    this.onAction,
   });
   final Json message;
+  final ValueChanged<String>? onAction;
   final List<Json> runs;
   final void Function(String turnId) onRecords;
   @override
@@ -22,6 +24,32 @@ class _AgentMessageContentState extends State<AgentMessageContent> {
   bool _expanded = false;
   static const _bodyStyle = TextStyle(fontSize: 13, height: 1.7);
 
+  Widget _selectable(String content) => widget.onAction == null
+      ? SelectableText(content, style: _bodyStyle)
+      : SelectableText(
+          content,
+          style: _bodyStyle,
+          contextMenuBuilder: widget.onAction == null
+              ? null
+              : (context, editable) => AdaptiveTextSelectionToolbar.buttonItems(
+                  anchors: editable.contextMenuAnchors,
+                  buttonItems: [
+                    ...editable.contextMenuButtonItems,
+                    for (final action in [
+                      ('reply', '回复'),
+                      ('forward', '转发'),
+                      ('menu', '消息操作'),
+                    ])
+                      ContextMenuButtonItem(
+                        label: action.$2,
+                        onPressed: () {
+                          editable.hideToolbar();
+                          widget.onAction!(action.$1);
+                        },
+                      ),
+                  ],
+                ),
+        );
   @override
   Widget build(BuildContext context) {
     final message = widget.message;
@@ -52,7 +80,7 @@ class _AgentMessageContentState extends State<AgentMessageContent> {
         result['content'] != content ||
         summaries.isEmpty ||
         !content.endsWith(appendix)) {
-      return SelectableText(content, style: _bodyStyle);
+      return _selectable(content);
     }
     final receipts = maps(run['action_receipts']);
     final verified =
@@ -101,7 +129,7 @@ class _AgentMessageContentState extends State<AgentMessageContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (body.isNotEmpty) SelectableText(body, style: _bodyStyle),
+        if (body.isNotEmpty) _selectable(body),
         const SizedBox(height: 8),
         Text(
           label,

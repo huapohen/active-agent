@@ -72,6 +72,14 @@ class RoomDetailsFixture extends OfficeState {
     'revision': 7,
   };
   final calls = <Json>[];
+  final membership = <String, dynamic>{
+    'room_id': 'room-1',
+    'principal_id': 'human-1',
+    'name': '真实人类',
+    'nickname': '',
+    'display_name': '真实人类',
+    'revision': 5,
+  };
   Completer<Json>? nextRead;
 
   void switchIdentity() {
@@ -111,6 +119,37 @@ class RoomDetailsFixture extends OfficeState {
             entry.value;
       }
       return copyRoom({'room': room});
+    }
+    if (path == '/rooms/room-1/membership-profile') {
+      final self = members.firstWhere(
+        (member) => member['principal_id'] == me!['id'],
+      );
+      membership['principal_id'] = me!['id'];
+      membership['name'] = self['name'];
+      if (method == 'PATCH') {
+        if (conflictOnce) {
+          conflictOnce = false;
+          membership['revision'] = (membership['revision'] as int) + 1;
+          membership['nickname'] = '另一端的新昵称';
+          throw OfficeException(409, '昵称版本已变更');
+        }
+        if (data!['base_revision'] != membership['revision']) {
+          throw OfficeException(409, '昵称版本不一致');
+        }
+        membership['nickname'] = data['nickname'];
+        membership['revision'] = (membership['revision'] as int) + 1;
+      }
+      membership['display_name'] = (membership['nickname'] as String).isEmpty
+          ? self['name']
+          : membership['nickname'];
+      self.addAll({
+        'nickname': membership['nickname'],
+        'display_name': membership['display_name'],
+      });
+      return copyRoom({
+        'membership_profile': membership,
+        'permissions': {'can_edit': true},
+      });
     }
     final key = path.endsWith('/profile') ? 'profile' : 'announcement';
     final value = key == 'profile' ? profile : announcement;

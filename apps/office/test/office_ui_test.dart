@@ -557,6 +557,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: officeTheme(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        ),
         home: Scaffold(
           body: OfficeApprovals(key: key, state: state),
         ),
@@ -780,7 +784,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('通用').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('所有消息左对齐'));
+    await tester.scrollUntilVisible(
+      find.text('消息气泡左对齐'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('消息气泡左对齐'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('消息气泡左对齐'));
     await tester.pumpAndSettle();
     expect(state.settings['message_alignment'], 'left');
     await tester.tap(find.text('快捷键').first);

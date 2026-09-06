@@ -213,7 +213,7 @@ class _OfficeAttendanceState extends State<OfficeAttendance> {
                     ),
                     if (current['server_time'] != null)
                       Text(
-                        '服务器时间：${fullOfficeTime(current['server_time'])}',
+                        '服务器时间：${fullOfficeTime(current['server_time'], context: context)}',
                         style: const TextStyle(fontSize: 11, color: mutedColor),
                       ),
                     BusinessError(_error),
@@ -283,7 +283,7 @@ class _OfficeAttendanceState extends State<OfficeAttendance> {
                           ),
                           const SizedBox(height: 14),
                           Text(
-                            '上班  ${fullOfficeTime(record['check_in_at'])}',
+                            '上班  ${fullOfficeTime(record['check_in_at'], context: context)}',
                             style: const TextStyle(fontSize: 13),
                           ),
                           if (str(record['check_in_note']).isNotEmpty)
@@ -296,7 +296,7 @@ class _OfficeAttendanceState extends State<OfficeAttendance> {
                             ),
                           const SizedBox(height: 9),
                           Text(
-                            '下班  ${fullOfficeTime(record['check_out_at'])}',
+                            '下班  ${fullOfficeTime(record['check_out_at'], context: context)}',
                             style: const TextStyle(fontSize: 13),
                           ),
                           if (str(record['check_out_note']).isNotEmpty)
@@ -334,7 +334,7 @@ class _OfficeAttendanceState extends State<OfficeAttendance> {
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: Text(
-                                          '${fullOfficeTime(entry['at'])} · ${const {'check_in': '上班打卡', 'check_out': '下班打卡', 'approved_correction': '审批通过更正'}[entry['action']] ?? str(entry['action'])} ${str(entry['reason'])}',
+                                          '${fullOfficeTime(entry['at'], context: context)} · ${const {'check_in': '上班打卡', 'check_out': '下班打卡', 'approved_correction': '审批通过更正'}[entry['action']] ?? str(entry['action'])} ${str(entry['reason'])}',
                                           style: const TextStyle(
                                             fontSize: 11,
                                             color: mutedColor,

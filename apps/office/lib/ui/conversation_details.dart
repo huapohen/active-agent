@@ -6,6 +6,7 @@ import '../office_state.dart' hide Json;
 import 'business_widgets.dart';
 import 'office_theme.dart';
 import 'office_dialogs.dart';
+import 'message_original.dart';
 
 Future<void> showOfficeMessageReaders(
   BuildContext context,
@@ -50,11 +51,11 @@ Future<void> showOfficeMessageReaders(
                                   for (final p in group)
                                     ListTile(
                                       leading: PersonAvatar(
-                                        name: str(p['name']),
+                                        name: officeDisplayName(p),
                                         agent: p['kind'] == 'agent',
                                         size: 32,
                                       ),
-                                      title: Text(str(p['name'])),
+                                      title: Text(officeDisplayName(p)),
                                       subtitle: Text(
                                         p['kind'] == 'agent'
                                             ? 'Agent 同事'
@@ -288,49 +289,12 @@ class _OfficeRoomSearchState extends State<OfficeRoomSearch> {
 
   Future<void> _open(Json item) async {
     if (!_validIdentity) return;
-    try {
-      final result = await widget.state.officeRequest(
-        '/rooms/${widget.roomId}/messages/${item['id']}',
-      );
-      if (!mounted || !_validIdentity) return;
-      final message = Map<String, dynamic>.from(result['message'] as Map);
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('消息原文'),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${str((message['author'] as Map?)?['name'], str(item['author_id']))} · ${fullOfficeTime(message['at'])}',
-                    style: const TextStyle(fontSize: 12, color: mutedColor),
-                  ),
-                  const SizedBox(height: 16),
-                  SelectableText(
-                    message['retracted_at'] != null
-                        ? '这条消息已撤回'
-                        : str(message['content']),
-                    style: const TextStyle(height: 1.7),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('关闭'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      if (mounted) setState(() => _error = friendlyError(e));
-    }
+    await showOfficeMessageOriginal(
+      context,
+      widget.state,
+      widget.roomId,
+      str(item['id']),
+    );
   }
 
   @override
@@ -373,7 +337,9 @@ class _OfficeRoomSearchState extends State<OfficeRoomSearch> {
                             maxLines: 4,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          subtitle: Text(fullOfficeTime(item['at'])),
+                          subtitle: Text(
+                            fullOfficeTime(item['at'], context: context),
+                          ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => _open(item),
                         ),

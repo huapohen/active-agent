@@ -273,8 +273,17 @@ void main() {
         }
         await tester.tap(find.text('通用').first);
         await tester.pumpAndSettle();
-        expect(find.text('文字大小'), findsOneWidget);
-        await tester.ensureVisible(find.text('编辑底栏'));
+        await tester.scrollUntilVisible(
+          find.text('字体大小'),
+          200,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('字体大小'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('编辑底栏'),
+          200,
+          scrollable: find.byType(Scrollable).last,
+        );
         await tester.tap(find.text('编辑底栏'));
         await tester.pumpAndSettle();
         expect(find.text('保存'), findsOneWidget);

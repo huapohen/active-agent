@@ -54,6 +54,7 @@ class _ActiveOfficeAppState extends State<ActiveOfficeApp> {
         animation: state,
         builder: (context, _) => MediaQuery(
           data: MediaQuery.of(context).copyWith(
+            alwaysUse24HourFormat: state.settings['time_format'] != '12h',
             textScaler: TextScaler.linear(
               (state.settings['text_scale'] as num? ?? 1).toDouble().clamp(
                 .85,

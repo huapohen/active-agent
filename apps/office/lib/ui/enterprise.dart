@@ -12,6 +12,7 @@ import 'business_widgets.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
 import 'enterprise_apps.dart';
+import 'enterprise_directory.dart';
 import 'enterprise_organizations.dart';
 import 'professional_identity.dart';
 
@@ -47,6 +48,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
   int _tab = 0;
   bool _busy = false;
   Timer? _searchTimer;
+  final _memberSearch = TextEditingController();
   String? _error;
   static const _labels = [
     '企业概览',
@@ -69,12 +71,14 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
   @override
   void initState() {
     super.initState();
+    _memberSearch.text = e.memberQuery;
     e.load();
   }
 
   @override
   void dispose() {
     _searchTimer?.cancel();
+    _memberSearch.dispose();
     if (widget.controller == null) e.dispose();
     super.dispose();
   }
@@ -134,6 +138,34 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
       barrierDismissible: false,
       builder: (context) =>
           _EnterpriseMemberForm(controller: e, member: member),
+    );
+  }
+
+  Future<void> _memberDetails(Json member) => showDialog<void>(
+    context: context,
+    builder: (_) => EnterpriseMemberDetails(
+      controller: e,
+      memberId: str(member['principal_id'], str(member['id'])),
+      onEdit: _editMember,
+    ),
+  );
+
+  void _browseDepartment(String? id, {bool resetFilters = false}) {
+    if (resetFilters) {
+      _searchTimer?.cancel();
+      _memberSearch.clear();
+      setState(() => _tab = 1);
+    }
+    _run(
+      () => e.loadMembers(
+        page: 1,
+        department: id,
+        clearDepartment: id == null,
+        query: resetFilters ? '' : null,
+        role: resetFilters ? 'all' : null,
+        status: resetFilters ? 'all' : null,
+        clearOrganization: resetFilters,
+      ),
     );
   }
 
@@ -640,7 +672,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
             ),
             const Divider(height: 32),
             Text(
-              '创建时间：${fullOfficeTime(e.enterprise['created_at'])}\n最近更新：${fullOfficeTime(e.enterprise['updated_at'])}',
+              '创建时间：${fullOfficeTime(e.enterprise['created_at'], context: context)}\n最近更新：${fullOfficeTime(e.enterprise['updated_at'], context: context)}',
               style: const TextStyle(
                 fontSize: 11,
                 color: mutedColor,
@@ -696,150 +728,223 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
           Expanded(
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 21, 22, 15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: constraints.maxHeight * .65,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(22, 21, 22, 15),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Expanded(
-                            child: Text(
-                              '成员与组织',
-                              style: TextStyle(
-                                fontSize: 19,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          if (e.can('manage_members'))
-                            FilledButton.icon(
-                              onPressed: () => _editMember(),
-                              icon: const Icon(Icons.person_add_alt, size: 16),
-                              label: const Text('添加成员'),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      TextField(
-                        decoration: const InputDecoration(
-                          hintText: '搜索姓名或成员 ID',
-                          prefixIcon: Icon(Icons.search, size: 18),
-                        ),
-                        onChanged: (query) {
-                          _searchTimer?.cancel();
-                          _searchTimer = Timer(
-                            const Duration(milliseconds: 350),
-                            () => _searchMembers(query),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          SizedBox(
-                            width: 145,
-                            child: DropdownButtonFormField<String>(
-                              initialValue: e.memberStatus,
-                              decoration: const InputDecoration(
-                                labelText: '账号状态',
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'all',
-                                  child: Text('全部状态'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'active',
-                                  child: Text('正常'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'disabled',
-                                  child: Text('已停用'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'revoked',
-                                  child: Text('已撤销'),
-                                ),
-                              ],
-                              onChanged: _busy
-                                  ? null
-                                  : (value) => _run(
-                                      () =>
-                                          e.loadMembers(page: 1, status: value),
-                                    ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 145,
-                            child: DropdownButtonFormField<String>(
-                              initialValue: e.memberRole,
-                              decoration: const InputDecoration(
-                                labelText: '管理角色',
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'all',
-                                  child: Text('全部角色'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'owner',
-                                  child: Text('企业所有者'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'admin',
-                                  child: Text('管理员'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'member',
-                                  child: Text('普通成员'),
-                                ),
-                              ],
-                              onChanged: _busy
-                                  ? null
-                                  : (value) => _run(
-                                      () => e.loadMembers(page: 1, role: value),
-                                    ),
-                            ),
-                          ),
-                          if (!showTree)
-                            SizedBox(
-                              width: 170,
-                              child: DropdownButtonFormField<String>(
-                                initialValue: e.memberDepartment ?? 'all',
-                                decoration: const InputDecoration(
-                                  labelText: '部门',
-                                ),
-                                items: [
-                                  const DropdownMenuItem(
-                                    value: 'all',
-                                    child: Text('全部部门'),
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  '成员与组织',
+                                  style: TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  ...e.departments.map(
-                                    (department) => DropdownMenuItem(
-                                      value: str(department['id']),
-                                      child: Text(str(department['name'])),
-                                    ),
+                                ),
+                              ),
+                              if (e.can('manage_members'))
+                                FilledButton.icon(
+                                  onPressed: () => _editMember(),
+                                  icon: const Icon(
+                                    Icons.person_add_alt,
+                                    size: 16,
                                   ),
-                                ],
-                                onChanged: _busy
-                                    ? null
-                                    : (value) => _run(
-                                        () => e.loadMembers(
-                                          page: 1,
-                                          department: value == 'all'
-                                              ? null
-                                              : value,
-                                          clearDepartment: value == 'all',
+                                  label: const Text('添加成员'),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          TextField(
+                            controller: _memberSearch,
+                            decoration: const InputDecoration(
+                              hintText: '搜索姓名、成员 ID、职业或组织',
+                              prefixIcon: Icon(Icons.search, size: 18),
+                            ),
+                            onChanged: (query) {
+                              _searchTimer?.cancel();
+                              _searchTimer = Timer(
+                                const Duration(milliseconds: 350),
+                                () => _searchMembers(query),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              SizedBox(
+                                width: 145,
+                                child: DropdownButtonFormField<String>(
+                                  key: ValueKey(
+                                    'member-status-${e.memberStatus}',
+                                  ),
+                                  isExpanded: true,
+                                  initialValue: e.memberStatus,
+                                  decoration: const InputDecoration(
+                                    labelText: '账号状态',
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: 'all',
+                                      child: Text('全部状态'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'active',
+                                      child: Text('正常'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'disabled',
+                                      child: Text('已停用'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'revoked',
+                                      child: Text('已撤销'),
+                                    ),
+                                  ],
+                                  onChanged: _busy
+                                      ? null
+                                      : (value) => _run(
+                                          () => e.loadMembers(
+                                            page: 1,
+                                            status: value,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 145,
+                                child: DropdownButtonFormField<String>(
+                                  key: ValueKey('member-role-${e.memberRole}'),
+                                  isExpanded: true,
+                                  initialValue: e.memberRole,
+                                  decoration: const InputDecoration(
+                                    labelText: '管理角色',
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: 'all',
+                                      child: Text('全部角色'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'owner',
+                                      child: Text('企业所有者'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'admin',
+                                      child: Text('管理员'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'member',
+                                      child: Text('普通成员'),
+                                    ),
+                                  ],
+                                  onChanged: _busy
+                                      ? null
+                                      : (value) => _run(
+                                          () => e.loadMembers(
+                                            page: 1,
+                                            role: value,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 145,
+                                child: DropdownButtonFormField<String>(
+                                  key: ValueKey(
+                                    'member-organization-${e.memberOrganization}',
+                                  ),
+                                  initialValue: e.memberOrganization ?? 'all',
+                                  isExpanded: true,
+                                  decoration: const InputDecoration(
+                                    labelText: '任职组织',
+                                  ),
+                                  items: [
+                                    const DropdownMenuItem(
+                                      value: 'all',
+                                      child: Text('全部组织'),
+                                    ),
+                                    ...e.organizations.map(
+                                      (organization) => DropdownMenuItem(
+                                        value: str(organization['id']),
+                                        child: Text(
+                                          str(organization['name']),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
+                                    ),
+                                  ],
+                                  onChanged: _busy
+                                      ? null
+                                      : (value) => _run(
+                                          () => e.loadMembers(
+                                            page: 1,
+                                            organization: value == 'all'
+                                                ? null
+                                                : value,
+                                            clearOrganization: value == 'all',
+                                          ),
+                                        ),
+                                ),
                               ),
+                              if (!showTree)
+                                SizedBox(
+                                  width: 145,
+                                  child: DropdownButtonFormField<String>(
+                                    key: ValueKey(
+                                      'member-department-${e.memberDepartment}',
+                                    ),
+                                    isExpanded: true,
+                                    initialValue: e.memberDepartment ?? 'all',
+                                    decoration: const InputDecoration(
+                                      labelText: '部门',
+                                    ),
+                                    items: [
+                                      const DropdownMenuItem(
+                                        value: 'all',
+                                        child: Text('全部部门'),
+                                      ),
+                                      ...e.departments.map(
+                                        (department) => DropdownMenuItem(
+                                          value: str(department['id']),
+                                          child: Text(str(department['name'])),
+                                        ),
+                                      ),
+                                    ],
+                                    onChanged: _busy
+                                        ? null
+                                        : (value) => _run(
+                                            () => e.loadMembers(
+                                              page: 1,
+                                              department: value == 'all'
+                                                  ? null
+                                                  : value,
+                                              clearDepartment: value == 'all',
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            '共 ${e.memberTotal} 位成员${e.memberDepartment == null ? '' : ' · 仅展示部门直属成员'}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: mutedColor,
                             ),
+                          ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
                 if (_busy) const LinearProgressIndicator(minHeight: 2),
@@ -863,6 +968,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                                         (member) => Material(
                                           color: Colors.white,
                                           child: ListTile(
+                                            onTap: () => _memberDetails(member),
                                             contentPadding:
                                                 const EdgeInsets.symmetric(
                                                   vertical: 8,
@@ -930,7 +1036,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
     },
   );
   Widget _departmentTree() => Container(
-    width: 175,
+    width: 195,
     decoration: const BoxDecoration(
       color: Color(0xfffafbfc),
       border: Border(right: BorderSide(color: borderColor)),
@@ -938,54 +1044,31 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(18),
-          child: Text(
-            '组织架构',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 12, 8, 0),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '组织架构',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+              if (e.can('manage_departments'))
+                IconButton(
+                  tooltip: '新建部门',
+                  onPressed: () => _department(),
+                  icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+                ),
+            ],
           ),
         ),
         Expanded(
-          child: Material(
-            color: Colors.transparent,
-            child: ListView(
-              children: [
-                ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.apartment_outlined, size: 17),
-                  title: const Text('全部成员', style: TextStyle(fontSize: 11)),
-                  selected: e.memberDepartment == null,
-                  onTap: () =>
-                      _run(() => e.loadMembers(page: 1, clearDepartment: true)),
-                ),
-                ...e.departments.map(
-                  (department) => ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.only(
-                      left: department['parent_id'] == null ? 16 : 27,
-                      right: 10,
-                    ),
-                    leading: const Icon(Icons.folder_outlined, size: 15),
-                    minLeadingWidth: 16,
-                    title: Text(
-                      str(department['name']),
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    selected: e.memberDepartment == department['id'],
-                    trailing: Text(
-                      str(department['member_count'], '0'),
-                      style: const TextStyle(fontSize: 10, color: mutedColor),
-                    ),
-                    onTap: () => _run(
-                      () => e.loadMembers(
-                        page: 1,
-                        department: str(department['id']),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          child: EnterpriseDepartmentBrowser(
+            departments: e.departments,
+            selectedId: e.memberDepartment,
+            compact: true,
+            onSelected: _browseDepartment,
           ),
         ),
       ],
@@ -1047,6 +1130,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                         ),
                       ],
                     ),
+                    onTap: () => _memberDetails(member),
                   ),
                   DataCell(
                     Text(
@@ -1110,12 +1194,19 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                     ),
                   ),
                   DataCell(
-                    e.canEditMember(member)
-                        ? TextButton(
+                    Row(
+                      children: [
+                        TextButton(
+                          onPressed: () => _memberDetails(member),
+                          child: const Text('详情'),
+                        ),
+                        if (e.canEditMember(member))
+                          TextButton(
                             onPressed: () => _editMember(member),
                             child: const Text('编辑'),
-                          )
-                        : const Text('—', style: TextStyle(color: mutedColor)),
+                          ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1128,7 +1219,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
     children: [
       BusinessHeader(
         title: '部门管理',
-        subtitle: '组织层级与成员归属',
+        subtitle: '选择部门查看直属成员；部门筛选将重置其他成员条件。',
         actions: [
           if (e.can('manage_departments'))
             FilledButton.icon(
@@ -1146,80 +1237,36 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                 subtitle: '添加部门，组织人和 Agent 的共同工作。',
                 icon: Icons.account_tree_outlined,
               )
-            : ListView(
-                padding: const EdgeInsets.all(22),
-                children: e.departments
-                    .map(
-                      (department) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: BusinessCard(
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.account_tree_outlined,
-                                color: accentColor,
-                                size: 23,
-                              ),
-                              const SizedBox(width: 15),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      str(department['name']),
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      '上级：${str(e.departments.where((d) => d['id'] == department['parent_id']).firstOrNull?['name'], '企业根部门')} · ${str(department['member_count'], '0')} 位成员',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: mutedColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (e.can('manage_departments'))
-                                PopupMenuButton<String>(
-                                  tooltip: '部门操作',
-                                  onSelected: (action) {
-                                    if (action == 'edit') {
-                                      _department(department);
-                                    } else {
-                                      _run(
-                                        () => e.deleteDepartment(department),
-                                      );
-                                    }
-                                  },
-                                  itemBuilder: (_) => [
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text('编辑部门'),
-                                    ),
-                                    if ((department['member_count'] as num? ??
-                                                0) ==
-                                            0 &&
-                                        !e.departments.any(
-                                          (d) =>
-                                              d['parent_id'] ==
-                                              department['id'],
-                                        ))
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: Text('删除空部门'),
-                                      ),
-                                  ],
-                                ),
-                            ],
+            : EnterpriseDepartmentBrowser(
+                departments: e.departments,
+                showAllMembers: false,
+                onSelected: (id) => _browseDepartment(id, resetFilters: true),
+                actions: !e.can('manage_departments')
+                    ? null
+                    : (department) => PopupMenuButton<String>(
+                        tooltip: '部门操作',
+                        onSelected: (action) {
+                          if (action == 'edit') {
+                            _department(department);
+                          } else {
+                            _run(() => e.deleteDepartment(department));
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Text('编辑部门'),
                           ),
-                        ),
+                          if ((department['member_count'] as num? ?? 0) == 0 &&
+                              !e.departments.any(
+                                (d) => d['parent_id'] == department['id'],
+                              ))
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('删除空部门'),
+                            ),
+                        ],
                       ),
-                    )
-                    .toList(),
               ),
       ),
     ],
@@ -1365,7 +1412,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              '${fullOfficeTime(item['at'])} · ${str(e.members.where((p) => personId(p) == item['actor_id']).firstOrNull?['name'], str(item['actor_id']))}${item['actor_kind'] == 'agent' ? ' · Agent' : ''}',
+                              '${fullOfficeTime(item['at'], context: context)} · ${str(e.members.where((p) => personId(p) == item['actor_id']).firstOrNull?['name'], str(item['actor_id']))}${item['actor_kind'] == 'agent' ? ' · Agent' : ''}',
                               style: const TextStyle(
                                 fontSize: 10,
                                 color: mutedColor,
@@ -1482,8 +1529,14 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
   late String? _department = widget.member?['department_id'] as String?;
   late String? _organization = widget.member?['organization_id'] as String?;
   String? _error;
-  Json? _created;
-  bool _busy = false;
+  Json? _created, _baseMember, _latestMember;
+  bool _busy = false, _conflict = false;
+  @override
+  void initState() {
+    super.initState();
+    _baseMember = widget.member == null ? null : Json.from(widget.member!);
+  }
+
   EnterpriseState get e => widget.controller;
   bool get _onlyName =>
       widget.member != null &&
@@ -1524,7 +1577,7 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
           _credential.text = str(created['token']);
         }
       } else {
-        await e.updateMember(widget.member!, {
+        await e.updateMember(_baseMember!, {
           'name': _name.text.trim(),
           if (!_onlyName) ...{
             'role': _role,
@@ -1538,14 +1591,70 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
         if (mounted) Navigator.pop(context);
       }
     } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = friendlyError(error);
+          _conflict = error is OfficeException && error.status == 409;
+          _latestMember = null;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _readLatest() async {
+    setState(() {
+      _busy = true;
+      _latestMember = null;
+    });
+    try {
+      final latest = await e.readMember(
+        str(_baseMember?['principal_id'], str(_baseMember?['id'])),
+      );
+      if (mounted) {
+        setState(() {
+          _latestMember = latest;
+          _error = e.canEditMember(latest)
+              ? null
+              : '该成员的状态或角色已变化，当前身份不能再编辑此成员。';
+        });
+      }
+    } catch (error) {
       if (mounted) setState(() => _error = friendlyError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
+  void _adoptLatest() => setState(() {
+    _baseMember = Json.from(_latestMember!);
+    _latestMember = null;
+    _conflict = false;
+    _error = null;
+  });
+
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: Listenable.merge([e, e.office]),
+    builder: (context, _) =>
+        !e.current ||
+            !e.can('manage_members') ||
+            (_baseMember != null && !e.canEditMember(_baseMember!))
+        ? AlertDialog(
+            title: const Text('成员管理不可用'),
+            content: const Text('当前身份或企业权限已变化，请重新打开企业管理。'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('关闭'),
+              ),
+            ],
+          )
+        : _dialog(context),
+  );
+
+  Widget _dialog(BuildContext context) => AlertDialog(
     title: Text(
       _created != null
           ? '成员已创建'
@@ -1699,6 +1808,7 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
                   ],
                   const SizedBox(height: 17),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: _department ?? 'none',
                     decoration: const InputDecoration(labelText: '所属部门'),
                     items: [
@@ -1771,11 +1881,38 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
                     ),
                   ],
                   BusinessError(_error),
-                  if (_error != null && widget.member != null)
+                  if (_conflict) ...[
+                    const SizedBox(height: 10),
                     const Text(
-                      '发生版本冲突时，请关闭窗口并读取最新成员信息后重试。',
-                      style: TextStyle(fontSize: 11, color: mutedColor),
+                      '成员资料已被修改。你的输入已保留；先读取最新资料，确认后再提交。',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: mutedColor,
+                        height: 1.7,
+                      ),
                     ),
+                    TextButton.icon(
+                      onPressed: _busy ? null : _readLatest,
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('读取最新成员资料'),
+                    ),
+                    if (_latestMember != null) ...[
+                      Text(
+                        '最新版本 ${_latestMember!['revision']}：${_latestMember!['name']}\n'
+                        '${enterpriseRole(_latestMember!['role'])} · ${enterpriseStatus(_latestMember!['status'])}\n'
+                        '${enterpriseDepartmentPath(e.departments, _latestMember!['department_id'] as String?)}\n'
+                        '任职组织：${str(_latestMember!['organization_name'], str(e.enterprise['name']))}\n'
+                        '职业：${str(_latestMember!['profession'], '未填写')} · 职位：${str(_latestMember!['job_title'], '未填写')}',
+                        style: const TextStyle(fontSize: 12, height: 1.8),
+                      ),
+                      OutlinedButton(
+                        onPressed: _busy || !e.canEditMember(_latestMember!)
+                            ? null
+                            : _adoptLatest,
+                        child: const Text('保留输入并采用最新版本'),
+                      ),
+                    ],
+                  ],
                 ],
               ),
       ),
@@ -1793,7 +1930,7 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
               child: const Text('取消'),
             ),
             FilledButton(
-              onPressed: _busy ? null : _save,
+              onPressed: _busy || _conflict ? null : _save,
               child: Text(
                 _busy
                     ? '保存中…'

@@ -96,16 +96,35 @@ List<Json> maps(dynamic value) => value is List
     ? value.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
     : [];
 String personId(Json person) => str(person['principal_id'] ?? person['id']);
+
+/// Room display names never replace the stable principal ID or legal name.
+String officeDisplayName(Json person) {
+  for (final key in ['display_name', 'nickname', 'name']) {
+    final value = str(person[key]);
+    if (value.trim().isNotEmpty) return value;
+  }
+  return '工作成员';
+}
+
 String initial(String name) =>
     name.characters.isEmpty ? '同' : name.characters.first;
-String clockText(dynamic value, {bool date = false}) {
+String officeHourMinute(DateTime time, {BuildContext? context}) {
+  final use24Hours =
+      context == null ||
+      MediaQuery.maybeOf(context)?.alwaysUse24HourFormat != false;
+  final minute = time.minute.toString().padLeft(2, '0');
+  if (use24Hours) return '${time.hour.toString().padLeft(2, '0')}:$minute';
+  final hour = time.hour % 12 == 0 ? 12 : time.hour % 12;
+  return '${time.hour < 12 ? '上午' : '下午'} $hour:$minute';
+}
+
+String clockText(dynamic value, {bool date = false, BuildContext? context}) {
   final time = DateTime.tryParse(str(value))?.toLocal();
   if (time == null) return '';
   final now = DateTime.now();
   final today =
       time.year == now.year && time.month == now.month && time.day == now.day;
-  final hhmm =
-      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  final hhmm = officeHourMinute(time, context: context);
   if (!date && today) return hhmm;
   return '${time.month}/${time.day}${date ? ' $hhmm' : ''}';
 }

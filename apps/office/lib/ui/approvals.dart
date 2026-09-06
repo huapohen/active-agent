@@ -182,7 +182,7 @@ class OfficeApprovalsState extends State<OfficeApprovals> {
                         ),
                       ),
                       subtitle: Text(
-                        '${fullOfficeTime(request['created_at'])} · ${str(s.principals.where((p) => personId(p) == request['created_by']).firstOrNull?['name'], '申请人')}',
+                        '${fullOfficeTime(request['created_at'], context: context)} · ${str(s.principals.where((p) => personId(p) == request['created_by']).firstOrNull?['name'], '申请人')}',
                         style: const TextStyle(fontSize: 11, color: mutedColor),
                       ),
                       trailing: Text(
@@ -582,7 +582,7 @@ class _ApprovalDetailState extends State<_ApprovalDetail> {
               ),
               const SizedBox(height: 17),
               Text(
-                '申请人：${_name(request['created_by'])}\n审批人：${_name(request['approver_id'])}\n提交时间：${fullOfficeTime(request['created_at'])}\n有效期至：${fullOfficeTime(request['expires_at'])}',
+                '申请人：${_name(request['created_by'])}\n审批人：${_name(request['approver_id'])}\n提交时间：${fullOfficeTime(request['created_at'], context: context)}\n有效期至：${fullOfficeTime(request['expires_at'], context: context)}',
                 style: const TextStyle(fontSize: 12, height: 1.9),
               ),
               const Divider(height: 30),
@@ -616,7 +616,7 @@ class _ApprovalDetailState extends State<_ApprovalDetail> {
                               style: const TextStyle(fontSize: 12),
                             ),
                             Text(
-                              fullOfficeTime(entry['at']),
+                              fullOfficeTime(entry['at'], context: context),
                               style: const TextStyle(
                                 fontSize: 10,
                                 color: mutedColor,
@@ -723,9 +723,9 @@ class _ApprovalDetailState extends State<_ApprovalDetail> {
         if (parsed != null && payload['timezone'] == 'Asia/Shanghai') {
           final date = parsed.toUtc().add(const Duration(hours: 8));
           String two(int n) => n.toString().padLeft(2, '0');
-          return '${date.year}/${two(date.month)}/${two(date.day)} ${two(date.hour)}:${two(date.minute)}（北京时间）';
+          return '${date.year}/${two(date.month)}/${two(date.day)} ${officeHourMinute(date, context: context)}（北京时间）';
         }
-        return fullOfficeTime(raw);
+        return fullOfficeTime(raw, context: context);
       }
       return str(raw);
     }

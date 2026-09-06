@@ -67,6 +67,22 @@ class OfficeState extends ChangeNotifier {
   Json searchFilters = {};
   String error = '';
   int _generation = 0, _cursor = 0, _selection = 0, _search = 0;
+
+  /// Changes on disconnect, connect, and disposal, including A → B → A.
+  int get identityGeneration => _generation;
+  ({int generation, String endpoint, String? principalId}) get _identity => (
+    generation: _generation,
+    endpoint: endpoint,
+    principalId: me?['id']?.toString(),
+  );
+  void _requireIdentity(
+    ({int generation, String endpoint, String? principalId}) identity,
+  ) {
+    if (_disposed || identity != _identity) {
+      throw OfficeException(401, '工作身份已变化，请重新打开当前页面');
+    }
+  }
+
   bool _disposed = false;
   final Map<String, int> _reads = {};
   final Map<String, ({int sequence, int visibility, int generation})> _reading =
@@ -737,9 +753,11 @@ class OfficeState extends ChangeNotifier {
     await _updated();
   }
 
-  Future<void> retractMessage(Json message) async {
+  Future<void> retractMessage(Json message, {String? sourceRoomId}) async {
     await _request(
-      _room('/messages/${message['id']}'),
+      sourceRoomId == null
+          ? _room('/messages/${message['id']}')
+          : '/rooms/${Uri.encodeComponent(sourceRoomId)}/messages/${message['id']}',
       method: 'DELETE',
       data: {'base_revision': message['revision'] ?? 1},
     );
@@ -959,7 +977,15 @@ class OfficeState extends ChangeNotifier {
     String server,
     String username,
     String password,
+  ) => _passwordLogin(server, username, password, _identity);
+
+  Future<void> _passwordLogin(
+    String server,
+    String username,
+    String password,
+    ({int generation, String endpoint, String? principalId}) identity,
   ) async {
+    _requireIdentity(identity);
     final address = server.trim().replaceAll(RegExp(r'/+$'), '');
     final uri = Uri.tryParse(address);
     if (uri == null ||
@@ -978,6 +1004,7 @@ class OfficeState extends ChangeNotifier {
     final response = await http.Response.fromStream(
       await _client.send(request).timeout(const Duration(seconds: 35)),
     );
+    _requireIdentity(identity);
     if (response.statusCode != 200) {
       throw OfficeException(
         response.statusCode,
@@ -985,7 +1012,15 @@ class OfficeState extends ChangeNotifier {
       );
     }
     final result = Json.from(jsonDecode(response.body));
-    await connect(address, result['token'] as String);
+    final connecting = connect(address, result['token'] as String);
+    final generation = _generation;
+    await connecting;
+    if (_disposed ||
+        generation != _generation ||
+        endpoint != address ||
+        !connected) {
+      throw OfficeException(401, '工作身份已变化，请重新打开当前页面');
+    }
     _loginSessionId = result['session_id'] as String?;
   }
 
@@ -1185,7 +1220,10 @@ class OfficeState extends ChangeNotifier {
   }
 
   Future<void> getAccount() async {
-    accountInfo = Json.from((await _request('/auth/account'))['account'] ?? {});
+    final identity = _identity;
+    final result = await _request('/auth/account');
+    _requireIdentity(identity);
+    accountInfo = Json.from(result['account'] ?? {});
     _notify();
   }
 
@@ -1194,6 +1232,7 @@ class OfficeState extends ChangeNotifier {
     String password, {
     String? currentPassword,
   }) async {
+    final identity = _identity;
     await _request(
       '/auth/account',
       method: 'POST',
@@ -1203,21 +1242,29 @@ class OfficeState extends ChangeNotifier {
         'current_password': ?currentPassword,
       },
     );
-    // Password changes revoke browser sessions; reconnect with the new account.
-    await loginWithPassword(endpoint, username, password);
+    _requireIdentity(identity);
+    // Password changes revoke browser sessions. Both requests belong to the
+    // original endpoint and login attempt; a late response cannot replace a
+    // different identity selected while either request was in flight.
+    await _passwordLogin(identity.endpoint, username, password, identity);
   }
 
   Future<void> loadAccountSessions() async {
-    accountSessions = _list((await _request('/auth/sessions'))['sessions']);
+    final identity = _identity;
+    final result = await _request('/auth/sessions');
+    _requireIdentity(identity);
+    accountSessions = _list(result['sessions']);
     _notify();
   }
 
   Future<void> revokeSession(String id) async {
+    final identity = _identity;
     await _request(
       '/auth/sessions/${Uri.encodeComponent(id)}',
       method: 'DELETE',
       data: {},
     );
+    _requireIdentity(identity);
     if (id == _loginSessionId) {
       disconnect();
       return;
@@ -1364,7 +1411,16 @@ class OfficeState extends ChangeNotifier {
     await _updated();
   }
 
+  Future<void> reloadSettings() async {
+    final identity = _identity;
+    final result = await _request('/settings');
+    _requireIdentity(identity);
+    settings = Json.from(result['settings']);
+    _notify();
+  }
+
   Future<void> saveSettings(Json changes, {int? baseRevision}) async {
+    final identity = _identity;
     final result = await _request(
       '/settings',
       method: 'PATCH',
@@ -1373,6 +1429,7 @@ class OfficeState extends ChangeNotifier {
         'base_revision': baseRevision ?? settings['revision'] ?? 1,
       },
     );
+    _requireIdentity(identity);
     settings = Json.from(result['settings']);
     _notify();
   }

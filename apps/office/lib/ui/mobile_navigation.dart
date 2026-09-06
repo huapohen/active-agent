@@ -72,20 +72,57 @@ class OfficeNavigationEditor extends StatefulWidget {
 }
 
 class _OfficeNavigationEditorState extends State<OfficeNavigationEditor> {
-  late List<String> _selected = officeMobileNavigation(widget.state)
-      .map((item) => item.id)
-      .toList();
-  late int _revision =
-      (widget.state.settings['revision'] as num?)?.toInt() ?? 1;
-  bool _busy = false, _conflict = false;
+  late final OfficeState _owner;
+  late final (int, String, String) _identity;
+  late List<String> _selected;
+  late int _revision;
+  bool _busy = false, _conflict = false, _expired = false;
   String? _error;
   Json? _latest;
 
-  void _move(int oldIndex, int newIndex) => setState(() {
-    _selected.insert(newIndex, _selected.removeAt(oldIndex));
-  });
+  (int, String, String) get _currentIdentity => (
+    widget.state.identityGeneration,
+    widget.state.endpoint,
+    personId(widget.state.me ?? {}),
+  );
+  bool get _current =>
+      !_expired &&
+      identical(_owner, widget.state) &&
+      widget.state.me != null &&
+      _identity == _currentIdentity;
+
+  @override
+  void initState() {
+    super.initState();
+    _owner = widget.state;
+    _identity = _currentIdentity;
+    _selected = officeMobileNavigation(_owner).map((item) => item.id).toList();
+    _revision = (_owner.settings['revision'] as num?)?.toInt() ?? 1;
+    _owner.addListener(_identityChanged);
+  }
+
+  void _identityChanged() {
+    if (!_current) {
+      _expired = true;
+      _latest = null;
+      _selected.clear();
+    }
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _owner.removeListener(_identityChanged);
+    super.dispose();
+  }
+
+  void _move(int oldIndex, int newIndex) {
+    if (!_current || _busy) return;
+    setState(() => _selected.insert(newIndex, _selected.removeAt(oldIndex)));
+  }
 
   Future<void> _save() async {
+    if (!_current || !widget.state.connected || _busy || _conflict) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -95,9 +132,9 @@ class _OfficeNavigationEditorState extends State<OfficeNavigationEditor> {
       await widget.state.saveSettings({
         'mobile_nav': [..._selected],
       }, baseRevision: _revision);
-      if (mounted) Navigator.pop(context);
+      if (mounted && _current) Navigator.pop(context);
     } catch (error) {
-      if (mounted) {
+      if (mounted && _current) {
         setState(() {
           _error = friendlyError(error);
           _conflict = error is OfficeException && error.status == 409;
@@ -109,32 +146,50 @@ class _OfficeNavigationEditorState extends State<OfficeNavigationEditor> {
   }
 
   Future<void> _readLatest() async {
+    if (!_current || !widget.state.connected || _busy) return;
     setState(() => _busy = true);
     try {
       final result = await widget.state.officeRequest('/settings');
-      if (mounted) setState(() => _latest = Json.from(result['settings']));
+      if (mounted && _current) {
+        setState(() => _latest = Json.from(result['settings']));
+      }
     } catch (error) {
-      if (mounted) setState(() => _error = friendlyError(error));
+      if (mounted && _current) setState(() => _error = friendlyError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  void _adoptRevision({required bool useRemote}) => setState(() {
-    if (useRemote) {
-      _selected = officeMobileNavigation(
-        widget.state,
-        _latest!['mobile_nav'] as List?,
-      ).map((item) => item.id).toList();
-    }
-    _revision = (_latest!['revision'] as num).toInt();
-    _latest = null;
-    _conflict = false;
-    _error = null;
-  });
+  void _adoptRevision({required bool useRemote}) {
+    if (!_current || _latest == null || _busy) return;
+    setState(() {
+      if (useRemote) {
+        _selected = officeMobileNavigation(
+          widget.state,
+          _latest!['mobile_nav'] as List?,
+        ).map((item) => item.id).toList();
+      }
+      _revision = (_latest!['revision'] as num).toInt();
+      _latest = null;
+      _conflict = false;
+      _error = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (!_current) {
+      return AlertDialog(
+        title: const Text('底栏编辑已锁定'),
+        content: const Text('工作身份已变化，请关闭后重新打开底栏编辑。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      );
+    }
     final body = Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -146,7 +201,9 @@ class _OfficeNavigationEditorState extends State<OfficeNavigationEditor> {
         ),
         actions: [
           TextButton(
-            onPressed: _busy ? null : _save,
+            onPressed: _busy || _conflict || !widget.state.connected
+                ? null
+                : _save,
             child: Text(_busy ? '保存中…' : '保存'),
           ),
         ],
@@ -262,7 +319,7 @@ class _OfficeNavigationEditorState extends State<OfficeNavigationEditor> {
               style: TextStyle(fontSize: 12),
             ),
             TextButton(
-              onPressed: _busy ? null : _readLatest,
+              onPressed: _busy || !widget.state.connected ? null : _readLatest,
               child: const Text('读取最新设置'),
             ),
           ],

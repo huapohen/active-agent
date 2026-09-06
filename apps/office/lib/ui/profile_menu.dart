@@ -49,11 +49,66 @@ Future<String?> showOfficeProfileMenu(
   },
 );
 
-class OfficeProfilePanel extends StatelessWidget {
+class OfficeProfilePanel extends StatefulWidget {
   const OfficeProfilePanel({super.key, required this.state});
   final OfficeState state;
   @override
+  State<OfficeProfilePanel> createState() => _OfficeProfilePanelState();
+}
+
+class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
+  OfficeState get state => widget.state;
+  late final String _endpoint;
+  late final String _principalId;
+  late final int _generation;
+  bool _expired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _endpoint = state.endpoint;
+    _principalId = personId(state.me ?? {});
+    _generation = state.identityGeneration;
+    state.addListener(_changed);
+  }
+
+  void _changed() {
+    if (!mounted) return;
+    setState(() {
+      _expired =
+          _expired ||
+          state.endpoint != _endpoint ||
+          personId(state.me ?? {}) != _principalId ||
+          state.identityGeneration != _generation;
+    });
+  }
+
+  @override
+  void dispose() {
+    state.removeListener(_changed);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_expired) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('工作身份已切换'),
+            const SizedBox(height: 12),
+            const Text('请重新打开“我的”查看当前身份。'),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      );
+    }
     final membership = state.enterpriseSummary['membership'] as Map? ?? {};
     final enterprise = state.enterpriseSummary['enterprise'] as Map? ?? {};
     final identity = <String, dynamic>{...membership, ...?state.me};
@@ -143,7 +198,7 @@ class OfficeProfilePanel extends StatelessWidget {
                   TextButton.icon(
                     onPressed: () async {
                       await Clipboard.setData(
-                        ClipboardData(text: personId(state.me ?? {})),
+                        ClipboardData(text: _principalId),
                       );
                       if (context.mounted) notifyOffice(context, '当前身份 ID 已复制');
                     },

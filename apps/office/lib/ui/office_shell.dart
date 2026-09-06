@@ -37,6 +37,8 @@ class OfficeShell extends StatefulWidget {
 
 class _OfficeShellState extends State<OfficeShell> {
   int _nav = 0, _settingsTab = -1;
+  int _beforeSettingsNav = 0;
+  bool _beforeSettingsRoomOpen = false;
   final _meetingsKey = GlobalKey<OfficeMeetingsState>();
   final _calendarKey = GlobalKey<OfficeCalendarState>();
   final _approvalsKey = GlobalKey<OfficeApprovalsState>();
@@ -156,6 +158,10 @@ class _OfficeShellState extends State<OfficeShell> {
   }
 
   void _changeNav(int value) {
+    if (value == 11 && _nav != 11) {
+      _beforeSettingsNav = _nav;
+      _beforeSettingsRoomOpen = _roomOpen;
+    }
     _searchTimer?.cancel();
     _searchIntent++;
     _globalSearchInput.clear();
@@ -181,19 +187,34 @@ class _OfficeShellState extends State<OfficeShell> {
     }
   }
 
+  void _closeSettings() {
+    _changeNav(_beforeSettingsNav);
+    if (_beforeSettingsRoomOpen && s.selectedRoomId != null) {
+      setState(() => _roomOpen = true);
+    }
+  }
+
   Widget _profileButton(Widget child) => Builder(
     builder: (context) => Tooltip(
       message: '我的与设置',
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () async {
+          final endpoint = s.endpoint;
+          final identity = personId(s.me ?? {});
+          final generation = s.identityGeneration;
           final box = context.findRenderObject()! as RenderBox;
           final action = await showOfficeProfileMenu(
             context,
             s,
             anchor: box.localToGlobal(Offset.zero) & box.size,
           );
-          if (!mounted) return;
+          if (!mounted ||
+              s.endpoint != endpoint ||
+              personId(s.me ?? {}) != identity ||
+              s.identityGeneration != generation) {
+            return;
+          }
           switch (action) {
             case 'account':
               _settingsTab = 0;
@@ -798,7 +819,9 @@ class _OfficeShellState extends State<OfficeShell> {
           key: ValueKey('settings-$_settingsTab'),
           state: s,
           initialTab: _settingsTab,
-          onClose: () => _changeNav(12),
+          onClose: _closeSettings,
+          onMessageGroups: () =>
+              showOfficeMessageGroupEditor(context, _messageGroups),
           onNavigation: () => showOfficeNavigationEditor(context, s),
           onOpenModule: _changeNav,
           onEnterprise: s.canManageEnterprise ? () => _changeNav(13) : null,
@@ -1263,7 +1286,10 @@ class _OfficeShellState extends State<OfficeShell> {
                                             ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            clockText(last['at']),
+                                            clockText(
+                                              last['at'],
+                                              context: context,
+                                            ),
                                             style: const TextStyle(
                                               fontSize: 9,
                                               color: Color(0xffb0b6c0),
@@ -1622,7 +1648,7 @@ class _OfficeShellState extends State<OfficeShell> {
                           style: const TextStyle(fontSize: 13),
                         ),
                         subtitle: Text(
-                          '${domains[type] ?? '工作内容'}${result['at'] == null ? '' : ' · ${clockText(result['at'], date: true)}'}\n${str(result['snippet'], str(result['content']))}',
+                          '${domains[type] ?? '工作内容'}${result['at'] == null ? '' : ' · ${clockText(result['at'], date: true, context: context)}'}\n${str(result['snippet'], str(result['content']))}',
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

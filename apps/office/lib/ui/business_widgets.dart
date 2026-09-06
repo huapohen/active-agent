@@ -79,10 +79,10 @@ class BusinessCard extends StatelessWidget {
   );
 }
 
-String fullOfficeTime(dynamic value) {
+String fullOfficeTime(dynamic value, {BuildContext? context}) {
   final date = DateTime.tryParse(str(value))?.toLocal();
   if (date == null) return '—';
-  return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} ${officeHourMinute(date, context: context)}';
 }
 
 Future<String?> chooseOfficeRoom(

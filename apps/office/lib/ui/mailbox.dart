@@ -327,6 +327,7 @@ class OfficeMailboxState extends State<OfficeMailbox> {
                                                         clockText(
                                                           item['sent_at'] ??
                                                               item['updated_at'],
+                                                          context: context,
                                                         ),
                                                         style: const TextStyle(
                                                           fontSize: 9,
@@ -487,7 +488,7 @@ class OfficeMailboxState extends State<OfficeMailbox> {
                           ),
                         ),
                         Text(
-                          fullOfficeTime(item['sent_at']),
+                          fullOfficeTime(item['sent_at'], context: context),
                           style: const TextStyle(
                             fontSize: 10,
                             color: mutedColor,

@@ -5,6 +5,9 @@ import 'business_widgets.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
 import 'plugins.dart';
+import 'settings_account.dart';
+import 'settings_session.dart';
+import 'settings_widgets.dart';
 
 class OfficeSettings extends StatefulWidget {
   const OfficeSettings({
@@ -15,24 +18,28 @@ class OfficeSettings extends StatefulWidget {
     this.onNavigation,
     this.onClose,
     this.onOpenModule,
+    this.onMessageGroups,
   });
   final OfficeState state;
-  final VoidCallback? onEnterprise;
+  final VoidCallback? onEnterprise, onNavigation, onClose, onMessageGroups;
   final int initialTab;
-  final VoidCallback? onNavigation;
-  final VoidCallback? onClose;
   final ValueChanged<int>? onOpenModule;
   @override
   State<OfficeSettings> createState() => _OfficeSettingsState();
 }
 
 class _OfficeSettingsState extends State<OfficeSettings> {
-  late int _tab = widget.initialTab;
-  bool _busy = false;
-  String? _error;
+  late int _tab;
+  late final OfficeSettingsSession _session;
+  final _accountUpdates = ValueNotifier<int>(0);
+  bool _accountBusy = false;
+  String? _accountError;
   OfficeState get s => widget.state;
+  Json get values => _session.values;
+  bool get editable =>
+      _session.valid && s.connected && !_session.busy && !_session.conflict;
   static const _labels = [
-    '账号与安全',
+    '账号安全中心',
     '通用',
     '隐私',
     '效率',
@@ -43,7 +50,7 @@ class _OfficeSettingsState extends State<OfficeSettings> {
     '邮箱',
     '视频会议',
     '任务',
-    '系统诊断',
+    '网络诊断',
     '实验室',
     '软件更新',
     '关于人机',
@@ -67,6 +74,519 @@ class _OfficeSettingsState extends State<OfficeSettings> {
     Icons.rocket_launch_outlined,
     Icons.extension_outlined,
   ];
+  String _label(int index, bool mobile) => !mobile && index == 0
+      ? '账号与安全'
+      : !mobile && index == 11
+      ? '系统诊断'
+      : _labels[index];
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = widget.initialTab;
+    _session = OfficeSettingsSession(s);
+    _loadAccount();
+  }
+
+  @override
+  void dispose() {
+    _accountUpdates.dispose();
+    _session.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAccount({bool report = false}) async {
+    if (!_session.valid || _accountBusy) return;
+    setState(() {
+      _accountBusy = true;
+      _accountError = null;
+    });
+    _accountUpdates.value++;
+    try {
+      await Future.wait([s.getAccount(), s.loadAccountSessions()]);
+      if (mounted && _session.valid && report) {
+        notifyOffice(context, '账号服务连接正常');
+      }
+    } catch (error) {
+      if (mounted && _session.valid) {
+        setState(() => _accountError = friendlyError(error));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _accountBusy = false);
+        _accountUpdates.value++;
+      }
+    }
+  }
+
+  Widget _unsupported(
+    String title,
+    String explanation, {
+    String value = '尚未接入',
+  }) => OfficeSettingsRow(
+    title: title,
+    value: value,
+    unavailable: true,
+    onTap: () => showOfficeSettingStatus(context, title, explanation),
+  );
+  Widget _section(bool mobile, String? title, List<Widget> children) =>
+      OfficeSettingsSection(mobile: mobile, title: title, children: children);
+  Widget _padded(Widget child) =>
+      Padding(padding: const EdgeInsets.all(16), child: child);
+  double get _scale => (values['text_scale'] as num?)?.toDouble() ?? 1;
+  Widget _font() => OfficeFontSizePreview(
+    scale: _scale,
+    enabled: editable,
+    onChanged: (value) => _session.save({'text_scale': value}),
+  );
+  Widget _alignment() => OfficeConversationLayoutPreview(
+    value: str(values['message_alignment'], 'split'),
+    enabled: editable,
+    onChanged: (value) => _session.save({'message_alignment': value}),
+  );
+
+  void _subpage(String title, Widget Function() contents) {
+    if (!_session.valid) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: const Color(0xfff5f6f8),
+          appBar: AppBar(
+            title: Text(
+              title,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+          ),
+          body: SafeArea(
+            top: false,
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_session, _accountUpdates]),
+              builder: (_, _) => !_session.valid
+                  ? const Center(child: Text('工作身份已变更，请关闭后重新打开设置。'))
+                  : ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        contents(),
+                        const SizedBox(height: 18),
+                        OfficeSettingsFeedback(session: _session),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _general(bool mobile) => [
+    if (mobile) ...[
+      _section(true, null, [
+        OfficeSettingsRow(
+          title: '外观',
+          value: '浅色',
+          onTap: () =>
+              _subpage('外观', () => _padded(const OfficeAppearancePreview())),
+        ),
+        OfficeSettingsRow(
+          title: '会话显示模式',
+          value: values['message_alignment'] == 'left' ? '左对齐' : '左右分布',
+          onTap: () => _subpage('会话显示模式', _alignment),
+        ),
+      ]),
+    ] else ...[
+      _section(false, '外观', [
+        _padded(const OfficeAppearancePreview()),
+        _unsupported('主题色', '当前使用人机蓝色。自定义主题色尚未接入；选择主题色不会改变当前界面。', value: '人机蓝'),
+      ]),
+      _section(false, '会话显示模式', [_padded(_alignment())]),
+    ],
+    _section(mobile, mobile ? null : '语言与显示', [
+      _unsupported('显示语言', '当前界面为简体中文。多语言切换尚未接入，消息与文档仍保留原文。', value: '简体中文'),
+      _unsupported(
+        '名片页姓名展示',
+        '当前展示工作身份本名；群聊内可以设置本人群昵称。名片姓名的不同语言与顺序偏好尚未接入。',
+        value: '工作身份本名',
+      ),
+      _unsupported('内容翻译', '自动翻译与默认目标语言尚未接入。当前消息、邮件与文档按原文显示。'),
+    ]),
+    if (mobile)
+      _section(true, null, [
+        OfficeSettingsRow(
+          title: '字体大小',
+          value: '${(_scale * 100).round()}%',
+          onTap: () => _subpage('字体大小', _font),
+        ),
+      ])
+    else
+      _section(false, '字体大小', [
+        _padded(_font()),
+        _unsupported('窗口缩放', '当前仅支持上方文字比例设置。整个窗口的缩放比例尚未接入。'),
+      ]),
+    _section(mobile, mobile ? null : '时间显示', [
+      SwitchListTile(
+        key: const ValueKey('settings-time-format'),
+        title: const Text('24 小时制', style: TextStyle(fontSize: 14)),
+        subtitle: Text(
+          values['time_format'] == '12h' ? '例如：下午 2:30' : '例如：14:30',
+          style: const TextStyle(fontSize: 11, color: mutedColor),
+        ),
+        value: values['time_format'] != '12h',
+        onChanged: editable
+            ? (value) => _session.save({'time_format': value ? '24h' : '12h'})
+            : null,
+      ),
+    ]),
+    _section(mobile, mobile ? null : '连接与存储', [
+      OfficeSettingsRow(
+        title: '网络诊断',
+        description: '检查当前账号服务连接',
+        onTap: () =>
+            mobile ? _subpage('网络诊断', _diagnostics) : setState(() => _tab = 11),
+      ),
+      if (!mobile)
+        _unsupported(
+          '文件保存位置',
+          '当前附件由系统下载或打开流程处理。自定义默认下载位置尚未接入。',
+          value: '由系统管理',
+        ),
+      _unsupported('缓存清理', '当前没有可列出容量并安全删除的离线缓存管理服务。此处不会清除聊天记录、共同文档或账号数据。'),
+    ]),
+    if (widget.onNavigation != null)
+      _section(mobile, '常用功能', [
+        OfficeSettingsRow(
+          title: '编辑底栏',
+          description: '增减和排序手机常用功能',
+          onTap: widget.onNavigation,
+        ),
+      ]),
+  ];
+
+  Widget _previewToggle() => SwitchListTile(
+    title: const Text('会话列表显示消息预览', style: TextStyle(fontSize: 14)),
+    subtitle: const Text(
+      '关闭后，列表隐藏最近一条消息的正文。',
+      style: TextStyle(fontSize: 11, color: mutedColor),
+    ),
+    value: values['show_message_preview'] != false,
+    onChanged: editable
+        ? (value) => _session.save({'show_message_preview': value})
+        : null,
+  );
+
+  List<Widget> _account(bool mobile) => [
+    _section(mobile, '工作身份', [
+      ListTile(
+        leading: PersonAvatar(
+          name: str(s.me?['name']),
+          agent: s.me?['kind'] == 'agent',
+          size: 44,
+        ),
+        title: Text(str(s.me?['name'])),
+        subtitle: Text(s.me?['kind'] == 'agent' ? 'Agent 工作身份' : '个人工作身份'),
+      ),
+      OfficeSettingsRow(
+        title: '登录账号',
+        value: str(s.accountInfo['username'], '尚未设置'),
+      ),
+      OfficeSettingsRow(
+        title: s.accountInfo['username'] == null ? '设置账号密码' : '修改账号密码',
+        onTap: () => showOfficeAccountEditor(context, s),
+      ),
+    ]),
+    _section(mobile, '登录会话', [
+      if (s.accountSessions.isEmpty)
+        const OfficeSettingsRow(
+          title: '没有账号密码登录会话',
+          description: '账号密码登录后，可以在这里管理有效会话。',
+        ),
+      for (final session in s.accountSessions.reversed)
+        ListTile(
+          leading: Icon(
+            session['active'] == true ? Icons.devices : Icons.history,
+            size: 21,
+            color: mutedColor,
+          ),
+          title: Text(
+            session['active'] == true ? '有效登录会话' : '已结束会话',
+            style: const TextStyle(fontSize: 13),
+          ),
+          subtitle: Text(
+            '登录 ${fullOfficeTime(session['created_at'], context: context)}\n到期 ${fullOfficeTime(session['expires_at'], context: context)}',
+            style: const TextStyle(fontSize: 10),
+          ),
+          trailing: session['active'] == true
+              ? TextButton(
+                  onPressed: _accountBusy || !s.connected
+                      ? null
+                      : () => _revoke(str(session['id'])),
+                  child: const Text('撤销'),
+                )
+              : null,
+        ),
+    ]),
+    if (widget.onEnterprise != null)
+      _section(mobile, '企业管理', [
+        OfficeSettingsRow(
+          title: '打开企业管理后台',
+          icon: Icons.apartment_outlined,
+          onTap: widget.onEnterprise,
+        ),
+      ]),
+    _section(mobile, null, [
+      OfficeSettingsRow(
+        title: '退出当前身份',
+        icon: Icons.logout,
+        onTap: s.disconnect,
+      ),
+    ]),
+  ];
+
+  Future<void> _revoke(String id) async {
+    if (!_session.valid || !s.connected || _accountBusy) return;
+    setState(() {
+      _accountBusy = true;
+      _accountError = null;
+    });
+    try {
+      await s.revokeSession(id);
+    } catch (error) {
+      if (mounted && _session.valid) {
+        setState(() => _accountError = friendlyError(error));
+      }
+    } finally {
+      if (mounted) setState(() => _accountBusy = false);
+    }
+  }
+
+  Widget _diagnostics() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (_accountError != null) BusinessError(_accountError),
+      _section(true, '当前服务', [
+        OfficeSettingsRow(title: '连接状态', value: s.connected ? '已连接' : '连接中断'),
+        const OfficeSettingsRow(
+          title: '账号连接检查',
+          description: '重新读取当前账号与登录会话，检查服务是否可访问。',
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: OutlinedButton.icon(
+            onPressed: _accountBusy ? null : () => _loadAccount(report: true),
+            icon: const Icon(Icons.monitor_heart_outlined, size: 18),
+            label: const Text('检查连接'),
+          ),
+        ),
+      ]),
+    ],
+  );
+
+  Widget _moduleEntry(String title, int route) => OfficeSettingsRow(
+    title: title,
+    value: widget.onOpenModule == null ? '当前不可用' : null,
+    icon: Icons.open_in_new,
+    onTap: widget.onOpenModule == null
+        ? null
+        : () => widget.onOpenModule!(route),
+  );
+
+  List<Widget> _moduleSettings(int tab, bool mobile) => switch (tab) {
+    6 => [
+      _section(mobile, '编辑', [
+        _unsupported('自动大写句首字母', '自动大写偏好尚未接入，编辑器会保留你输入的原文。'),
+        _unsupported('首行缩进', '默认首行缩进设置尚未接入，当前按文档编辑器实际排版显示。'),
+      ]),
+      _section(mobile, '权限与记录', [
+        _unsupported('访问记录', '全局文档访问记录开关尚未接入。文档修订与共同修改记录保留在具体文档中。'),
+        _unsupported('新文档默认访问权限', '默认新建权限偏好尚未接入。请在具体共同文档中核对实际共享范围。'),
+        _moduleEntry('打开文档', 3),
+      ]),
+    ],
+    7 => [
+      _section(mobile, '提醒与日程', [
+        _unsupported('非全天日程提醒', '全局非全天提醒偏好尚未接入；当前日程按已设置的时间管理。'),
+        _unsupported('全天日程提醒', '全局全天提醒时间尚未接入。'),
+        _unsupported('默认日程时长', '默认日程时长偏好尚未接入，可在创建日程时选择具体开始与结束时间。'),
+      ]),
+      _section(mobile, '日历显示', [
+        _unsupported('每周第一天', '每周第一天的自定义偏好尚未接入。'),
+        _unsupported('工作时间', '工作时间段与非工作时间显示偏好尚未接入。'),
+        _unsupported(
+          '当前设备时区',
+          '时区切换偏好尚未接入；日程显示由当前设备本地时区换算。',
+          value: DateTime.now().timeZoneName,
+        ),
+      ]),
+      _section(mobile, '账号与同步', [
+        _unsupported('第三方日历管理', '第三方日历授权与同步尚未接入。'),
+        _unsupported('CalDAV 同步', 'CalDAV 账号连接与同步服务尚未接入。'),
+        _moduleEntry('打开日历', 7),
+      ]),
+    ],
+    8 => [
+      _section(mobile, '账号与发信', [
+        _unsupported('邮箱账号', '外部邮箱账号授权与配置尚未接入。当前仅展示已接入邮箱模块提供的邮件与草稿。'),
+        _unsupported('发信地址与名称', '自定义发信身份偏好尚未接入。'),
+        _unsupported('邮件签名', '自动追加签名服务尚未接入，可在草稿正文中直接编辑。'),
+        _unsupported('自动回复', '自动回复规则与实际邮件投递服务尚未接入。'),
+      ]),
+      _section(mobile, '邮件管理', [
+        _unsupported('邮件视图', '紧凑视图与会话聚合偏好尚未接入。'),
+        _unsupported('拦截与信任发件人', '发件人拦截与信任列表尚未接入。'),
+        _unsupported('第三方客户端', '第三方邮件客户端授权尚未接入。'),
+        _moduleEntry('打开邮箱', 8),
+      ]),
+    ],
+    9 => [
+      _section(mobile, '音频与视频', [
+        _unsupported('默认麦克风', '全局默认设备选择尚未接入。请在实际音视频会话和操作系统中确认麦克风权限。'),
+        _unsupported('默认摄像头', '全局默认摄像头偏好尚未接入。摄像头权限由实际会议与操作系统管理。'),
+        _unsupported('进出会议声音', '进出会议提示音偏好尚未接入。'),
+      ]),
+      _section(mobile, '字幕与录制', [
+        _unsupported('字幕', '实时字幕服务与语言配置尚未接入。'),
+        _unsupported('会议自动云录制', '自动云录制服务尚未接入，不会因为打开此设置页启动录制。'),
+        _unsupported('录制提醒', '录制状态通知偏好尚未接入。'),
+        _moduleEntry('打开视频会议', 6),
+      ]),
+    ],
+    10 => [
+      _section(mobile, '任务提醒', [
+        _unsupported('每日任务提醒', '全局每日提醒时间尚未接入，可在具体任务中维护负责人、状态与截止时间。'),
+        _unsupported('到期提醒', '全局任务到期提醒偏好尚未接入。'),
+      ]),
+      _section(mobile, '协作与同步', [
+        _unsupported('默认负责人', '新任务的默认负责人偏好尚未接入，创建时可以选择人类或 Agent 成员。'),
+        _unsupported('外部任务同步', '外部任务系统授权与同步尚未接入。'),
+        _moduleEntry('打开任务', 4),
+      ]),
+    ],
+    _ => [],
+  };
+
+  List<Widget> _contents(int tab, bool mobile) {
+    if ([6, 7, 8, 9, 10].contains(tab)) return _moduleSettings(tab, mobile);
+    return switch (tab) {
+      0 => _account(mobile),
+      1 => _general(mobile),
+      2 => [
+        _section(mobile, '消息隐私', [
+          _previewToggle(),
+          _unsupported(
+            '搜索与发现权限',
+            '账号可搜索范围与外部联系人隐私偏好尚未接入；当前实际访问仍遵守工作空间和会话成员权限。',
+          ),
+        ]),
+      ],
+      3 => [
+        _section(mobile, '消息效率', [
+          OfficeSettingsRow(
+            title: '消息分组',
+            description: '按未读、@我与自定义分组筛选工作会话',
+            value: widget.onMessageGroups == null ? '当前不可用' : null,
+            onTap: widget.onMessageGroups,
+          ),
+          _unsupported('会话滑动操作', '自定义会话左右滑动行为尚未接入，置顶与免打扰可在会话详情中设置。'),
+          _unsupported('语音消息自动转文字', '语音消息自动转写服务尚未接入。'),
+          _unsupported('进入会话定位到', '默认定位偏好尚未接入；当前会话会加载可用消息并按现有滚动行为展示。'),
+        ]),
+        _section(mobile, '输入与状态', [
+          _unsupported('词典提示', '共享词典与术语提示服务尚未接入。'),
+          _unsupported('智能纠错', '智能纠错偏好尚未接入，系统输入法仍按设备设置工作。'),
+          _unsupported('个人状态', '定时状态与自动状态规则尚未接入。'),
+          _moduleEntry('打开工作台', 5),
+        ]),
+      ],
+      4 => [
+        _section(mobile, '消息通知', [
+          _previewToggle(),
+          _unsupported('系统推送', '后台系统推送服务尚未接入。当前会话内消息仍通过在线服务更新。'),
+          _unsupported('通知声音', '通知音效配置尚未接入。'),
+          _unsupported('免打扰时段', '全局免打扰时段尚未接入，可在单个会话详情中开启消息免打扰。'),
+        ]),
+      ],
+      5 => [
+        _section(mobile, '发送快捷键', [
+          _padded(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final value in ['enter', 'mod_enter'])
+                      ChoiceChip(
+                        label: Text(
+                          value == 'enter' ? 'Enter 发送' : 'Ctrl / ⌘ + Enter 发送',
+                        ),
+                        selected:
+                            str(values['send_shortcut'], 'enter') == value,
+                        showCheckmark: false,
+                        onSelected: editable
+                            ? (_) => _session.save({'send_shortcut': value})
+                            : null,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Shift + Enter 始终换行。输入法选词时不会发送。',
+                  style: TextStyle(fontSize: 11, color: mutedColor),
+                ),
+              ],
+            ),
+          ),
+        ]),
+      ],
+      11 => [_diagnostics()],
+      12 => [
+        _section(mobile, '实验功能', [
+          const OfficeSettingsRow(
+            title: '暂无可启用的实验功能',
+            description: '已接入的原生能力可在人机 Agent 分类中管理。',
+          ),
+          OfficeSettingsRow(
+            title: 'Agent 与插件',
+            onTap: () => setState(() => _tab = 15),
+          ),
+        ]),
+      ],
+      13 => [
+        _section(mobile, '版本与更新', [
+          const OfficeSettingsRow(title: '当前版本', value: '本地开发预览版'),
+          _unsupported('检查更新', '自动更新服务尚未接入，请使用主项目发布的新安装包更新。'),
+        ]),
+      ],
+      14 => [
+        _section(mobile, null, [
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              children: [
+                AppLogo(size: 64),
+                SizedBox(height: 18),
+                Text(
+                  '人机',
+                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.w600),
+                ),
+                SizedBox(height: 12),
+                Text('人与 Agent 同权协作的办公空间'),
+                SizedBox(height: 8),
+                Text(
+                  'Active Agent · doc_free',
+                  style: TextStyle(color: mutedColor),
+                ),
+              ],
+            ),
+          ),
+        ]),
+      ],
+      15 => [OfficePlugins(state: s)],
+      _ => [],
+    };
+  }
 
   Widget _mobileIndex() => ListView(
     padding: const EdgeInsets.all(16),
@@ -75,732 +595,170 @@ class _OfficeSettingsState extends State<OfficeSettings> {
         [0, 1],
         [4],
         [2, 7, 8, 9, 10, 3],
-        [6, 5, 15],
+        [6, 5],
+        [15],
         [11, 12],
         [13, 14],
       ])
-        Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (final i in group) ...[
-                  if (i != group.first)
-                    const Divider(height: 1, indent: 16, endIndent: 16),
-                  ListTile(
-                    title: Text(
-                      i == 0 ? '账号安全中心' : _labels[i],
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    trailing: const Icon(
-                      Icons.chevron_right,
-                      size: 19,
-                      color: mutedColor,
-                    ),
-                    onTap: () => setState(() => _tab = i),
-                  ),
-                ],
-              ],
+        _section(true, group.first == 15 ? '人机 Agent' : null, [
+          for (final tab in group)
+            OfficeSettingsRow(
+              title: _labels[tab],
+              onTap: () => setState(() => _tab = tab),
             ),
-          ),
-        ),
+        ]),
     ],
   );
 
-  Widget _module(String title, int route, String detail) => BusinessCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          detail,
-          style: const TextStyle(fontSize: 13, height: 1.7, color: mutedColor),
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: widget.onOpenModule == null
-              ? null
-              : () => widget.onOpenModule!(route),
-          icon: const Icon(Icons.open_in_new, size: 16),
-          label: Text(title),
-        ),
-      ],
-    ),
-  );
   @override
-  void initState() {
-    super.initState();
-    _loadAccount();
-  }
-
-  Future<void> _loadAccount() async {
-    try {
-      await Future.wait([s.getAccount(), s.loadAccountSessions()]);
-    } catch (e) {
-      if (mounted) setState(() => _error = friendlyError(e));
-    }
-  }
-
-  Future<void> _save(Json values) async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await s.saveSettings(values);
-    } catch (e) {
-      if (mounted) setState(() => _error = friendlyError(e));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _account() => showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => _AccountEditor(state: s),
-  );
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final wide = constraints.maxWidth > 720;
-      final tab = _tab < 0 ? 0 : _tab;
-      return Column(
-        children: [
-          if (wide)
-            const BusinessHeader(title: '设置')
-          else
-            SizedBox(
-              height: 54,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Text(
-                    _tab < 0 ? '设置' : (_tab == 0 ? '账号安全中心' : _labels[_tab]),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (_tab >= 0 || widget.onClose != null)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        tooltip: _tab >= 0 ? '返回设置' : '关闭设置',
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed: _tab >= 0
-                            ? () => setState(() => _tab = -1)
-                            : widget.onClose,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          const Divider(height: 1),
-          if (!wide && _tab < 0)
-            Expanded(
-              child: ColoredBox(
-                color: const Color(0xfff5f6f7),
-                child: _mobileIndex(),
-              ),
-            ),
-          if (wide || _tab >= 0)
-            Expanded(
-              child: Row(
-                children: [
-                  if (wide)
-                    Container(
-                      width: 208,
-                      color: const Color(0xfff7f8fa),
-                      padding: const EdgeInsets.all(12),
-                      child: ListView(
-                        children: List.generate(
-                          _labels.length,
-                          (i) => Padding(
-                            padding: const EdgeInsets.only(bottom: 5),
-                            child: Material(
-                              color: tab == i
-                                  ? selectedColor
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                              child: ListTile(
-                                dense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                minLeadingWidth: 19,
-                                leading: Icon(
-                                  _icons[i],
-                                  size: 18,
-                                  color: tab == i ? accentColor : mutedColor,
-                                ),
-                                title: Text(
-                                  _labels[i],
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                onTap: () => setState(() => _tab = i),
-                              ),
-                            ),
-                          ),
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _session,
+    builder: (context, _) => LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth > 720;
+        final tab = _tab < 0 ? 0 : _tab;
+        return Material(
+          color: wide ? Colors.white : const Color(0xfff5f6f8),
+          child: Column(
+            children: [
+              Material(
+                color: Colors.white,
+                child: SizedBox(
+                  height: wide ? 70 : 54,
+                  child: Row(
+                    children: [
+                      if (!wide && (_tab >= 0 || widget.onClose != null))
+                        IconButton(
+                          tooltip: _tab >= 0 ? '返回设置' : '关闭设置',
+                          onPressed: _tab >= 0
+                              ? () => setState(() => _tab = -1)
+                              : widget.onClose,
+                          icon: const Icon(Icons.chevron_left),
                         ),
-                      ),
-                    ),
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.all(24),
-                      children: [
-                        Text(
-                          _labels[tab],
-                          style: const TextStyle(
-                            fontSize: 19,
+                      if (wide) const SizedBox(width: 24),
+                      Expanded(
+                        child: Text(
+                          wide || _tab < 0 ? '设置' : _labels[tab],
+                          textAlign: wide ? TextAlign.start : TextAlign.center,
+                          style: TextStyle(
+                            fontSize: wide ? 23 : 17,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        if (tab == 0) ...[
-                          BusinessCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                      ),
+                      if (wide && widget.onClose != null)
+                        IconButton(
+                          tooltip: '关闭设置',
+                          onPressed: widget.onClose,
+                          icon: const Icon(Icons.close),
+                        ),
+                      const SizedBox(width: 16),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: !_session.valid
+                    ? const Center(child: Text('工作身份已变更，请关闭后重新打开设置。'))
+                    : !wide && _tab < 0
+                    ? _mobileIndex()
+                    : Row(
+                        children: [
+                          if (wide)
+                            Material(
+                              color: const Color(0xfff7f8fa),
+                              child: SizedBox(
+                                width: 208,
+                                child: ListView(
+                                  padding: const EdgeInsets.all(12),
                                   children: [
-                                    PersonAvatar(
-                                      name: str(s.me?['name']),
-                                      agent: s.me?['kind'] == 'agent',
-                                      size: 44,
-                                    ),
-                                    const SizedBox(width: 13),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            str(s.me?['name']),
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                    for (
+                                      var index = 0;
+                                      index < _labels.length;
+                                      index++
+                                    ) ...[
+                                      if (index == 15)
+                                        const Padding(
+                                          padding: EdgeInsets.fromLTRB(
+                                            12,
+                                            14,
+                                            12,
+                                            8,
                                           ),
-                                          Text(
-                                            s.me?['kind'] == 'agent'
-                                                ? 'Agent 工作身份'
-                                                : '个人工作身份',
-                                            style: const TextStyle(
+                                          child: Text(
+                                            '人机 Agent',
+                                            style: TextStyle(
                                               fontSize: 11,
                                               color: mutedColor,
                                             ),
                                           ),
-                                        ],
+                                        ),
+                                      Material(
+                                        color: tab == index
+                                            ? selectedColor
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: ListTile(
+                                          dense: true,
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                              ),
+                                          leading: Icon(
+                                            _icons[index],
+                                            size: 18,
+                                            color: tab == index
+                                                ? accentColor
+                                                : mutedColor,
+                                          ),
+                                          minLeadingWidth: 19,
+                                          title: Text(
+                                            _label(index, false),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          onTap: () =>
+                                              setState(() => _tab = index),
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ],
                                 ),
-                                const SizedBox(height: 22),
-                                Text(
-                                  '账号：${str(s.accountInfo['username'], '尚未设置账号密码')}',
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                                const SizedBox(height: 13),
-                                OutlinedButton(
-                                  onPressed: _account,
-                                  child: Text(
-                                    s.accountInfo['username'] == null
-                                        ? '设置账号密码'
-                                        : '修改账号密码',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            '登录会话',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            '撤销后，该登录会话将需要重新验证身份。',
-                            style: TextStyle(fontSize: 11, color: mutedColor),
-                          ),
-                          const SizedBox(height: 12),
-                          if (s.accountSessions.isEmpty)
-                            const Text(
-                              '没有账号密码登录会话。',
-                              style: TextStyle(color: mutedColor, fontSize: 12),
-                            ),
-                          ...s.accountSessions.reversed.map(
-                            (session) => Material(
-                              color: Colors.white,
-                              child: ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: Icon(
-                                  session['active'] == true
-                                      ? Icons.devices
-                                      : Icons.history,
-                                  size: 21,
-                                  color: mutedColor,
-                                ),
-                                title: Text(
-                                  session['active'] == true
-                                      ? '有效登录会话'
-                                      : '已结束会话',
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                                subtitle: Text(
-                                  '登录 ${fullOfficeTime(session['created_at'])}\n到期 ${fullOfficeTime(session['expires_at'])}',
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: mutedColor,
-                                  ),
-                                ),
-                                trailing: session['active'] == true
-                                    ? TextButton(
-                                        onPressed: _busy
-                                            ? null
-                                            : () async {
-                                                setState(() => _busy = true);
-                                                try {
-                                                  await s.revokeSession(
-                                                    str(session['id']),
-                                                  );
-                                                } catch (e) {
-                                                  if (mounted) {
-                                                    setState(
-                                                      () => _error =
-                                                          friendlyError(e),
-                                                    );
-                                                  }
-                                                } finally {
-                                                  if (mounted) {
-                                                    setState(
-                                                      () => _busy = false,
-                                                    );
-                                                  }
-                                                }
-                                              },
-                                        child: const Text('撤销'),
-                                      )
-                                    : null,
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 23),
-                          TextButton.icon(
-                            onPressed: s.disconnect,
-                            icon: const Icon(Icons.logout, size: 17),
-                            label: const Text('退出当前身份'),
-                          ),
-                        ],
-                        if (tab == 0 && widget.onEnterprise != null)
-                          OutlinedButton.icon(
-                            onPressed: widget.onEnterprise,
-                            icon: const Icon(
-                              Icons.apartment_outlined,
-                              size: 17,
-                            ),
-                            label: const Text('打开企业管理后台'),
-                          ),
-                        if (tab == 1) ...[
-                          const Text(
-                            '文字大小',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          const Text(
-                            '调整整个办公界面的文字比例。',
-                            style: TextStyle(fontSize: 11, color: mutedColor),
-                          ),
-                          const SizedBox(height: 15),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: [0.85, 1.0, 1.15, 1.3]
-                                .map(
-                                  (scale) => ChoiceChip(
-                                    label: Text('${(scale * 100).round()}%'),
-                                    selected:
-                                        ((s.settings['text_scale'] as num?)
-                                                ?.toDouble() ??
-                                            1) ==
-                                        scale,
-                                    showCheckmark: false,
-                                    onSelected: _busy
-                                        ? null
-                                        : (_) => _save({'text_scale': scale}),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                          const SizedBox(height: 27),
-                          const BusinessCard(
-                            color: Color(0xfff7f9fc),
-                            child: Text(
-                              '预览：让人与 Agent 在同一个工作空间里，读懂上下文，一起推进工作。',
-                              style: TextStyle(fontSize: 14, height: 1.9),
-                            ),
-                          ),
-                        ],
-                        if (tab == 1) ...[
-                          const Text(
-                            '消息布局',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 13),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: ['split', 'left']
-                                .map(
-                                  (value) => ChoiceChip(
-                                    label: Text(
-                                      value == 'split'
-                                          ? '自己在右，伙伴在左'
-                                          : '所有消息左对齐',
-                                    ),
-                                    selected:
-                                        str(
-                                          s.settings['message_alignment'],
-                                          'split',
-                                        ) ==
-                                        value,
-                                    showCheckmark: false,
-                                    onSelected: _busy
-                                        ? null
-                                        : (_) => _save({
-                                            'message_alignment': value,
-                                          }),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ],
-                        if (tab == 5) ...[
-                          const Divider(height: 42),
-                          const Text(
-                            '发送快捷键',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 13),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: ['enter', 'mod_enter']
-                                .map(
-                                  (value) => ChoiceChip(
-                                    label: Text(
-                                      value == 'enter'
-                                          ? 'Enter 发送'
-                                          : 'Ctrl / ⌘ + Enter 发送',
-                                    ),
-                                    selected:
-                                        str(
-                                          s.settings['send_shortcut'],
-                                          'enter',
-                                        ) ==
-                                        value,
-                                    showCheckmark: false,
-                                    onSelected: _busy
-                                        ? null
-                                        : (_) =>
-                                              _save({'send_shortcut': value}),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'Shift + Enter 始终换行。输入法选词时不会发送。',
-                            style: TextStyle(fontSize: 11, color: mutedColor),
-                          ),
-                          const Divider(height: 42),
-                        ],
-                        if (tab == 2 || tab == 4) ...[
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text(
-                              '会话列表显示消息预览',
-                              style: TextStyle(fontSize: 14),
-                            ),
-                            subtitle: const Text(
-                              '关闭后，列表将隐藏最近一条消息的正文。',
-                              style: TextStyle(fontSize: 11, color: mutedColor),
-                            ),
-                            value: s.settings['show_message_preview'] != false,
-                            onChanged: _busy
-                                ? null
-                                : (value) =>
-                                      _save({'show_message_preview': value}),
-                          ),
-                        ],
-                        if (tab == 1 && widget.onNavigation != null)
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('编辑底栏'),
-                            subtitle: const Text('增减和排序手机常用功能'),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: widget.onNavigation,
-                          ),
-                        if (tab == 3)
-                          _module(
-                            '打开工作台',
-                            5,
-                            '集中使用常用办公工具。Agent 与插件中的原生能力可供 Agent 调用；自动化执行取决于已连接的插件。',
-                          ),
-                        if (tab == 4)
-                          const Text(
-                            '当前支持会话列表预览设置。系统推送、通知声音和免打扰时段尚未接入。',
-                            style: TextStyle(color: mutedColor, height: 1.7),
-                          ),
-                        if (tab == 6)
-                          _module(
-                            '打开文档',
-                            3,
-                            '人机文档由 doc_free 提供。文档权限在具体文档中管理；默认新建权限、自动排版偏好尚未接入。',
-                          ),
-                        if (tab == 7)
-                          _module('打开日历', 7, '可管理日程。全局提醒、时区与第三方日历同步偏好尚未接入。'),
-                        if (tab == 8)
-                          _module(
-                            '打开邮箱',
-                            8,
-                            '可查看邮件与编辑草稿。签名、自动回复和外部邮箱账户配置尚未接入。',
-                          ),
-                        if (tab == 9)
-                          _module(
-                            '打开视频会议',
-                            6,
-                            '会议设备由实际会议服务管理。默认麦克风、摄像头与自动录制偏好尚未接入。',
-                          ),
-                        if (tab == 10)
-                          _module('打开任务', 4, '可管理协作任务。每日提醒与外部任务同步偏好尚未接入。'),
-                        if (tab == 11)
-                          BusinessCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          Expanded(
+                            child: ListView(
+                              key: ValueKey('settings-page-$tab'),
+                              padding: EdgeInsets.all(wide ? 28 : 16),
                               children: [
-                                const Text('账号连接检查'),
-                                const SizedBox(height: 12),
-                                const Text('重新读取当前账号与登录会话，检查服务是否可访问。'),
-                                TextButton(
-                                  onPressed: _busy
-                                      ? null
-                                      : () async {
-                                          setState(() {
-                                            _busy = true;
-                                            _error = null;
-                                          });
-                                          await _loadAccount();
-                                          if (mounted) {
-                                            setState(() => _busy = false);
-                                            if (_error == null) {
-                                              notifyOffice(
-                                                this.context,
-                                                '账号服务连接正常',
-                                              );
-                                            }
-                                          }
-                                        },
-                                  child: const Text('检查连接'),
-                                ),
+                                if (wide) ...[
+                                  Text(
+                                    _label(tab, false),
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 26),
+                                ],
+                                ..._contents(tab, !wide),
+                                OfficeSettingsFeedback(session: _session),
+                                if (_accountError != null)
+                                  BusinessError(_accountError),
+                                if (_accountBusy && [0, 11].contains(tab))
+                                  const LinearProgressIndicator(minHeight: 2),
                               ],
                             ),
                           ),
-                        if (tab == 12)
-                          const BusinessCard(
-                            child: Text(
-                              '暂无可启用的实验功能。已接入的 Agent 能力请在“Agent 与插件”中管理。',
-                            ),
-                          ),
-                        if (tab == 13)
-                          const BusinessCard(
-                            child: Text('当前为本地开发预览版。自动更新服务尚未接入，请通过新的安装包更新。'),
-                          ),
-                        if (tab == 14)
-                          const BusinessCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.rocket_launch,
-                                  size: 44,
-                                  color: accentColor,
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  '人机',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                SizedBox(height: 12),
-                                Text('人与 Agent 同权协作的办公空间'),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Active Agent · doc_free',
-                                  style: TextStyle(color: mutedColor),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (tab == 15) OfficePlugins(state: s),
-                        BusinessError(_error),
-                        if (_busy) const LinearProgressIndicator(minHeight: 2),
-                      ],
-                    ),
-                  ),
-                ],
+                        ],
+                      ),
               ),
-            ),
-        ],
-      );
-    },
-  );
-}
-
-class _AccountEditor extends StatefulWidget {
-  const _AccountEditor({required this.state});
-  final OfficeState state;
-  @override
-  State<_AccountEditor> createState() => _AccountEditorState();
-}
-
-class _AccountEditorState extends State<_AccountEditor> {
-  late final _username = TextEditingController(
-    text: str(widget.state.accountInfo['username']),
-  );
-  final _current = TextEditingController(),
-      _password = TextEditingController(),
-      _confirm = TextEditingController();
-  final _form = GlobalKey<FormState>();
-  bool _busy = false;
-  String? _error;
-  @override
-  void dispose() {
-    for (final c in [_username, _current, _password, _confirm]) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (!_form.currentState!.validate()) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await widget.state.setAccount(
-        _username.text.trim(),
-        _password.text,
-        currentPassword: _current.text,
-      );
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted) setState(() => _error = friendlyError(e));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(
-      widget.state.accountInfo['username'] == null ? '设置账号密码' : '修改账号密码',
-    ),
-    content: SizedBox(
-      width: 420,
-      child: SingleChildScrollView(
-        child: Form(
-          key: _form,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _username,
-                autocorrect: false,
-                decoration: const InputDecoration(
-                  labelText: '账号',
-                  hintText: '至少 3 位字母、数字或 . _ @ + -',
-                ),
-                validator: (v) =>
-                    RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9._@+-]{2,99}$')
-                        .hasMatch(v?.trim() ?? '')
-                    ? null
-                    : '请输入符合格式的账号',
-              ),
-              if (widget.state.accountInfo['username'] != null) ...[
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _current,
-                  obscureText: true,
-                  enableSuggestions: false,
-                  autocorrect: false,
-                  decoration: const InputDecoration(labelText: '当前密码'),
-                  validator: (v) => v?.isNotEmpty == true ? null : '请输入当前密码',
-                ),
-              ],
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _password,
-                obscureText: true,
-                enableSuggestions: false,
-                autocorrect: false,
-                decoration: const InputDecoration(
-                  labelText: '新密码',
-                  hintText: '10–256 个字符',
-                ),
-                validator: (v) =>
-                    (v?.length ?? 0) >= 10 &&
-                        (v?.length ?? 0) <= 256 &&
-                        v!.trim().isNotEmpty
-                    ? null
-                    : '密码需要 10–256 个字符',
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _confirm,
-                obscureText: true,
-                enableSuggestions: false,
-                autocorrect: false,
-                decoration: const InputDecoration(labelText: '确认新密码'),
-                validator: (v) => v == _password.text ? null : '两次密码不一致',
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                '保存后，原有登录会话将退出，当前身份会使用新密码重新登录。',
-                style: TextStyle(fontSize: 11, color: mutedColor),
-              ),
-              BusinessError(_error),
             ],
           ),
-        ),
-      ),
+        );
+      },
     ),
-    actions: [
-      TextButton(
-        onPressed: _busy ? null : () => Navigator.pop(context),
-        child: const Text('取消'),
-      ),
-      FilledButton(
-        onPressed: _busy ? null : _save,
-        child: Text(_busy ? '保存中…' : '保存'),
-      ),
-    ],
   );
 }

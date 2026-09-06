@@ -62,12 +62,13 @@ class AgentActionPlan extends StatelessWidget {
               ? null
               : receipts.where((r) => r['operation_id'] == id).firstOrNull;
           if (receipt != null) linked.add(id);
-          return _step(step, receipt, ended);
+          return _step(context, step, receipt, ended);
         }),
         ...receipts
             .where((r) => !linked.contains(str(r['operation_id'])))
             .map(
               (r) => _step(
+                context,
                 {
                   'operation': r['operation'],
                   'operation_id': r['operation_id'],
@@ -81,7 +82,7 @@ class AgentActionPlan extends StatelessWidget {
     );
   }
 
-  Widget _step(Json step, Json? receipt, bool ended) {
+  Widget _step(BuildContext context, Json step, Json? receipt, bool ended) {
     final status = receipt?['status'];
     final committed = status == 'committed',
         rejected = status == 'rejected',
@@ -113,7 +114,9 @@ class AgentActionPlan extends StatelessWidget {
       'response': '回复',
     };
     String value(String key, dynamic raw) {
-      if (key == 'starts_at' || key == 'ends_at') return fullOfficeTime(raw);
+      if (key == 'starts_at' || key == 'ends_at') {
+        return fullOfficeTime(raw, context: context);
+      }
       if (key == 'status') return statusName(raw);
       if (key == 'response') {
         return const {
@@ -177,7 +180,7 @@ class AgentActionPlan extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  '服务端记录：${fullOfficeTime(receipt!['committed_at'])}',
+                  '服务端记录：${fullOfficeTime(receipt!['committed_at'], context: context)}',
                   style: const TextStyle(fontSize: 11, color: mutedColor),
                 ),
               ),

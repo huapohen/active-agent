@@ -9,12 +9,372 @@ import 'agent_action_plan.dart';
 import 'agent_autonomy.dart';
 import 'office_theme.dart';
 import 'task_dialog.dart';
+import 'room_nickname.dart';
 import 'document_editor_launcher.dart';
 
 String friendlyError(Object error) => error
     .toString()
     .replaceFirst('OfficeException: ', '')
     .replaceFirst('Exception: ', '');
+
+class _OfficeMembers extends StatefulWidget {
+  const _OfficeMembers({required this.state, required this.roomId});
+  final OfficeState state;
+  final String roomId;
+  @override
+  State<_OfficeMembers> createState() => _OfficeMembersState();
+}
+
+class _OfficeMembersState extends State<_OfficeMembers> {
+  late final String _identity;
+  Json? _detail;
+  bool _expired = false, _busy = false, _loading = true;
+  String? _error;
+  String _query = '', _inviteQuery = '';
+  int _generation = 0;
+  String get _identityKey =>
+      '${widget.state.endpoint}|${personId(widget.state.me ?? {})}|${widget.state.connected}';
+  String get _path => '/rooms/${Uri.encodeComponent(widget.roomId)}';
+  bool get _valid =>
+      !_expired && widget.state.connected && _identityKey == _identity;
+  List<Json> get _members => maps(_detail?['members']);
+  Json get _room => Json.from(_detail?['room'] as Map? ?? {});
+  String get _self => personId(widget.state.me ?? {});
+  bool get _owner => _members.any(
+    (member) => personId(member) == _self && member['role'] == 'owner',
+  );
+  bool get _group => _room['kind'] != 'direct';
+  bool _removable(Json member) =>
+      _valid &&
+      _owner &&
+      _group &&
+      personId(member) != _self &&
+      member['role'] != 'owner' &&
+      personId(member) != _room['created_by'];
+  bool _matches(Json member, String query) =>
+      '${officeDisplayName(member)} ${str(member['name'])} ${personId(member)}'
+          .toLowerCase()
+          .contains(query.trim().toLowerCase());
+
+  @override
+  void initState() {
+    super.initState();
+    _identity = _identityKey;
+    widget.state.addListener(_identityChanged);
+    _read();
+  }
+
+  void _identityChanged() {
+    if (!_valid && mounted) {
+      setState(() {
+        _expired = true;
+        ++_generation;
+        _detail = null;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.state.removeListener(_identityChanged);
+    super.dispose();
+  }
+
+  Future<void> _read() async {
+    if (!_valid) return;
+    final generation = ++_generation;
+    try {
+      final result = await widget.state.officeRequest(_path);
+      if (mounted && _valid && generation == _generation) {
+        setState(() {
+          _detail = result;
+          _loading = false;
+          _error = null;
+        });
+      }
+    } catch (error) {
+      if (mounted && _valid && generation == _generation) {
+        setState(() {
+          _error = friendlyError(error);
+          _loading = false;
+          if (error is OfficeException &&
+              [401, 403, 404].contains(error.status)) {
+            _detail = null;
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> _remove(Json target) async {
+    if (!_removable(target) || _busy) return;
+    final pid = personId(target);
+    final approved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AnimatedBuilder(
+        animation: widget.state,
+        builder: (_, _) => AlertDialog(
+          title: const Text('移除群成员'),
+          content: Text(
+            _valid
+                ? '将「${officeDisplayName(target)}」从「${str(_room['name'])}」移除？\n\n工作身份：${str(target['name'])}\n身份 ID：$pid\n\n对方将失去本群访问权限；正在推进的 Agent 工作会停止。'
+                : '工作身份已变更，请关闭后重新打开成员管理。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: _valid
+                  ? () => Navigator.pop(dialogContext, true)
+                  : null,
+              child: const Text('确认移除'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || !_valid || approved != true) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      // Recheck the current role and target after the explicit confirmation.
+      final latest = await widget.state.officeRequest(_path);
+      if (!mounted || !_valid) return;
+      setState(() => _detail = latest);
+      final current = _members
+          .where((member) => personId(member) == pid)
+          .firstOrNull;
+      if (current == null) throw OfficeException(404, '该成员已离开本群');
+      if (!_removable(current)) throw OfficeException(403, '成员权限已变化，不能移除该成员');
+      await widget.state.officeRequest(
+        '$_path/members/${Uri.encodeComponent(pid)}',
+        method: 'DELETE',
+        data: {},
+      );
+      if (!mounted || !_valid) return;
+      await _read();
+      if (!mounted || !_valid) return;
+      await widget.state.refresh();
+    } catch (error) {
+      if (mounted && _valid) setState(() => _error = friendlyError(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _invite(Json person) async {
+    if (!_valid || !_owner || !_group || _busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.state.officeRequest(
+        '$_path/members',
+        method: 'POST',
+        data: {'principal_id': personId(person)},
+      );
+      if (!mounted || !_valid) return;
+      await _read();
+      if (!mounted || !_valid) return;
+      await widget.state.refresh();
+    } catch (error) {
+      if (mounted && _valid) setState(() => _error = friendlyError(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _nickname() async {
+    if (!_valid) return;
+    final saved = await showOfficeRoomNickname(
+      context,
+      widget.state,
+      roomId: widget.roomId,
+    );
+    if (!mounted || !_valid || saved != true) return;
+    await _read();
+    if (!mounted || !_valid) return;
+    try {
+      await widget.state.refresh();
+    } catch (error) {
+      if (mounted && _valid) setState(() => _error = friendlyError(error));
+    }
+  }
+
+  Future<void> _agent(Json member) async {
+    if (!_valid) return;
+    await showAgentAutonomy(
+      context,
+      widget.state,
+      member,
+      roomId: widget.roomId,
+      canEdit: _owner || personId(member) == _self,
+      roomRevision: (_room['revision'] as num?)?.toInt(),
+    );
+    if (mounted && _valid) await _read();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final available = widget.state.principals
+        .where(
+          (person) =>
+              !_members.any((member) => personId(member) == personId(person)),
+        )
+        .toList();
+    return AlertDialog(
+      title: Text(_valid ? '会话成员 · ${_members.length}' : '会话成员'),
+      content: SizedBox(
+        width: 480,
+        child: !_valid
+            ? const Text('工作身份已变更，旧会话成员已隐藏。')
+            : _loading
+            ? const Center(heightFactor: 2, child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      str(_room['name']),
+                      style: const TextStyle(fontSize: 12, color: mutedColor),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      decoration: const InputDecoration(
+                        hintText: '搜索成员姓名、群昵称或 ID',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (value) => setState(() => _query = value),
+                    ),
+                    const SizedBox(height: 10),
+                    if (!_members.any((member) => _matches(member, _query)))
+                      const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text('没有匹配的成员'),
+                      ),
+                    for (final member in _members.where(
+                      (member) => _matches(member, _query),
+                    ))
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: PersonAvatar(
+                          name: officeDisplayName(member),
+                          agent: member['kind'] == 'agent',
+                          size: 32,
+                        ),
+                        title: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                officeDisplayName(member),
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            IdentityBadge(agent: member['kind'] == 'agent'),
+                          ],
+                        ),
+                        subtitle: Text(
+                          '${member['role'] == 'owner' ? '会话负责人' : '工作成员'}${officeDisplayName(member) == str(member['name']) ? '' : ' · ${str(member['name'])}'}',
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (member['kind'] == 'agent')
+                              IconButton(
+                                tooltip: '${str(member['name'])} · 人格与参与',
+                                onPressed: _busy ? null : () => _agent(member),
+                                icon: const Icon(Icons.tune, size: 18),
+                              ),
+                            if (_removable(member))
+                              IconButton(
+                                tooltip: '移除 ${str(member['name'])}',
+                                onPressed: _busy ? null : () => _remove(member),
+                                icon: const Icon(
+                                  Icons.person_remove_outlined,
+                                  size: 18,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    if (_group &&
+                        _members.any((member) => personId(member) == _self))
+                      TextButton.icon(
+                        onPressed: _busy ? null : _nickname,
+                        icon: const Icon(Icons.badge_outlined, size: 17),
+                        label: const Text('我在本群的昵称'),
+                      ),
+                    if (_owner && _group && available.isNotEmpty) ...[
+                      const Divider(height: 26),
+                      const Text(
+                        '添加工作成员',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        decoration: const InputDecoration(
+                          hintText: '搜索可添加的同事',
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onChanged: (value) =>
+                            setState(() => _inviteQuery = value),
+                      ),
+                      for (final person in available.where(
+                        (person) => _matches(person, _inviteQuery),
+                      ))
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: PersonAvatar(
+                            name: str(person['name']),
+                            agent: person['kind'] == 'agent',
+                            size: 30,
+                          ),
+                          title: Text(
+                            str(person['name']),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          trailing: TextButton(
+                            onPressed: _busy ? null : () => _invite(person),
+                            child: const Text('添加'),
+                          ),
+                        ),
+                    ],
+                    BusinessError(_error),
+                    if (_error != null)
+                      TextButton(
+                        onPressed: _busy ? null : _read,
+                        child: const Text('刷新成员'),
+                      ),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 12),
+                      child: Text(
+                        '人和 Agent 共享消息、文档与任务能力；群内昵称保留可辨认的工作身份。',
+                        style: TextStyle(fontSize: 11, color: mutedColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('完成'),
+        ),
+      ],
+    );
+  }
+}
 
 class OfficeDialogs {
   static final Map<String, Json> _documentDrafts = {};
@@ -160,168 +520,16 @@ class OfficeDialogs {
     );
   }
 
-  static Future<void> members(BuildContext context, OfficeState state) async {
+  static Future<void> members(
+    BuildContext context,
+    OfficeState state, {
+    String? roomId,
+  }) async {
+    final target = roomId ?? state.selectedRoomId;
+    if (target == null) return;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AnimatedBuilder(
-        animation: state,
-        builder: (context, _) {
-          final members = maps(state.detail?['members']);
-          final self = members
-              .where((m) => personId(m) == personId(state.me ?? {}))
-              .firstOrNull;
-          final owner = self?['role'] == 'owner';
-          final available = state.principals
-              .where((p) => !members.any((m) => personId(m) == personId(p)))
-              .toList();
-          return AlertDialog(
-            title: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    '会话成员',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Text(
-                  '${members.length} 人与 Agent',
-                  style: const TextStyle(fontSize: 11, color: mutedColor),
-                ),
-              ],
-            ),
-            content: SizedBox(
-              width: 450,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ...members.map(
-                      (m) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          children: [
-                            PersonAvatar(
-                              name: str(m['name']),
-                              agent: m['kind'] == 'agent',
-                            ),
-                            const SizedBox(width: 11),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          str(m['name']),
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      IdentityBadge(
-                                        agent: m['kind'] == 'agent',
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    m['role'] == 'owner' ? '会话负责人' : '工作成员',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      color: mutedColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (m['kind'] == 'agent')
-                              IconButton(
-                                tooltip: '人格与参与',
-                                icon: const Icon(Icons.tune, size: 19),
-                                onPressed: () => showAgentAutonomy(
-                                  context,
-                                  state,
-                                  m,
-                                  roomId: state.selectedRoomId!,
-                                  canEdit:
-                                      owner ||
-                                      personId(m) == personId(state.me ?? {}),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (owner &&
-                        available.isNotEmpty &&
-                        (state.detail?['room'] as Map?)?['kind'] !=
-                            'direct') ...[
-                      const Divider(height: 30),
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '添加工作成员',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...available.map(
-                        (p) => ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          leading: PersonAvatar(
-                            name: str(p['name']),
-                            agent: p['kind'] == 'agent',
-                            size: 30,
-                          ),
-                          title: Text(
-                            str(p['name']),
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          trailing: TextButton(
-                            onPressed: () async {
-                              try {
-                                await state.invite(personId(p));
-                              } catch (e) {
-                                if (context.mounted) {
-                                  notifyOffice(context, friendlyError(e));
-                                }
-                              }
-                            },
-                            child: const Text('添加'),
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 13),
-                    const Text(
-                      '人和 Agent 共享消息、文档与任务能力。参与方式控制 Agent 的自动工作节奏。',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: mutedColor,
-                        height: 1.8,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('完成'),
-              ),
-            ],
-          );
-        },
-      ),
+      builder: (_) => _OfficeMembers(state: state, roomId: target),
     );
   }
 
@@ -668,7 +876,7 @@ class OfficeDialogs {
                         ],
                       ),
                       Text(
-                        '${statusName(run['status'])} · ${clockText(run['created_at'], date: true)}',
+                        '${statusName(run['status'])} · ${clockText(run['created_at'], date: true, context: context)}',
                         style: const TextStyle(fontSize: 11, color: mutedColor),
                       ),
                       const SizedBox(height: 18),

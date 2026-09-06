@@ -444,7 +444,7 @@ class OfficeMinutesState extends State<OfficeMinutes> {
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 6),
                           child: Text(
-                            '${officeRoomName(s, str(m['room_id']))} · ${m['transcript_count'] ?? m['segment_count'] ?? maps(m['transcript']).length} 段记录\n${fullOfficeTime(m['updated_at'])}',
+                            '${officeRoomName(s, str(m['room_id']))} · ${m['transcript_count'] ?? m['segment_count'] ?? maps(m['transcript']).length} 段记录\n${fullOfficeTime(m['updated_at'], context: context)}',
                             style: const TextStyle(
                               fontSize: 11,
                               color: mutedColor,

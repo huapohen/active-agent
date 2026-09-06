@@ -29,10 +29,14 @@ class _OfficeMentionPickerState extends State<OfficeMentionPicker> {
             .where(
               (p) =>
                   (_kind == 'all' || p['kind'] == _kind) &&
-                  str(p['name']).toLowerCase().contains(_query.toLowerCase()),
+                  ('${officeDisplayName(p)} ${str(p['name'])}')
+                      .toLowerCase()
+                      .contains(_query.toLowerCase()),
             )
             .toList()
-          ..sort((a, b) => str(a['name']).compareTo(str(b['name'])));
+          ..sort(
+            (a, b) => officeDisplayName(a).compareTo(officeDisplayName(b)),
+          );
     final body = SafeArea(
       child: Material(
         color: Colors.white,
@@ -142,12 +146,12 @@ class _OfficeMentionPickerState extends State<OfficeMentionPicker> {
                               : _selected.remove(personId(p));
                         }),
                         secondary: PersonAvatar(
-                          name: str(p['name']),
+                          name: officeDisplayName(p),
                           agent: p['kind'] == 'agent',
                           size: 34,
                         ),
                         title: Text(
-                          str(p['name']),
+                          officeDisplayName(p),
                           style: const TextStyle(fontSize: 13),
                         ),
                         subtitle: Text(

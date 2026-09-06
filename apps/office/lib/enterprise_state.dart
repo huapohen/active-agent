@@ -23,7 +23,7 @@ class EnterpriseState extends ChangeNotifier {
       memberStatus = 'all',
       memberRole = 'all',
       auditQuery = '';
-  String? memberDepartment;
+  String? memberDepartment, memberOrganization;
   int _memberRequest = 0, _auditRequest = 0, _appsRequest = 0;
   bool get current =>
       !_disposed && _identity == '${office.endpoint}:${office.me?['id']}';
@@ -114,6 +114,8 @@ class EnterpriseState extends ChangeNotifier {
     String? role,
     String? department,
     bool clearDepartment = false,
+    String? organization,
+    bool clearOrganization = false,
   }) async {
     final sequence = ++_memberRequest;
     final nextPage = page ?? memberPage;
@@ -125,6 +127,11 @@ class EnterpriseState extends ChangeNotifier {
     } else {
       memberDepartment = department ?? memberDepartment;
     }
+    if (clearOrganization) {
+      memberOrganization = null;
+    } else {
+      memberOrganization = organization ?? memberOrganization;
+    }
     final params = Uri(
       queryParameters: {
         'page': '$nextPage',
@@ -133,6 +140,7 @@ class EnterpriseState extends ChangeNotifier {
         'status': memberStatus,
         'role': memberRole,
         'department_id': ?memberDepartment,
+        'organization_id': ?memberOrganization,
       },
     ).query;
     final result = await _request('/enterprise/admin/members?$params');
@@ -141,6 +149,20 @@ class EnterpriseState extends ChangeNotifier {
     memberPage = (result['page'] as num?)?.toInt() ?? nextPage;
     memberTotal = (result['total'] as num?)?.toInt() ?? members.length;
     _notify();
+  }
+
+  Future<Json> readMember(String id) async {
+    final result = await _request(
+      '/enterprise/admin/members/${Uri.encodeComponent(id)}',
+    );
+    if (result['member'] is! Map) {
+      throw OfficeException(502, '成员详情响应不完整，请刷新后重试');
+    }
+    final member = Json.from(result['member']);
+    if ((member['principal_id'] ?? member['id']) != id) {
+      throw OfficeException(502, '成员详情与当前选择不一致，请刷新后重试');
+    }
+    return member;
   }
 
   Future<void> loadDepartments() async {
