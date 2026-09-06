@@ -7,6 +7,7 @@ import 'professional_identity.dart';
 import 'office_theme.dart';
 import 'companion_identity.dart';
 import 'agent_personality.dart';
+import 'agent_friend_directory.dart';
 
 class OfficePeople extends StatefulWidget {
   const OfficePeople({
@@ -157,7 +158,7 @@ class _OfficePeopleState extends State<OfficePeople> {
               ],
             ),
           ),
-        if (!_store)
+        if (!_store && !widget.agent)
           Padding(
             padding: const EdgeInsets.fromLTRB(25, 0, 25, 14),
             child: OfficeSearch(
@@ -171,6 +172,15 @@ class _OfficePeopleState extends State<OfficePeople> {
               ? AgentCatalog(
                   state: s,
                   onInstalled: () => setState(() => _store = false),
+                )
+              : widget.agent
+              ? OfficeAgentFriendDirectory(
+                  state: s,
+                  friends: _agentFriends,
+                  others: available,
+                  itemBuilder: _person,
+                  otherBuilder: _otherAgent,
+                  onExploreStore: () => setState(() => _store = true),
                 )
               : ListView(
                   padding: const EdgeInsets.all(22),
@@ -198,42 +208,24 @@ class _OfficePeopleState extends State<OfficePeople> {
                             : null,
                       ),
                     ...people.map((p) => _person(p)),
-                    if (widget.agent && available.isNotEmpty) ...[
-                      const SizedBox(height: 22),
-                      const Text(
-                        '工作空间中的其他 Agent',
-                        style: TextStyle(fontSize: 12, color: mutedColor),
-                      ),
-                      const SizedBox(height: 12),
-                      ...available.map(
-                        (p) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: PersonAvatar(
-                            name: str(p['name']),
-                            agent: true,
-                          ),
-                          title: Text(
-                            str(p['name']),
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          trailing: TextButton(
-                            onPressed: _busy.contains(personId(p))
-                                ? null
-                                : () => _run(
-                                    personId(p),
-                                    () => s.addAgent(personId(p)),
-                                  ),
-                            child: const Text('添加好友'),
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
         ),
       ],
     );
   }
+
+  Widget _otherAgent(Json person) => ListTile(
+    contentPadding: EdgeInsets.zero,
+    leading: PersonAvatar(name: str(person['name']), agent: true),
+    title: Text(str(person['name']), style: const TextStyle(fontSize: 13)),
+    trailing: TextButton(
+      onPressed: _busy.contains(personId(person))
+          ? null
+          : () => _run(personId(person), () => s.addAgent(personId(person))),
+      child: const Text('添加好友'),
+    ),
+  );
 
   Widget _person(Json p) {
     final id = personId(p), self = id == personId(s.me ?? {});

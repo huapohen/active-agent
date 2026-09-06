@@ -5,6 +5,7 @@ import 'package:active_office/office_state.dart';
 import 'package:active_office/ui/settings.dart';
 import 'package:active_office/ui/mailbox.dart';
 import 'package:active_office/ui/approvals.dart';
+import 'package:active_office/ui/mobile_more_menu.dart';
 import 'package:active_office/ui/office_theme.dart' show officeTheme;
 
 class LayoutOfficeState extends OfficeState {
@@ -678,20 +679,49 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('今天'), findsOneWidget);
       expect(tester.takeException(), isNull);
-      for (final entry in ['邮箱', '考勤', '审批', '设置']) {
+      for (final (entry, id) in [
+        ('邮箱', 'mail'),
+        ('考勤', 'attendance'),
+        ('审批', 'approvals'),
+        ('设置', 'settings'),
+      ]) {
+        late Finder destination;
+        late Finder navigationScroll;
         if (dimensions.width < 760) {
-          await tester.tap(find.text('更多').first);
+          await tester.tap(find.widgetWithText(NavigationDestination, '更多'));
           await tester.pumpAndSettle();
-          if (entry == '邮箱') {
-            await tester.tap(find.text('邮箱').first);
-          } else {
-            await tester.ensureVisible(find.text(entry).first);
-            await tester.tap(find.text(entry).first);
-          }
+          final menu = find.byType(OfficeMobileMoreMenu);
+          destination = find.descendant(
+            of: menu,
+            matching: find.widgetWithText(ListTile, entry),
+          );
+          navigationScroll = find
+              .descendant(of: menu, matching: find.byType(Scrollable))
+              .first;
         } else {
-          await tester.ensureVisible(find.text(entry).first);
-          await tester.tap(find.text(entry).first);
+          final rail = find
+              .ancestor(
+                of: find.byKey(const ValueKey('desktop-navigation-editor')),
+                matching: find.byType(Column),
+              )
+              .first;
+          destination = find.byKey(ValueKey('desktop-nav-$id'));
+          final navigationList = find
+              .descendant(of: rail, matching: find.byType(ListView))
+              .first;
+          navigationScroll = find
+              .descendant(of: navigationList, matching: find.byType(Scrollable))
+              .first;
         }
+        // Navigation lists build offscreen entries lazily at smaller sizes.
+        await tester.scrollUntilVisible(
+          destination,
+          160,
+          scrollable: navigationScroll,
+        );
+        await tester.pumpAndSettle();
+        expect(destination.hitTestable(), findsOneWidget, reason: entry);
+        await tester.tap(destination);
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: entry);
         expect(find.text(entry), findsWidgets);

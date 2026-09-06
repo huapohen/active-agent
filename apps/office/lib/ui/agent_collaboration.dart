@@ -44,9 +44,37 @@ class _AgentCollaboration extends StatefulWidget {
 
 class _AgentCollaborationState extends State<_AgentCollaboration> {
   bool _busy = false;
+  bool _expired = false;
+  late final (OfficeState, int, String, String, String?) _scope;
   String? _error;
   OfficeState get s => widget.state;
+  (OfficeState, int, String, String, String?) get _currentScope => (
+    s,
+    s.identityGeneration,
+    s.endpoint,
+    personId(s.me ?? {}),
+    s.selectedRoomId,
+  );
+  bool get _current => !_expired && _scope == _currentScope && s.me != null;
+  @override
+  void initState() {
+    super.initState();
+    _scope = _currentScope;
+    s.addListener(_scopeChanged);
+  }
+
+  void _scopeChanged() {
+    if (_scope != _currentScope) _expired = true;
+  }
+
+  @override
+  void dispose() {
+    s.removeListener(_scopeChanged);
+    super.dispose();
+  }
+
   Future<void> _add(bool direct) async {
+    if (!_current || !s.connected || _busy) return;
     if (direct) {
       Navigator.pop(context);
       await OfficeDialogs.createRoom(
@@ -70,13 +98,14 @@ class _AgentCollaborationState extends State<_AgentCollaboration> {
           .toList(),
     );
     if (ids == null || ids.isEmpty) return;
-    if (!mounted) return;
+    if (!mounted || !_current || !s.connected) return;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
       for (final id in ids) {
+        if (!_current || !s.connected) break;
         await s.invite(id);
       }
     } catch (e) {
@@ -90,6 +119,23 @@ class _AgentCollaborationState extends State<_AgentCollaboration> {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: s,
     builder: (context, _) {
+      if (!_current) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('身份或会话已切换，请在当前会话重新打开 Agent 协作。'),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('关闭'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
       final members = maps(s.detail?['members']),
           agents = maps(s.detail?['members'])
               .where((p) => p['kind'] == 'agent')

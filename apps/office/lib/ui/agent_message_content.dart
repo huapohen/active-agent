@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'office_theme.dart';
+import 'office_emoji.dart';
 
 /// Only a server-bound, unchanged turn result can have its appendix folded.
 /// The visible success count comes from matching durable receipts, never prose.
@@ -11,9 +12,11 @@ class AgentMessageContent extends StatefulWidget {
     required this.runs,
     required this.onRecords,
     this.onAction,
+    this.selectable = true,
   });
   final Json message;
   final ValueChanged<String>? onAction;
+  final bool selectable;
   final List<Json> runs;
   final void Function(String turnId) onRecords;
   @override
@@ -24,32 +27,12 @@ class _AgentMessageContentState extends State<AgentMessageContent> {
   bool _expanded = false;
   static const _bodyStyle = TextStyle(fontSize: 13, height: 1.7);
 
-  Widget _selectable(String content) => widget.onAction == null
-      ? SelectableText(content, style: _bodyStyle)
-      : SelectableText(
-          content,
-          style: _bodyStyle,
-          contextMenuBuilder: widget.onAction == null
-              ? null
-              : (context, editable) => AdaptiveTextSelectionToolbar.buttonItems(
-                  anchors: editable.contextMenuAnchors,
-                  buttonItems: [
-                    ...editable.contextMenuButtonItems,
-                    for (final action in [
-                      ('reply', '回复'),
-                      ('forward', '转发'),
-                      ('menu', '消息操作'),
-                    ])
-                      ContextMenuButtonItem(
-                        label: action.$2,
-                        onPressed: () {
-                          editable.hideToolbar();
-                          widget.onAction!(action.$1);
-                        },
-                      ),
-                  ],
-                ),
-        );
+  Widget _selectable(String content) => OfficeEmojiText(
+    content: content,
+    style: _bodyStyle,
+    onAction: widget.onAction,
+    selectable: widget.selectable,
+  );
   @override
   Widget build(BuildContext context) {
     final message = widget.message;
@@ -167,8 +150,17 @@ class _AgentMessageContentState extends State<AgentMessageContent> {
             ),
           ],
         ),
-        if (_expanded)
+        if (_expanded && widget.selectable)
           SelectableText(
+            appendix.trimLeft(),
+            style: const TextStyle(
+              fontSize: 10,
+              height: 1.6,
+              color: mutedColor,
+            ),
+          ),
+        if (_expanded && !widget.selectable)
+          Text(
             appendix.trimLeft(),
             style: const TextStyle(
               fontSize: 10,

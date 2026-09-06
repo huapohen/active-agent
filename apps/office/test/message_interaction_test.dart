@@ -94,7 +94,9 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        final text = find.byType(SelectableText).first;
+        final text = mobile
+            ? find.byKey(const ValueKey('message-content-message-demo'))
+            : find.byType(SelectableText).first;
         if (mobile) {
           await tester.longPress(text);
         } else {

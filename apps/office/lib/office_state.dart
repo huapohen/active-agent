@@ -6,6 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
+import 'conversation_unread.dart';
+export 'conversation_unread.dart';
+
 typedef Json = Map<String, dynamic>;
 
 class OfficeExternalLogin {
@@ -67,6 +70,11 @@ class OfficeState extends ChangeNotifier {
   Json searchFilters = {};
   String error = '';
   int _generation = 0, _cursor = 0, _selection = 0, _search = 0;
+  int _windowEpoch = 0, _positionVersion = 0;
+  OfficeConversationWindow? _conversationWindow;
+  OfficeConversationWindow? get conversationWindow => _conversationWindow;
+  int get conversationSelection => _selection;
+  bool loadingMessageWindow = false;
 
   /// Changes on disconnect, connect, and disposal, including A → B → A.
   int get identityGeneration => _generation;
@@ -85,8 +93,11 @@ class OfficeState extends ChangeNotifier {
 
   bool _disposed = false;
   final Map<String, int> _reads = {};
-  final Map<String, ({int sequence, int visibility, int generation})> _reading =
-      {};
+  final Map<
+    String,
+    ({int sequence, int visibility, int generation, int selection})
+  >
+  _reading = {};
   String? _visibleConversationRoomId;
   int _conversationVisibilityVersion = 0;
   final Map<String, String> _outbox = {};
@@ -211,6 +222,7 @@ class OfficeState extends ChangeNotifier {
         detail = null;
         selectedRoomId = null;
         _selection++;
+        _resetMessageWindow();
       case 'docs':
         allDocuments = [];
         detail?['documents'] = [];
@@ -359,6 +371,7 @@ class OfficeState extends ChangeNotifier {
     unavailableModules.clear();
     detail = null;
     selectedRoomId = null;
+    _resetMessageWindow();
     _clearConversationVisibility();
     _cursor = 0;
     _reads.clear();
@@ -397,89 +410,329 @@ class OfficeState extends ChangeNotifier {
       selectedRoomId = null;
       detail = null;
       _selection++;
+      _resetMessageWindow();
     }
     _notify();
+  }
+
+  void _resetMessageWindow() {
+    _windowEpoch++;
+    _conversationWindow = null;
+    loadingMessageWindow = false;
+  }
+
+  int? _positiveSequence(dynamic value) =>
+      value is num && value > 0 ? value.toInt() : null;
+
+  bool _windowCurrent(
+    String id,
+    int selection,
+    int epoch,
+    ({int generation, String endpoint, String? principalId}) identity,
+  ) =>
+      !_disposed &&
+      selectedRoomId == id &&
+      selection == _selection &&
+      epoch == _windowEpoch &&
+      identity == _identity;
+
+  List<Json> _mergeMessages(Iterable<Json> messages) {
+    final merged = <String, Json>{};
+    for (final message in messages) {
+      merged[message['id']?.toString() ?? 'seq-${message['seq']}'] = message;
+    }
+    return merged.values.toList()
+      ..sort((a, b) => (a['seq'] as num).compareTo(b['seq'] as num));
+  }
+
+  void _acceptMessageWindow(
+    String id,
+    Json base,
+    Json page,
+    List<Json> messages, {
+    OfficeConversationWindow? previous,
+    bool relocate = false,
+    bool? startAtUnread,
+    bool? hasMoreBefore,
+    bool? hasMoreAfter,
+    int? remainingUnreadAfter,
+  }) {
+    final room = base['room'] as Map? ?? {};
+    final firstUnread = _positiveSequence(
+      page.containsKey('first_unread_seq')
+          ? page['first_unread_seq']
+          : room['first_unread_seq'],
+    );
+    final unread =
+        ((page['unread_count'] ?? room['unread_count']) as num?)?.toInt() ?? 0;
+    final before =
+        hasMoreBefore ??
+        (page['has_more_before'] ??
+                page['has_more'] ??
+                page['has_more_messages']) ==
+            true;
+    final after = hasMoreAfter ?? page['has_more_after'] == true;
+    _conversationWindow = OfficeConversationWindow(
+      roomId: id,
+      selection: _selection,
+      positionVersion: relocate || previous == null
+          ? ++_positionVersion
+          : previous.positionVersion,
+      entryFirstUnreadSeq: previous == null
+          ? firstUnread
+          : previous.entryFirstUnreadSeq,
+      entryUnreadCount: previous == null
+          ? max(0, unread)
+          : previous.entryUnreadCount,
+      anchorSeq: relocate || previous == null
+          ? _positiveSequence(page['anchor_seq'])
+          : previous.anchorSeq,
+      firstUnreadSeq: firstUnread,
+      beforeCursor: messages.isEmpty
+          ? null
+          : _positiveSequence(messages.first['seq']),
+      afterCursor: messages.isEmpty
+          ? null
+          : _positiveSequence(messages.last['seq']),
+      hasMoreBefore: before,
+      hasMoreAfter: after,
+      remainingUnreadAfter: max(
+        0,
+        remainingUnreadAfter ??
+            (page['remaining_unread_after'] as num?)?.toInt() ??
+            0,
+      ),
+      startAtUnread: startAtUnread ?? previous?.startAtUnread ?? false,
+    );
+    detail = {
+      ...base,
+      'messages': messages,
+      'has_more_messages': before,
+      'has_more_messages_after': after,
+    };
   }
 
   Future<void> selectRoom(String id) async {
-    if (_visibleConversationRoomId != id) _clearConversationVisibility();
-    final selection = ++_selection, generation = _generation;
+    _clearConversationVisibility();
+    final selection = ++_selection, identity = _identity;
+    _resetMessageWindow();
+    final epoch = _windowEpoch;
     selectedRoomId = id;
     _selectAttendance();
     detail = null;
+    loadingMessageWindow = true;
     error = '';
     _notify();
-    final result = await _backgroundRequest(
-      '/rooms/${Uri.encodeComponent(id)}',
-      plugin: 'im',
-    );
-    if (selection != _selection || generation != _generation) return;
-    detail = Json.from(result);
-    _notify();
-    await _markRead(id, result);
+    try {
+      final result = Json.from(
+        await _backgroundRequest(
+          '/rooms/${Uri.encodeComponent(id)}',
+          plugin: 'im',
+        ),
+      );
+      if (!_windowCurrent(id, selection, epoch, identity)) return;
+      final room = result['room'] as Map? ?? {};
+      final unread = (room['unread_count'] as num?)?.toInt() ?? 0;
+      Json page = result;
+      if (unread > 0) {
+        page = Json.from(
+          await _request(
+            '/rooms/${Uri.encodeComponent(id)}/messages?first_unread=true&limit=100',
+          ),
+        );
+        if (!_windowCurrent(id, selection, epoch, identity)) return;
+      }
+      _acceptMessageWindow(
+        id,
+        result,
+        page,
+        _list(page['messages']),
+        startAtUnread:
+            unread > 0 && _positiveSequence(page['anchor_seq']) != null,
+      );
+    } finally {
+      if (_windowCurrent(id, selection, epoch, identity)) {
+        loadingMessageWindow = false;
+        _notify();
+      }
+    }
   }
 
   Future<void> _loadCurrent() async {
-    final id = selectedRoomId, selection = _selection, generation = _generation;
-    if (id == null) return;
-    final result = await _backgroundRequest(
-      '/rooms/${Uri.encodeComponent(id)}',
-      plugin: 'im',
+    final id = selectedRoomId;
+    if (id == null || loadingMessageWindow) return;
+    final selection = _selection, epoch = _windowEpoch, identity = _identity;
+    final window = _conversationWindow;
+    final previous = _list(detail?['messages']);
+    final base = Json.from(
+      await _backgroundRequest(
+        '/rooms/${Uri.encodeComponent(id)}',
+        plugin: 'im',
+      ),
     );
-    if (selection != _selection ||
-        generation != _generation ||
-        selectedRoomId != id) {
+    if (!_windowCurrent(id, selection, epoch, identity) ||
+        loadingMessageWindow) {
       return;
     }
-    final previous = _list(detail?['messages']);
-    final newest = _list(result['messages']);
-    if (previous.length > 200 && newest.isNotEmpty) {
-      var before = (newest.first['seq'] as num).toInt();
-      final first = (previous.first['seq'] as num).toInt();
-      while (before > first) {
-        final page = await _request(
-          '/rooms/${Uri.encodeComponent(id)}/messages?before=$before&limit=200',
-        );
-        if (selection != _selection || generation != _generation) return;
-        final earlier = _list(page['messages']);
-        if (earlier.isEmpty) break;
-        newest.insertAll(0, earlier);
-        before = (earlier.first['seq'] as num).toInt();
-        result['has_more_messages'] = page['has_more'] == true;
-        if (page['has_more'] != true) break;
-      }
-      result['messages'] = newest;
+    if (window == null || previous.isEmpty) {
+      _acceptMessageWindow(
+        id,
+        base,
+        base,
+        _list(base['messages']),
+        previous: window,
+      );
+      _notify();
+      return;
     }
-    detail = Json.from(result);
+    // Refresh the already loaded range, including edited old messages. A poll
+    // must not replace an unread window with the newest tail or skip a gap.
+    var cursor = (previous.first['seq'] as num).toInt() - 1;
+    final end = (previous.last['seq'] as num).toInt();
+    var remaining = previous.length;
+    final refreshed = <Json>[];
+    Json page = {};
+    var before = window.hasMoreBefore;
+    while (remaining > 0) {
+      page = Json.from(
+        await _request(
+          '/rooms/${Uri.encodeComponent(id)}/messages?after=$cursor&limit=${min(200, remaining)}',
+        ),
+      );
+      if (!_windowCurrent(id, selection, epoch, identity) ||
+          loadingMessageWindow) {
+        return;
+      }
+      if (refreshed.isEmpty) before = page['has_more_before'] == true;
+      final batch = _list(page['messages']);
+      if (batch.isEmpty) break;
+      refreshed.addAll(batch);
+      remaining -= batch.length;
+      final next = (batch.last['seq'] as num).toInt();
+      if (next <= cursor || page['has_more_after'] != true) break;
+      cursor = next;
+    }
+    var messages = refreshed
+        .where((message) => (message['seq'] as num).toInt() <= end)
+        .toList();
+    var after =
+        page['has_more_after'] == true ||
+        refreshed.any((message) => (message['seq'] as num).toInt() > end);
+    var unreadAfter =
+        (page['remaining_unread_after'] as num?)?.toInt() ??
+        window.remainingUnreadAfter;
+    final read = (page['read_seq'] as num?)?.toInt() ?? 0;
+    unreadAfter += refreshed
+        .where(
+          (message) =>
+              (message['seq'] as num).toInt() > end &&
+              (message['seq'] as num).toInt() > read &&
+              message['author_id'] != me?['id'],
+        )
+        .length;
+    if (!window.hasMoreAfter) {
+      // A previously current tail may append new arrivals, in sequence. A burst
+      // larger than one page leaves a real forward window for explicit loading.
+      final last = messages.isEmpty
+          ? end
+          : (messages.last['seq'] as num).toInt();
+      page = Json.from(
+        await _request(
+          '/rooms/${Uri.encodeComponent(id)}/messages?after=$last&limit=100',
+        ),
+      );
+      if (!_windowCurrent(id, selection, epoch, identity) ||
+          loadingMessageWindow) {
+        return;
+      }
+      messages = _mergeMessages([...messages, ..._list(page['messages'])]);
+      after = page['has_more_after'] == true;
+      unreadAfter = (page['remaining_unread_after'] as num?)?.toInt() ?? 0;
+    }
+    _acceptMessageWindow(
+      id,
+      base,
+      page,
+      messages,
+      previous: window,
+      hasMoreBefore: before,
+      hasMoreAfter: after,
+      remainingUnreadAfter: unreadAfter,
+    );
     _notify();
-    await _markRead(id, result);
   }
 
-  Future<void> loadEarlierMessages() async {
-    final id = selectedRoomId, selection = _selection, generation = _generation;
-    if (id == null || detail == null) return;
-    final current = _list(detail!['messages']);
-    if (current.isEmpty || detail!['has_more_messages'] != true) return;
-    final before = current.map((m) => (m['seq'] as num).toInt()).reduce(min);
-    final page = await _request(
-      '/rooms/${Uri.encodeComponent(id)}/messages?before=$before&limit=200',
-    );
-    if (selection != _selection ||
-        generation != _generation ||
-        detail == null) {
-      return;
-    }
-    final merged = <String, Json>{};
-    for (final message in [
-      ..._list(page['messages']),
-      ..._list(detail!['messages']),
-    ]) {
-      merged[message['id'] as String] = message;
-    }
-    detail!['messages'] = merged.values.toList()
-      ..sort((a, b) => (a['seq'] as num).compareTo(b['seq'] as num));
-    detail!['has_more_messages'] = page['has_more'] == true;
+  Future<void> loadEarlierMessages() => _loadAdjacentMessages(later: false);
+
+  Future<void> loadLaterMessages() => _loadAdjacentMessages(later: true);
+
+  Future<void> _loadAdjacentMessages({required bool later}) async {
+    final id = selectedRoomId, base = detail, window = _conversationWindow;
+    if (id == null || base == null || loadingMessageWindow) return;
+    final current = _list(base['messages']);
+    final hasMore = later
+        ? window?.hasMoreAfter == true
+        : (window?.hasMoreBefore ?? base['has_more_messages'] == true);
+    if (current.isEmpty || !hasMore) return;
+    final selection = _selection, identity = _identity, epoch = ++_windowEpoch;
+    final cursor = (later ? current.last['seq'] : current.first['seq']) as num;
+    loadingMessageWindow = true;
     _notify();
+    try {
+      final page = Json.from(
+        await _request(
+          '/rooms/${Uri.encodeComponent(id)}/messages?${later ? 'after' : 'before'}=${cursor.toInt()}&limit=100',
+        ),
+      );
+      if (!_windowCurrent(id, selection, epoch, identity)) return;
+      final merged = _mergeMessages([...current, ..._list(page['messages'])]);
+      _acceptMessageWindow(
+        id,
+        detail!,
+        page,
+        merged,
+        previous: window,
+        hasMoreBefore: later ? window?.hasMoreBefore : null,
+        hasMoreAfter: later ? null : window?.hasMoreAfter,
+        remainingUnreadAfter: later ? null : window?.remainingUnreadAfter,
+      );
+    } finally {
+      if (_windowCurrent(id, selection, epoch, identity)) {
+        loadingMessageWindow = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<void> jumpToLatestMessages() async {
+    final id = selectedRoomId;
+    if (id == null || detail == null || loadingMessageWindow) return;
+    final selection = _selection, identity = _identity, epoch = ++_windowEpoch;
+    final window = _conversationWindow;
+    loadingMessageWindow = true;
+    _notify();
+    try {
+      final page = Json.from(
+        await _request('/rooms/${Uri.encodeComponent(id)}/messages?limit=100'),
+      );
+      if (!_windowCurrent(id, selection, epoch, identity) || detail == null) {
+        return;
+      }
+      _acceptMessageWindow(
+        id,
+        detail!,
+        page,
+        _list(page['messages']),
+        previous: window,
+        relocate: true,
+        startAtUnread: false,
+      );
+    } finally {
+      if (_windowCurrent(id, selection, epoch, identity)) {
+        loadingMessageWindow = false;
+        _notify();
+      }
+    }
   }
 
   void _clearConversationVisibility() {
@@ -501,38 +754,73 @@ class OfficeState extends ChangeNotifier {
       _visibleConversationRoomId = roomId;
       _conversationVisibilityVersion++;
     }
-    final current = detail;
-    if (current != null) await _markRead(roomId, current);
   }
 
-  Future<void> _markRead(String id, Json room) async {
+  /// Report only message sequences whose rendered rectangles are visible now.
+  /// Captured selection and identity generation reject delayed layout reports.
+  Future<void> reportVisibleMessageSequences(
+    String roomId,
+    Iterable<int> sequences, {
+    required int selection,
+    required int identityGeneration,
+  }) async {
+    if (_disposed ||
+        selection != _selection ||
+        identityGeneration != _generation ||
+        _visibleConversationRoomId != roomId ||
+        selectedRoomId != roomId ||
+        me == null ||
+        _token.isEmpty) {
+      return;
+    }
+    final loaded = _list(detail?['messages'])
+        .map((message) => _positiveSequence(message['seq']))
+        .whereType<int>()
+        .toSet();
+    final visible = sequences.where((sequence) => loaded.contains(sequence));
+    if (visible.isEmpty) return;
+    await _markRead(roomId, visible.reduce(max));
+  }
+
+  Future<void> _markRead(String id, int sequence) async {
     if (_disposed || _visibleConversationRoomId != id || selectedRoomId != id) {
       return;
     }
-    final generation = _generation, visibility = _conversationVisibilityVersion;
-    final messages = _list(room['messages']);
-    final sequence = messages.fold<int>(
-      0,
-      (maxValue, item) => max(maxValue, (item['seq'] as num?)?.toInt() ?? 0),
-    );
+    final generation = _generation,
+        selection = _selection,
+        identity = _identity,
+        visibility = _conversationVisibilityVersion;
+    final serverRead = rooms
+        .where((room) => room['id'] == id)
+        .map((room) => (room['read_seq'] as num?)?.toInt() ?? 0)
+        .fold<int>(0, max);
     final pending = _reading[id];
     final pendingSequence =
-        pending?.visibility == visibility && pending?.generation == generation
+        pending?.visibility == visibility &&
+            pending?.generation == generation &&
+            pending?.selection == selection
         ? pending!.sequence
         : 0;
-    if (sequence <= max(_reads[id] ?? 0, pendingSequence)) return;
+    if (sequence <= max(max(_reads[id] ?? 0, serverRead), pendingSequence)) {
+      return;
+    }
     final receipt = (
       sequence: sequence,
       visibility: visibility,
       generation: generation,
+      selection: selection,
     );
     _reading[id] = receipt;
+    Json? acknowledgedRoom;
     try {
-      await _request(
+      final response = await _request(
         '/rooms/${Uri.encodeComponent(id)}/preferences',
         method: 'PATCH',
         data: {'read_seq': sequence},
       );
+      if (response['room'] is Map) {
+        acknowledgedRoom = Json.from(response['room']);
+      }
     } finally {
       if (_reading[id] == receipt) {
         _reading.remove(id);
@@ -542,6 +830,8 @@ class OfficeState extends ChangeNotifier {
     // alter another identity, a hidden room, or newer unread state.
     if (_disposed ||
         generation != _generation ||
+        identity != _identity ||
+        selection != _selection ||
         visibility != _conversationVisibilityVersion ||
         _visibleConversationRoomId != id ||
         selectedRoomId != id) {
@@ -551,8 +841,8 @@ class OfficeState extends ChangeNotifier {
     for (final room in rooms) {
       if (room['id'] == id) {
         final acknowledged = max(
-          _reads[id]!,
-          (room['read_seq'] as num?)?.toInt() ?? 0,
+          max(_reads[id]!, (room['read_seq'] as num?)?.toInt() ?? 0),
+          (acknowledgedRoom?['read_seq'] as num?)?.toInt() ?? 0,
         );
         final latest = max(
           ((room['last_message'] as Map?)?['seq'] as num?)?.toInt() ?? 0,
@@ -562,9 +852,55 @@ class OfficeState extends ChangeNotifier {
                 max(value, (message['seq'] as num?)?.toInt() ?? 0),
           ),
         );
-        if (latest <= acknowledged) room['unread_count'] = 0;
+        if (acknowledgedRoom != null &&
+            (acknowledgedRoom['id'] == null || acknowledgedRoom['id'] == id) &&
+            (((acknowledgedRoom['last_message'] as Map?)?['seq'] as num?)
+                        ?.toInt() ??
+                    0) >=
+                (((room['last_message'] as Map?)?['seq'] as num?)?.toInt() ??
+                    0) &&
+            ((acknowledgedRoom['read_seq'] as num?)?.toInt() ?? sequence) >=
+                ((room['read_seq'] as num?)?.toInt() ?? 0)) {
+          for (final field in [
+            'unread_count',
+            'mention_count',
+            'explicit_mention_count',
+            'notification_count',
+            'first_unread_seq',
+          ]) {
+            if (acknowledgedRoom.containsKey(field)) {
+              room[field] = acknowledgedRoom[field];
+            }
+          }
+        } else if (latest <= acknowledged) {
+          room['unread_count'] = 0;
+        }
         room['read_seq'] = acknowledged;
+        _reads[id] = acknowledged;
       }
+    }
+    final window = _conversationWindow;
+    final currentRoom = rooms.where((room) => room['id'] == id).firstOrNull;
+    if (window != null && detail != null && currentRoom != null) {
+      final read = (currentRoom['read_seq'] as num?)?.toInt() ?? 0;
+      final remaining =
+          window.afterCursor != null && read >= window.afterCursor!
+          ? (currentRoom['unread_count'] as num?)?.toInt() ??
+                window.remainingUnreadAfter
+          : window.remainingUnreadAfter;
+      _acceptMessageWindow(
+        id,
+        {
+          ...detail!,
+          'room': {...?detail!['room'] as Map?, ...currentRoom},
+        },
+        currentRoom,
+        _list(detail!['messages']),
+        previous: window,
+        hasMoreBefore: window.hasMoreBefore,
+        hasMoreAfter: window.hasMoreAfter,
+        remainingUnreadAfter: remaining,
+      );
     }
     _notify();
   }

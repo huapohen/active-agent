@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import '../office_state.dart' hide Json;
 import '../message_groups.dart';
 import '../meeting_controller.dart';
-import 'app_workbench.dart';
+import 'workbench_navigation.dart';
+import 'desktop_navigation.dart';
+import 'mobile_more_menu.dart';
 import 'approvals.dart';
 import 'attendance.dart';
 import 'business_widgets.dart';
@@ -57,6 +59,14 @@ class _OfficeShellState extends State<OfficeShell> {
   }
 
   bool _groupsOpen = false;
+  bool _moreOpen = false;
+  String? _moreIdentity;
+  bool get _moreVisible => _moreOpen && _moreIdentity == _identityKey;
+  void _closeMore() => setState(() => _moreOpen = false);
+  void _toggleMore() => setState(() {
+    _moreOpen = !_moreVisible;
+    _moreIdentity = _identityKey;
+  });
   bool _foldedOpen = false;
   final Set<String> _pendingRoomPreferences = {};
   String _searchType = 'all';
@@ -78,7 +88,7 @@ class _OfficeShellState extends State<OfficeShell> {
     12,
   ];
   List<OfficeNavigationItem> get _desktopNavigation => [
-    ...officeNavigationItems.where((item) => item.id != 'enterprise'),
+    ...officeDesktopNavigation(s),
     const OfficeNavigationItem('settings', '设置', Icons.settings_outlined, 11),
   ];
   @override
@@ -203,6 +213,7 @@ class _OfficeShellState extends State<OfficeShell> {
     return OfficeConversationRow(
       key: ValueKey('room-row-${room['id']}'),
       room: room,
+      currentPrincipalId: personId(s.me ?? {}),
       preview: s.settings['show_message_preview'] != false,
       selected:
           s.selectedRoomId == room['id'] &&
@@ -248,6 +259,7 @@ class _OfficeShellState extends State<OfficeShell> {
     _searchIntent++;
     _globalSearchInput.clear();
     setState(() {
+      _moreOpen = false;
       _nav = value;
       _roomOpen = false;
       _globalQuery = '';
@@ -316,31 +328,6 @@ class _OfficeShellState extends State<OfficeShell> {
       ),
     ),
   );
-
-  void _openApp(String route) {
-    final id = route.contains('#')
-        ? route.split('#').last
-        : route.split('/').last;
-    final nav = const {
-      'messages': 0,
-      'agents': 1,
-      'contacts': 2,
-      'documents': 3,
-      'docs': 3,
-      'tasks': 4,
-      'workbench': 5,
-      'meetings': 6,
-      'calendar': 7,
-      'mail': 8,
-      'attendance': 9,
-      'approvals': 10,
-      'approval': 10,
-      'settings': 11,
-      'enterprise': 13,
-      'minutes': 14,
-    }[id];
-    if (nav != null) _changeNav(nav);
-  }
 
   Future<void> _joinMeeting(String id) async {
     _changeNav(6);
@@ -479,8 +466,10 @@ class _OfficeShellState extends State<OfficeShell> {
               _focusSearch,
           const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
               _focusSearch,
-          if (_searchOpen)
-            const SingleActivator(LogicalKeyboardKey.escape): _closeSearch,
+          if (_moreVisible || _searchOpen)
+            const SingleActivator(LogicalKeyboardKey.escape): _moreVisible
+                ? _closeMore
+                : _closeSearch,
         },
         child: Focus(
           autofocus: true,
@@ -491,7 +480,25 @@ class _OfficeShellState extends State<OfficeShell> {
                       children: [
                         if (_media.activeMeeting != null && _nav != 6)
                           _callStrip(),
-                        Expanded(child: _mobile()),
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              ExcludeSemantics(
+                                excluding: _moreVisible,
+                                child: TickerMode(
+                                  enabled: !_moreVisible,
+                                  child: _mobile(),
+                                ),
+                              ),
+                              if (_moreVisible)
+                                OfficeMobileMoreMenu(
+                                  key: ValueKey('mobile-more-$_identityKey'),
+                                  onClose: _closeMore,
+                                  child: _more(),
+                                ),
+                            ],
+                          ),
+                        ),
                       ],
                     )
                   : Row(
@@ -544,11 +551,15 @@ class _OfficeShellState extends State<OfficeShell> {
                     height: 65,
                     backgroundColor: Colors.white,
                     indicatorColor: selectedColor,
-                    selectedIndex: _mobileNav.contains(_nav)
+                    selectedIndex: _moreVisible
+                        ? _mobileNav.length - 1
+                        : _mobileNav.contains(_nav)
                         ? _mobileNav.indexOf(_nav)
                         : _mobileNav.length - 1,
-                    onDestinationSelected: (index) =>
-                        _changeNav(_mobileNav[index]),
+                    onDestinationSelected: (index) {
+                      final route = _mobileNav[index];
+                      route == 12 ? _toggleMore() : _changeNav(route);
+                    },
                     destinations: [
                       for (final item in officeMobileNavigation(s))
                         NavigationDestination(
@@ -575,6 +586,26 @@ class _OfficeShellState extends State<OfficeShell> {
       );
     },
   );
+  void _desktopMenu(
+    BuildContext itemContext,
+    OfficeNavigationItem item, [
+    Offset? position,
+  ]) {
+    final box = itemContext.findRenderObject() as RenderBox?;
+    final anchor =
+        position ??
+        (box == null
+            ? Offset.zero
+            : box.localToGlobal(Offset(box.size.width, box.size.height / 2)));
+    showOfficeDesktopNavigationMenu(
+      context,
+      s,
+      item,
+      position: anchor,
+      onOpen: () => _changeNav(item.route),
+    );
+  }
+
   Widget _rail() => SizedBox(
     width: 180,
     child: Padding(
@@ -628,53 +659,76 @@ class _OfficeShellState extends State<OfficeShell> {
                         ? const Color(0xffdde6fc)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(6),
-                    child: InkWell(
-                      onTap: () => _changeNav(i),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 11,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              entry.icon,
-                              size: 19,
-                              color: _nav == i
-                                  ? accentColor
-                                  : const Color(0xff626f87),
+                    child: Builder(
+                      builder: (itemContext) => CallbackShortcuts(
+                        bindings: {
+                          const SingleActivator(
+                            LogicalKeyboardKey.f10,
+                            shift: true,
+                          ): () =>
+                              _desktopMenu(itemContext, entry),
+                          const SingleActivator(
+                            LogicalKeyboardKey.contextMenu,
+                          ): () =>
+                              _desktopMenu(itemContext, entry),
+                        },
+                        child: InkWell(
+                          key: ValueKey('desktop-nav-${entry.id}'),
+                          onSecondaryTapDown: (details) => _desktopMenu(
+                            itemContext,
+                            entry,
+                            details.globalPosition,
+                          ),
+                          onLongPress: () => _desktopMenu(itemContext, entry),
+                          onTap: () => _changeNav(i),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 11,
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              entry.label,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: _nav == i
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                                color: _nav == i
-                                    ? accentColor
-                                    : const Color(0xff43516b),
-                              ),
-                            ),
-                            if (i == 0 &&
-                                s.rooms.fold<int>(
-                                      0,
-                                      (a, r) => a + officeNotificationCount(r),
-                                    ) >
-                                    0) ...[
-                              const Spacer(),
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xfff56c6c),
-                                  shape: BoxShape.circle,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  entry.icon,
+                                  size: 19,
+                                  color: _nav == i
+                                      ? accentColor
+                                      : const Color(0xff626f87),
                                 ),
-                              ),
-                            ],
-                          ],
+                                const SizedBox(width: 12),
+                                Text(
+                                  entry.label,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: _nav == i
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                    color: _nav == i
+                                        ? accentColor
+                                        : const Color(0xff43516b),
+                                  ),
+                                ),
+                                if (i == 0 &&
+                                    s.rooms.fold<int>(
+                                          0,
+                                          (a, r) =>
+                                              a + officeNotificationCount(r),
+                                        ) >
+                                        0) ...[
+                                  const Spacer(),
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xfff56c6c),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -682,6 +736,12 @@ class _OfficeShellState extends State<OfficeShell> {
                 );
               }).toList(),
             ),
+          ),
+          TextButton.icon(
+            key: const ValueKey('desktop-navigation-editor'),
+            onPressed: () => showOfficeDesktopNavigationEditor(context, s),
+            icon: const Icon(Icons.more_horiz, size: 18),
+            label: const Text('更多 · 编辑导航栏', style: TextStyle(fontSize: 11)),
           ),
           if (_media.activeMeeting != null && _nav != 6) _callStrip(),
           Row(
@@ -810,7 +870,7 @@ class _OfficeShellState extends State<OfficeShell> {
     );
   }
 
-  String? get _currentModule => const {
+  String? _moduleFor(int nav) => const {
     0: 'im',
     1: 'im',
     2: 'im',
@@ -823,11 +883,20 @@ class _OfficeShellState extends State<OfficeShell> {
     9: 'attendance',
     10: 'approvals',
     14: 'minutes',
-  }[_nav];
+  }[nav];
   bool get _navAvailable =>
-      _currentModule == null || s.moduleAvailable(_currentModule!);
-  Widget _main(bool mobile) {
-    if (!_navAvailable) {
+      _moduleFor(_nav) == null || s.moduleAvailable(_moduleFor(_nav)!);
+  Widget _main(bool mobile) => _modulePage(_nav, mobile);
+
+  Widget _modulePage(
+    int route,
+    bool mobile, {
+    VoidCallback? onBack,
+    ValueChanged<int>? navigate,
+  }) {
+    final go = navigate ?? _changeNav;
+    final module = _moduleFor(route);
+    if (module != null && !s.moduleAvailable(module)) {
       return EmptyOffice(
         title: '企业策略已限制此应用',
         subtitle: '当前身份不在可用范围，或关联能力受到限制。可以在企业管理中查看权限。',
@@ -835,21 +904,15 @@ class _OfficeShellState extends State<OfficeShell> {
         action: Wrap(
           spacing: 10,
           children: [
-            TextButton(
-              onPressed: () => _changeNav(11),
-              child: const Text('打开设置'),
-            ),
-            TextButton(
-              onPressed: () => _changeNav(13),
-              child: const Text('企业管理'),
-            ),
+            TextButton(onPressed: () => go(11), child: const Text('打开设置')),
+            TextButton(onPressed: () => go(13), child: const Text('企业管理')),
           ],
         ),
       );
     }
-    switch (_nav) {
+    switch (route) {
       case 0:
-        if (_foldedOpen && !_roomOpen) {
+        if (navigate == null && _foldedOpen && !_roomOpen) {
           return const EmptyOffice(
             title: '折叠的会话',
             subtitle: '选择一个会话，继续共同协作。',
@@ -860,7 +923,7 @@ class _OfficeShellState extends State<OfficeShell> {
           state: s,
           onAgentStore: () {
             _agentStore = true;
-            _changeNav(1);
+            go(1);
           },
         );
       case 1:
@@ -869,20 +932,32 @@ class _OfficeShellState extends State<OfficeShell> {
           initialStore: _agentStore,
           state: s,
           agent: true,
-          onConversation: () => setState(() {
-            _nav = 0;
-            _roomOpen = true;
-          }),
+          onConversation: () {
+            if (navigate != null) {
+              go(0);
+            } else {
+              setState(() {
+                _nav = 0;
+                _roomOpen = true;
+              });
+            }
+          },
         );
       case 2:
         return OfficePeople(
           key: const ValueKey('humans'),
           state: s,
           agent: false,
-          onConversation: () => setState(() {
-            _nav = 0;
-            _roomOpen = true;
-          }),
+          onConversation: () {
+            if (navigate != null) {
+              go(0);
+            } else {
+              setState(() {
+                _nav = 0;
+                _roomOpen = true;
+              });
+            }
+          },
         );
       case 3:
         return WorkDocuments(state: s);
@@ -893,13 +968,20 @@ class _OfficeShellState extends State<OfficeShell> {
           key: _meetingsKey,
           state: s,
           media: _media,
-          onCalendar: () => _changeNav(7),
+          onCalendar: () => go(7),
         );
       case 7:
         return OfficeCalendar(
           key: _calendarKey,
           state: s,
-          onMeeting: _joinMeeting,
+          onMeeting: (id) async {
+            if (navigate == null) {
+              await _joinMeeting(id);
+            } else {
+              go(6);
+              await _media.join(s, id);
+            }
+          },
         );
       case 8:
         return OfficeMailbox(key: _mailKey, state: s);
@@ -912,12 +994,12 @@ class _OfficeShellState extends State<OfficeShell> {
           key: ValueKey('settings-$_settingsTab'),
           state: s,
           initialTab: _settingsTab,
-          onClose: _closeSettings,
+          onClose: onBack ?? _closeSettings,
           onMessageGroups: () =>
               showOfficeMessageGroupEditor(context, _messageGroups),
           onNavigation: () => showOfficeNavigationEditor(context, s),
-          onOpenModule: _changeNav,
-          onEnterprise: s.canManageEnterprise ? () => _changeNav(13) : null,
+          onOpenModule: go,
+          onEnterprise: s.canManageEnterprise ? () => go(13) : null,
         );
       case 12:
         return _more();
@@ -926,45 +1008,18 @@ class _OfficeShellState extends State<OfficeShell> {
       case 14:
         return OfficeMinutes(key: _minutesKey, state: s);
       default:
-        return OfficeAppWorkbench(state: s, onOpen: _openApp);
+        return OfficeWorkbenchNavigator(
+          key: ValueKey('workbench-$_identityKey'),
+          state: s,
+          pageBuilder: (appRoute, back, open) =>
+              _modulePage(appRoute, mobile, onBack: back, navigate: open),
+        );
     }
   }
 
   Widget _more() => ListView(
     padding: const EdgeInsets.all(22),
     children: [
-      Row(
-        children: [
-          _profileButton(
-            PersonAvatar(
-              name: str(s.me?['name']),
-              agent: s.me?['kind'] == 'agent',
-              size: 43,
-            ),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  str(s.me?['name']),
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  '人机工作空间',
-                  style: TextStyle(fontSize: 11, color: mutedColor),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 28),
       ListTile(
         contentPadding: EdgeInsets.zero,
         leading: const Icon(Icons.view_carousel_outlined, color: accentColor),

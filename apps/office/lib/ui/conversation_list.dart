@@ -21,6 +21,28 @@ int officeNotificationCount(Json room) {
   return officeUnreadCount(room);
 }
 
+/// Only a direct message sent by this identity with an explicit reader snapshot
+/// can claim that the other party has read it. Legacy watermarks are insufficient.
+bool officeDirectMessageRead(Json room, String? currentPrincipalId) {
+  if (room['kind'] != 'direct' ||
+      currentPrincipalId == null ||
+      currentPrincipalId.isEmpty) {
+    return false;
+  }
+  final message = room['last_message'] as Map? ?? {};
+  if (message['author_id'] != currentPrincipalId ||
+      message['retracted_at'] != null) {
+    return false;
+  }
+  final receipt = message['receipt_summary'] as Map? ?? {};
+  return receipt['known'] == true &&
+      receipt['basis'] == 'explicit_read_ack' &&
+      receipt['eligible_count'] == 1 &&
+      receipt['read_count'] == 1 &&
+      receipt['unread_count'] == 0 &&
+      receipt['unknown_count'] == 0;
+}
+
 class OfficeConversationRow extends StatelessWidget {
   const OfficeConversationRow({
     super.key,
@@ -30,12 +52,14 @@ class OfficeConversationRow extends StatelessWidget {
     this.selected = false,
     this.preview = true,
     this.onContextMenu,
+    this.currentPrincipalId,
   });
   final Json room;
   final VoidCallback onOpen;
   final VoidCallback? onContextMenu;
   final Widget menu;
   final bool selected, preview;
+  final String? currentPrincipalId;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +69,7 @@ class OfficeConversationRow extends StatelessWidget {
     final quiet = folded || room['muted'] == true;
     final mentioned = (room['mention_count'] as num? ?? 0) > 0;
     final explicit = (room['explicit_mention_count'] as num? ?? 0) > 0;
+    final read = officeDirectMessageRead(room, currentPrincipalId);
     final summary = !preview
         ? '消息预览已隐藏'
         : last['retracted_at'] != null
@@ -64,10 +89,58 @@ class OfficeConversationRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             child: Row(
               children: [
-                PersonAvatar(
-                  name: str(room['name']),
-                  group: room['kind'] != 'direct',
-                  size: 39,
+                Stack(
+                  key: ValueKey('conversation-avatar-${room['id']}'),
+                  clipBehavior: Clip.none,
+                  children: [
+                    PersonAvatar(
+                      name: str(room['name']),
+                      group: room['kind'] != 'direct',
+                      size: 39,
+                    ),
+                    if (unread > 0)
+                      Positioned(
+                        top: -5,
+                        right: -6,
+                        child: Semantics(
+                          label: '$unread 条未读消息',
+                          child: ExcludeSemantics(
+                            child: Container(
+                              key: ValueKey(
+                                'conversation-unread-${room['id']}',
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 18,
+                                minHeight: 18,
+                              ),
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: quiet
+                                    ? const Color(0xffb9c0cc)
+                                    : const Color(0xffed727a),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${unread > 99 ? '99+' : unread}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 11),
                 Expanded(
@@ -110,6 +183,21 @@ class OfficeConversationRow extends StatelessWidget {
                       const SizedBox(height: 7),
                       Row(
                         children: [
+                          if (read)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Tooltip(
+                                message: '对方已读',
+                                child: Icon(
+                                  Icons.check,
+                                  key: ValueKey(
+                                    'conversation-read-${room['id']}',
+                                  ),
+                                  size: 13,
+                                  color: const Color(0xffed727a),
+                                ),
+                              ),
+                            ),
                           if (mentioned)
                             Padding(
                               padding: const EdgeInsets.only(right: 4),
@@ -146,27 +234,6 @@ class OfficeConversationRow extends StatelessWidget {
                               Icons.notifications_off_outlined,
                               size: 12,
                               color: mutedColor,
-                            ),
-                          if (unread > 0)
-                            Container(
-                              margin: const EdgeInsets.only(left: 5),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: quiet
-                                    ? const Color(0xffb9c0cc)
-                                    : const Color(0xffed727a),
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                              child: Text(
-                                '${unread > 99 ? '99+' : unread}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                ),
-                              ),
                             ),
                         ],
                       ),

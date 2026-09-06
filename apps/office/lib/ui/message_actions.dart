@@ -2,19 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'office_theme.dart';
+import 'office_emoji.dart';
+
+const officeQuickReactions = [
+  'feishu:THUMBSUP',
+  'feishu:HEART',
+  'feishu:APPLAUSE',
+  'feishu:THANKS',
+  'feishu:DONE',
+];
 
 List<(String, String, IconData)> officeMessageActions(
   Json message,
   bool own,
 ) => [
-  ('reply', '回复', Icons.reply_outlined),
-  ('copy', '复制', Icons.copy_outlined),
-  ('forward', '转发', Icons.forward_outlined),
-  ('pin', message['pinned'] == true ? '取消置顶' : '置顶消息', Icons.push_pin_outlined),
+  if (message['retracted_at'] == null) ...[
+    ('emoji', '表情回应', Icons.add_reaction_outlined),
+    ('reply', '回复', Icons.reply_outlined),
+    if (str(message['content']).isNotEmpty) ('copy', '复制', Icons.copy_outlined),
+    if (str(message['content']).isNotEmpty)
+      ('select', '选择文本', Icons.text_fields),
+    ('forward', '转发', Icons.forward_outlined),
+    ('topic', '创建话题', Icons.forum_outlined),
+    ('agent', 'Agent 协作', Icons.auto_awesome),
+    (
+      'pin',
+      message['pinned'] == true ? '取消置顶' : '置顶消息',
+      Icons.push_pin_outlined,
+    ),
+  ],
   ('read', '阅读状态', Icons.done_all),
   ('original', '查看原文', Icons.article_outlined),
-  if (own) ('edit', '编辑消息', Icons.edit_outlined),
-  if (own) ('retract', '撤回消息', Icons.undo),
+  if (own && message['retracted_at'] == null)
+    ('edit', '编辑消息', Icons.edit_outlined),
+  if (own && message['retracted_at'] == null) ('retract', '撤回消息', Icons.undo),
 ];
 
 Future<String?> showOfficeMessageActions(
@@ -40,21 +61,28 @@ Future<String?> showOfficeMessageActions(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Wrap(
-                    alignment: WrapAlignment.spaceEvenly,
-                    children: [
-                      for (final emoji in ['👍', '❤️', '🎉', '👀', '✅', '🙏'])
-                        IconButton(
-                          tooltip: '回应 $emoji',
-                          onPressed: () =>
-                              Navigator.pop(context, 'react:$emoji'),
-                          icon: Text(
-                            emoji,
-                            style: const TextStyle(fontSize: 23),
-                          ),
-                        ),
-                    ],
+                  Text(
+                    clockText(message['at'], date: true, context: context),
+                    style: const TextStyle(fontSize: 11, color: mutedColor),
                   ),
+                  if (message['retracted_at'] == null)
+                    Wrap(
+                      alignment: WrapAlignment.spaceEvenly,
+                      children: [
+                        for (final emoji in officeQuickReactions)
+                          IconButton(
+                            tooltip: '回应 $emoji',
+                            onPressed: () =>
+                                Navigator.pop(context, 'react:$emoji'),
+                            icon: OfficeEmojiGlyph(id: emoji, size: 25),
+                          ),
+                        IconButton(
+                          tooltip: '全部表情',
+                          onPressed: () => Navigator.pop(context, 'emoji'),
+                          icon: const Icon(Icons.add_circle_outline),
+                        ),
+                      ],
+                    ),
                   const Divider(),
                   GridView(
                     shrinkWrap: true,
@@ -129,8 +157,26 @@ Future<String?> showOfficeMessageActions(
           ),
         ),
       const PopupMenuDivider(),
-      for (final emoji in ['👍', '❤️', '🎉', '👀', '✅', '🙏'])
-        PopupMenuItem(value: 'react:$emoji', child: Text(emoji)),
+      if (message['retracted_at'] == null)
+        PopupMenuItem<String>(
+          enabled: false,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final emoji in officeQuickReactions)
+                IconButton(
+                  tooltip: '回应 $emoji',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 34,
+                    height: 34,
+                  ),
+                  onPressed: () => Navigator.pop(context, 'react:$emoji'),
+                  icon: OfficeEmojiGlyph(id: emoji, size: 23),
+                ),
+            ],
+          ),
+        ),
     ],
   );
 }

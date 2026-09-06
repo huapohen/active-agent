@@ -10,10 +10,14 @@ class ReceiptService {
   final sequences = {'room-a': 2, 'room-b': 5};
   final acknowledgments = <String, int>{};
   final receipts = <Json>[];
+  final messageRequests = <Json>[];
   final polls = <({String owner, Completer<http.Response> response})>[];
   int pollCount = 0, cursor = 1;
   Completer<http.Response>? holdNextReceipt;
   bool failNextReceipt = false;
+  bool failNextPage = false;
+  String principalKind = 'human';
+  Completer<http.Response>? holdNextPage;
   http.Response json(Json data, [int status = 200]) => http.Response(
     jsonEncode(data),
     status,
@@ -30,6 +34,7 @@ class ReceiptService {
       'last_message': {'seq': sequence},
       'read_seq': read,
       'unread_count': sequence - read,
+      'first_unread_seq': read < sequence ? read + 1 : null,
     };
   }
 
@@ -41,7 +46,7 @@ class ReceiptService {
     final path = request.url.path.replaceFirst('/api/im', '');
     if (path == '/me') {
       return json({
-        'principal': {'id': owner, 'kind': 'human'},
+        'principal': {'id': owner, 'kind': principalKind},
       });
     }
     if (path == '/presence') return json({});
@@ -51,7 +56,7 @@ class ReceiptService {
       pollCount++;
       return response.future;
     }
-    final match = RegExp(r'^/rooms/(room-[ab])(?:/(preferences))?$')
+    final match = RegExp(r'^/rooms/(room-[ab])(?:/(preferences|messages))?$')
         .firstMatch(path);
     if (match == null) {
       throw StateError('Unexpected receipt request: ${request.method} $path');
@@ -71,20 +76,81 @@ class ReceiptService {
       return held == null ? json({'room': room(id, owner)}) : held.future;
     }
     expect(request.method, 'GET');
+    final all = List.generate(
+      sequences[id]!,
+      (index) => <String, dynamic>{
+        'id': '$id-message-${index + 1}',
+        'seq': index + 1,
+        'author_id': 'other',
+        'author': {'id': 'other', 'kind': 'human'},
+        'content': 'Synthetic message ${index + 1}',
+      },
+    );
+    if (match[2] == 'messages') {
+      final query = request.url.queryParameters;
+      messageRequests.add({'owner': owner, 'room': id, ...query});
+      if (failNextPage) {
+        failNextPage = false;
+        return json({'error': 'Synthetic window interrupted'}, 503);
+      }
+      final limit = int.tryParse(query['limit'] ?? '') ?? 100;
+      final read = acknowledgments['$owner:$id'] ?? 0;
+      final firstUnread = read < sequences[id]! ? read + 1 : null;
+      var candidates = all;
+      var forward = false;
+      if (query['first_unread'] == 'true' && firstUnread != null) {
+        candidates = all
+            .where((message) => (message['seq'] as int) >= firstUnread)
+            .toList();
+        forward = true;
+      } else if (query['after'] != null) {
+        candidates = all
+            .where(
+              (message) => (message['seq'] as int) > int.parse(query['after']!),
+            )
+            .toList();
+        forward = true;
+      } else if (query['before'] != null) {
+        candidates = all
+            .where(
+              (message) =>
+                  (message['seq'] as int) < int.parse(query['before']!),
+            )
+            .toList();
+      }
+      final messages = forward
+          ? candidates.take(limit).toList()
+          : candidates
+                .skip(candidates.length > limit ? candidates.length - limit : 0)
+                .toList();
+      final first = messages.isEmpty ? null : messages.first['seq'] as int;
+      final last = messages.isEmpty ? null : messages.last['seq'] as int;
+      final before = first != null && first > 1;
+      final after = last != null && last < sequences[id]!;
+      final result = json({
+        'messages': messages,
+        'has_more': before,
+        'has_more_before': before,
+        'has_more_after': after,
+        'before_cursor': first,
+        'after_cursor': last,
+        'anchor_seq': query['first_unread'] == 'true' ? firstUnread : null,
+        'first_unread_seq': firstUnread,
+        'unread_count': sequences[id]! - read,
+        'read_seq': read,
+        'remaining_unread_after': last == null
+            ? 0
+            : sequences[id]! - (last > read ? last : read),
+      });
+      final pending = holdNextPage;
+      holdNextPage = null;
+      return pending == null ? result : pending.future;
+    }
     return json({
       'room': room(id, owner),
       'has_more_messages': false,
       'members': <Json>[],
-      'messages': List.generate(
-        sequences[id]!,
-        (index) => {
-          'id': '$id-message-${index + 1}',
-          'seq': index + 1,
-          'author_id': 'other',
-          'author': {'id': 'other', 'kind': 'human'},
-          'content': 'Synthetic message ${index + 1}',
-        },
-      ),
+      'messages': all.skip(all.length > 200 ? all.length - 200 : 0).toList(),
     });
   }
 
@@ -159,7 +225,21 @@ void main() {
     await service.until(() => service.polls.any((poll) => poll.owner == owner));
   }
 
-  test('sign-in and hidden event polling never mark a loaded room read; foreground visibility does', () async {
+  Future<void> showAndReport(String room) async {
+    final previous = service.receipts.length;
+    await state.setConversationVisible(room, true);
+    expect(service.receipts, hasLength(previous));
+    await state.reportVisibleMessageSequences(
+      room,
+      (state.detail?['messages'] as List? ?? []).map(
+        (message) => (message['seq'] as num).toInt(),
+      ),
+      selection: state.conversationSelection,
+      identityGeneration: state.identityGeneration,
+    );
+  }
+
+  test('sign-in and hidden event polling never mark a loaded room read; only reported visible messages do', () async {
     await connect();
     expect(state.selectedRoomId, 'room-a');
     expect(state.detail!['messages'], hasLength(2));
@@ -168,7 +248,7 @@ void main() {
     await service.event('alice');
     expect(state.detail!['messages'], hasLength(3));
     expect(service.receipts, isEmpty);
-    await state.setConversationVisible('room-a', true);
+    await showAndReport('room-a');
     expect(service.receipts.single, {
       'owner': 'alice',
       'room': 'room-a',
@@ -176,28 +256,31 @@ void main() {
     });
     service.sequences['room-a'] = 4;
     await service.event('alice');
+    expect(service.receipts, hasLength(1));
+    await showAndReport('room-a');
     expect(service.receipts.last['seq'], 4);
     await state.setConversationVisible('room-a', false);
     service.sequences['room-a'] = 5;
     await service.event('alice');
     expect(service.receipts, hasLength(2));
     expect(state.rooms.first['unread_count'], 1);
-    await state.setConversationVisible('room-a', true);
+    await showAndReport('room-a');
     expect(service.receipts.last['seq'], 5);
     expect(state.rooms.first['unread_count'], 0);
   });
 
   test('switching rooms requires new visibility and an old widget cannot hide or activate another room', () async {
     await connect();
-    await state.setConversationVisible('room-a', true);
+    await showAndReport('room-a');
     await state.selectRoom('room-b');
     expect(service.receipts, hasLength(1));
-    await state.setConversationVisible('room-b', true);
+    await showAndReport('room-b');
     expect(service.receipts.last['room'], 'room-b');
     await state.setConversationVisible('room-a', false);
-    await state.setConversationVisible('room-a', true);
+    await showAndReport('room-a');
     service.sequences['room-b'] = 6;
     await service.event('alice');
+    await showAndReport('room-b');
     expect(service.receipts.last, {
       'owner': 'alice',
       'room': 'room-b',
@@ -212,7 +295,7 @@ void main() {
       await connect();
       final delayed = Completer<http.Response>();
       service.holdNextReceipt = delayed;
-      final first = state.setConversationVisible('room-a', true);
+      final first = showAndReport('room-a');
       await service.until(() => service.receipts.length == 1);
       await state.setConversationVisible('room-a', false);
       service.sequences['room-a'] = 3;
@@ -221,7 +304,7 @@ void main() {
       delayed.complete(service.json({}));
       await first;
       expect(state.rooms.first['unread_count'], 1);
-      await state.setConversationVisible('room-a', true);
+      await showAndReport('room-a');
       expect(service.receipts.last['seq'], 3);
     },
   );
@@ -230,14 +313,14 @@ void main() {
     await connect();
     final delayed = Completer<http.Response>();
     service.holdNextReceipt = delayed;
-    final previousIdentity = state.setConversationVisible('room-a', true);
+    final previousIdentity = showAndReport('room-a');
     await service.until(() => service.receipts.length == 1);
     await connect('bob');
     expect(state.rooms.first['unread_count'], 2);
     delayed.complete(service.json({}));
     await previousIdentity;
     expect(state.rooms.first['unread_count'], 2);
-    await state.setConversationVisible('room-a', true);
+    await showAndReport('room-a');
     expect(service.receipts.last, {'owner': 'bob', 'room': 'room-a', 'seq': 2});
   });
 
@@ -245,12 +328,12 @@ void main() {
     await connect();
     final delayed = Completer<http.Response>();
     service.holdNextReceipt = delayed;
-    final first = state.setConversationVisible('room-a', true);
+    final first = showAndReport('room-a');
     await service.until(() => service.receipts.length == 1);
-    await state.setConversationVisible('room-a', true);
+    await showAndReport('room-a');
     expect(service.receipts, hasLength(1));
     await state.setConversationVisible('room-a', false);
-    await state.setConversationVisible('room-a', true);
+    await showAndReport('room-a');
     expect(service.receipts, hasLength(2));
     delayed.complete(service.json({}));
     await first;
@@ -259,12 +342,12 @@ void main() {
     await service.event('alice');
     service.failNextReceipt = true;
     await expectLater(
-      state.setConversationVisible('room-a', true),
+      showAndReport('room-a'),
       throwsA(
         isA<OfficeException>().having((error) => error.status, 'status', 503),
       ),
     );
-    await state.setConversationVisible('room-a', true);
+    await showAndReport('room-a');
     expect(service.receipts.map((item) => item['seq']), [2, 2, 3, 3]);
     expect(state.rooms.first['unread_count'], 0);
   });

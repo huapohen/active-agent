@@ -1,0 +1,1099 @@
+{
+  "reference": "https://open.feishu.cn/document/server-docs/im-v1/message-reaction/emojis-introduce",
+  "observed_at": "2026-09-06",
+  "count": 182,
+  "items": [
+    {
+      "code": "OK",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_ok_v2.png?height=96&lazyload=true&width=104",
+      "sha256": "4f000fd08c041fa1f96cb18128e3a6aff0f1071bffce570c9e3562c9af2478db",
+      "bytes": 7322
+    },
+    {
+      "code": "THUMBSUP",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_thumbsup_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "055a8f7dc0932ddb04cf759ec5d003ba89fb97a4d1d86c94aeb2c3db4ff77692",
+      "bytes": 9477
+    },
+    {
+      "code": "THANKS",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_thanks_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "80b76e58375c0a20703333523e12207efd60f2ca0105e1876d88494fde77d00f",
+      "bytes": 9577
+    },
+    {
+      "code": "MUSCLE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_fighton_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "a6f20a9f88f3f409a051e992c70f6456de889b39a9feecc860ec376803522332",
+      "bytes": 10422
+    },
+    {
+      "code": "FINGERHEART",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_fingerheart_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "b175ba0496bb78acf53c41ecf35944aadc8b689b98d31929c48bf25224950873",
+      "bytes": 9663
+    },
+    {
+      "code": "APPLAUSE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_applaud_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "8bf7a69e13e463500c7338c7b79fb688f5b739893a999159b71699b119f011ba",
+      "bytes": 14708
+    },
+    {
+      "code": "FISTBUMP",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_fistbump_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "462e214ab0230866c9e3a7f0802fea67c4e93f5053dfe6795cbebc3672a7751d",
+      "bytes": 11349
+    },
+    {
+      "code": "JIAYI",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_plusone.png?height=96&lazyload=true&width=96",
+      "sha256": "bf9ffdabfb4a6c6b335bca82c818119091b08f2ad151eca1519145240dd23cdc",
+      "bytes": 5086
+    },
+    {
+      "code": "DONE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_done.png?height=96&lazyload=true&width=96",
+      "sha256": "25346376bd37d1a9383e3a679bbb490fe6ffb82bece12a3cfb167fd28baa0392",
+      "bytes": 12656
+    },
+    {
+      "code": "SMILE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_smile.png?height=96&lazyload=true&width=96",
+      "sha256": "c05422d94722fbc742775eaf0d1d7fca969b79a8b4cca8d83366b478d0676ccf",
+      "bytes": 9571
+    },
+    {
+      "code": "BLUSH",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_grin.png?height=96&lazyload=true&width=96",
+      "sha256": "4df27684bd86fdb9f143922985589daaee2cef243b5cf5c12121164950e9c807",
+      "bytes": 8627
+    },
+    {
+      "code": "LAUGH",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_laugh.png?height=96&lazyload=true&width=96",
+      "sha256": "5b23cf649f071e08356d16014dd8dd236f4af2fa773bb65387b50904dd88dc00",
+      "bytes": 9428
+    },
+    {
+      "code": "SMIRK",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_smirk.png?height=96&lazyload=true&width=97",
+      "sha256": "0eefddc3e70fb05ba9865d15708d03525dd89ffc40eb21e065415356deaba98e",
+      "bytes": 10661
+    },
+    {
+      "code": "LOL",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_lol.png?height=96&lazyload=true&width=108",
+      "sha256": "1ae66bb3b3b9d2b1d8c22df0ea1161eb0f99ccb190b2940b41c20971f8b353b0",
+      "bytes": 10179
+    },
+    {
+      "code": "FACEPALM",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_facepalm.png?height=96&lazyload=true&width=96",
+      "sha256": "8350e5180408148264e1c663610fa88b442f7db0531c8e6d4f3aebc52bf1dafa",
+      "bytes": 10852
+    },
+    {
+      "code": "LOVE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_love.png?height=96&lazyload=true&width=96",
+      "sha256": "9a9499c9b8d0844c3c4a4338ad39dca6c53fff6cff40d0842b02d5f351261e3e",
+      "bytes": 10759
+    },
+    {
+      "code": "WINK",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_wink.png?height=96&lazyload=true&width=96",
+      "sha256": "63c48822c0be6484b66ec47ab9dd0068c592352705279a1f9badddb0b66b814c",
+      "bytes": 10920
+    },
+    {
+      "code": "PROUD",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_proud.png?height=96&lazyload=true&width=96",
+      "sha256": "7f4af6a90a863365809efd5a5e30803c2cc749fbc18fd8133587e029717ac529",
+      "bytes": 11818
+    },
+    {
+      "code": "WITTY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_witty.png?height=96&lazyload=true&width=102",
+      "sha256": "83ed4563578cd13d03291fc06ffe724c81052ce5d2dcc397187d8e04ef0920b2",
+      "bytes": 14144
+    },
+    {
+      "code": "SMART",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_smart.png?height=96&lazyload=true&width=96",
+      "sha256": "58fb03816fbad5953096276cec283a863cad98e50e7f51346a7ef35d584bbc1d",
+      "bytes": 10466
+    },
+    {
+      "code": "SCOWL",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_scowl.png?height=96&lazyload=true&width=96",
+      "sha256": "9de2b4042aa77a627050b71d1ee77fe50f82ea2bd97ca3c40f6986b1f592d481",
+      "bytes": 9940
+    },
+    {
+      "code": "THINKING",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_thinking.png?height=96&lazyload=true&width=96",
+      "sha256": "62d32cce43c6cd09f48e050e33bd61e2015d380066a3dcea4daea0ef869443e1",
+      "bytes": 10757
+    },
+    {
+      "code": "SOB",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_sob.png?height=96&lazyload=true&width=96",
+      "sha256": "be728841a2fd21f77def425e0b405b1f161207b6dd8efb9b9e8b8bebb18c25c9",
+      "bytes": 9690
+    },
+    {
+      "code": "CRY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_cry.png?height=96&lazyload=true&width=96",
+      "sha256": "a312189ecee8b3a660a182adb1a074a8b3a3adce465a82706567dbdd92a69353",
+      "bytes": 11040
+    },
+    {
+      "code": "ERROR",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_errr.png?height=96&lazyload=true&width=96",
+      "sha256": "67e622a005d2450c5e812224ea61dce9cfeac1fe6463b5e5a4c0250bd8c90399",
+      "bytes": 8316
+    },
+    {
+      "code": "NOSEPICK",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_nosepick.png?height=96&lazyload=true&width=96",
+      "sha256": "d734ad1badf61dcef835e258a3186153e3b830b5a22b754832aa60efe0b0fee2",
+      "bytes": 9403
+    },
+    {
+      "code": "HAUGHTY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_irritated_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "ad6ec829dfdf17d73d095f35000ce7da677ab056e64903fc00e52256b320fe34",
+      "bytes": 11665
+    },
+    {
+      "code": "SLAP",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_slap.png?height=96&lazyload=true&width=96",
+      "sha256": "974d83c128d65cf0a78349f348781eed1c7f21021d7a14ffb8a5643f485c42c2",
+      "bytes": 12157
+    },
+    {
+      "code": "SPITBLOOD",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_spitblood.png?height=96&lazyload=true&width=102",
+      "sha256": "dd026d091649fb5be695ce9b183b3c62d6b0932b1c521319f3e5b01ee52c0a7b",
+      "bytes": 9889
+    },
+    {
+      "code": "TOASTED",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_toasted.png?height=96&lazyload=true&width=96",
+      "sha256": "6d8dc8122153034d67e8b14f9a5f833049f4ebf00504ba10b5a09de07f0de493",
+      "bytes": 7877
+    },
+    {
+      "code": "GLANCE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_glance.png?height=96&lazyload=true&width=96",
+      "sha256": "216e06fce010cf47364d6115f6ca135914631be53ac5e5789ae972d89bc7109f",
+      "bytes": 13475
+    },
+    {
+      "code": "DULL",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_dull.png?height=96&lazyload=true&width=96",
+      "sha256": "86af521b8ded81e424c5e9c2bc46568a3dbae755c79cd93b95cbb3ad52f51eaf",
+      "bytes": 12581
+    },
+    {
+      "code": "INNOCENTSMILE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_innocentsmile.png?height=96&lazyload=true&width=96",
+      "sha256": "16429ebfc7fd565908859594b90fe6a108bd07a93c524fecb72429663589bcfb",
+      "bytes": 12208
+    },
+    {
+      "code": "JOYFUL",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_joyful.png?height=96&lazyload=true&width=96",
+      "sha256": "c906054a2b24b1cb242f3a9ac83360e889cd6f7595dd9124023d916c2310f5af",
+      "bytes": 9780
+    },
+    {
+      "code": "WOW",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_wow.png?height=96&lazyload=true&width=96",
+      "sha256": "08ca4e2e1ced209ea2ab99889aa483a0157d9343b8bc269facca43263b89fc97",
+      "bytes": 10829
+    },
+    {
+      "code": "TRICK",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_trick.png?height=96&lazyload=true&width=96",
+      "sha256": "1ade602f1c698b4e1642286ac9285a7b0088efd79d84f4f5f33c60cdcb51aa9a",
+      "bytes": 10045
+    },
+    {
+      "code": "YEAH",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_yeah.png?height=96&lazyload=true&width=102",
+      "sha256": "4de956b76cf0b7508b6cbe8bf6253ff667bca2cdf37aeeabef4243ee496ca996",
+      "bytes": 11343
+    },
+    {
+      "code": "ENOUGH",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_enough.png?height=96&lazyload=true&width=108",
+      "sha256": "a0d623df98229ec2e321938af4f0dd3756ed0d4f0f8a4084d4019c0af3439e9f",
+      "bytes": 12397
+    },
+    {
+      "code": "TEARS",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_tears.png?height=96&lazyload=true&width=96",
+      "sha256": "ae223f966ac9009c5530c97ced7e54bb8f1917d88726c3882e98acf6c7a3ab1f",
+      "bytes": 12017
+    },
+    {
+      "code": "EMBARRASSED",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_embarrassed.png?height=96&lazyload=true&width=96",
+      "sha256": "668bfe1c07ef98a397412b6be0d935f97f2f3b637c35d54cddaf9adc3af4ad76",
+      "bytes": 10881
+    },
+    {
+      "code": "KISS",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_kiss.png?height=96&lazyload=true&width=96",
+      "sha256": "f6640ffa4c84c4230d925d423c113d7b9bdb31c9fb1f28a6682515320ee630ac",
+      "bytes": 9938
+    },
+    {
+      "code": "SMOOCH",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_smooch.png?height=96&lazyload=true&width=100",
+      "sha256": "5a9b52f25d6f1ff48dc474764706e906b9feb734ad6a5f150e9514b17ad08b42",
+      "bytes": 10676
+    },
+    {
+      "code": "DROOL",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_drool.png?height=96&lazyload=true&width=96",
+      "sha256": "fedec1e609ef9df4849c707a6870d204ae3a5dcf4aa477147abd5a33b605b308",
+      "bytes": 10327
+    },
+    {
+      "code": "OBSESSED",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_obsessed.png?height=96&lazyload=true&width=96",
+      "sha256": "4fbdee8b0ac4ab0cc82034ebf7ed88db22b2d75dbb28dc0e0d3962f3de676ec7",
+      "bytes": 14769
+    },
+    {
+      "code": "MONEY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_dollar.png?height=97&lazyload=true&width=97",
+      "sha256": "9ceec1da19186ab32f9f544fa882289697a3c7de44501635c09ccff88ae2f12d",
+      "bytes": 9623
+    },
+    {
+      "code": "TEASE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_tease.png?height=96&lazyload=true&width=96",
+      "sha256": "369da61c64a84bdf24e7c92650fc219829e1f9f0bd3b9a5bbeb5a21f87325ba7",
+      "bytes": 10645
+    },
+    {
+      "code": "SHOWOFF",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_showoff.png?height=96&lazyload=true&width=96",
+      "sha256": "ddae5c26f933b6f21f70db4760cda018375f24d138ce69a54c18878de9b27e3a",
+      "bytes": 13743
+    },
+    {
+      "code": "COMFORT",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_comfort.png?height=96&lazyload=true&width=96",
+      "sha256": "dc381deb34469f09c26548e10c8c8087c5750bbcf968b18fabf2a681461ca618",
+      "bytes": 11146
+    },
+    {
+      "code": "CLAP",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_clap.png?height=96&lazyload=true&width=102",
+      "sha256": "8382fca38de6a85fe6f30513d1fb1a4771f6d728db16bdb548d2261d5c5eea29",
+      "bytes": 11346
+    },
+    {
+      "code": "PRAISE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_praise.png?height=96&lazyload=true&width=103",
+      "sha256": "00386e416d115efc15b2fbdcb514b82d1544b65f3b71b7bd71c5b3f9efb032be",
+      "bytes": 11303
+    },
+    {
+      "code": "STRIVE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_strive.png?height=96&lazyload=true&width=96",
+      "sha256": "98777dd28a8208e8299a8a682baa646b8ac95a4d9c5469e6cf66aa9005f15ba0",
+      "bytes": 11190
+    },
+    {
+      "code": "XBLUSH",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_blush.png?height=96&lazyload=true&width=96",
+      "sha256": "9b4e6968e6e29f2ee72d67f498c16a4c571554992c05e5f88563b55b442ac934",
+      "bytes": 10845
+    },
+    {
+      "code": "SILENT",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_silent.png?height=96&lazyload=true&width=96",
+      "sha256": "1a513760677a2e202b845a2dd4518d3026b0dda37e9b0f2aaa38b1cb66fe7f27",
+      "bytes": 10456
+    },
+    {
+      "code": "WAVE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_wave.png?height=96&lazyload=true&width=99",
+      "sha256": "5a4bc69468c24f4c853adb83c81ec55711d513d2832ec00e3a8d0b2bc9b983e9",
+      "bytes": 9934
+    },
+    {
+      "code": "WHAT",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_what.png?height=96&lazyload=true&width=104",
+      "sha256": "dca4cead001b92d32d31ffeedecfdf558e391c07aea8a0b23387030e77ee76cb",
+      "bytes": 10061
+    },
+    {
+      "code": "FROWN",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_frown.png?height=96&lazyload=true&width=96",
+      "sha256": "9a00eefc1f84d1d6e2caa58fde3d28d95d3603144ee71dc91a3b6f2d29982a18",
+      "bytes": 9152
+    },
+    {
+      "code": "SHY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_shy.png?height=96&lazyload=true&width=96",
+      "sha256": "0692c0132f4b6ece7e51e48e3b1e4d1b5a8b40bf1db22bdf73aa60c8f1a6c4fe",
+      "bytes": 9753
+    },
+    {
+      "code": "DIZZY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_dizzy.png?height=96&lazyload=true&width=96",
+      "sha256": "b80a80653bd2b6c570d09a33b2731ebecd5574e8c88d354f7aa2b8c4b446b65e",
+      "bytes": 11087
+    },
+    {
+      "code": "LOOKDOWN",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_lookdown.png?height=96&lazyload=true&width=96",
+      "sha256": "3b159cfc7f5fd2fa2256a2837096d3d7c00f2e8076df384e58fcd04155c3971f",
+      "bytes": 9622
+    },
+    {
+      "code": "CHUCKLE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_chuckle.png?height=96&lazyload=true&width=96",
+      "sha256": "96d25b80dccdc96f5f914915852a3deb8c324bd16048ea7396bf1baadc2fe4fc",
+      "bytes": 10115
+    },
+    {
+      "code": "WAIL",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_wail.png?height=96&lazyload=true&width=110",
+      "sha256": "50eecc22727be7c9e3a097db2cd0cacbb5d01a5cc6bfa3c9c85359c3f3f74f61",
+      "bytes": 10839
+    },
+    {
+      "code": "CRAZY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_crazy.png?height=96&lazyload=true&width=96",
+      "sha256": "35926ec89727b159128e7fc7ef6146c73dbdc1bce2b12c40d293d7aaf8a3e236",
+      "bytes": 9805
+    },
+    {
+      "code": "WHIMPER",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_whimper.png?height=96&lazyload=true&width=96",
+      "sha256": "fb1c97b5d4825c7bc3005054beee5ba1d885e493ad7c2048348d762658adf930",
+      "bytes": 11322
+    },
+    {
+      "code": "HUG",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_hug.png?height=96&lazyload=true&width=132",
+      "sha256": "dd61b61420dc715e7e566c20c8fa44dbce26e0b56551e4a6d0ef617f609be448",
+      "bytes": 14362
+    },
+    {
+      "code": "BLUBBER",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_blubber.png?height=96&lazyload=true&width=96",
+      "sha256": "f91f0839e57e64f246b7af5506862f4153d865f93659529292cb2631a39fa4b0",
+      "bytes": 10328
+    },
+    {
+      "code": "WRONGED",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_wronged.png?height=96&lazyload=true&width=96",
+      "sha256": "2f3d189d11664fc7d17966f14e47e27dc40964b3fe4446fb315c6d5f1e927b39",
+      "bytes": 9902
+    },
+    {
+      "code": "HUSKY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_husky.png?height=96&lazyload=true&width=96",
+      "sha256": "b5c51e035b950598460165c471f463c273339d8a595aeac5e45a9c7e3de7178e",
+      "bytes": 9215
+    },
+    {
+      "code": "SHHH",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_shhh.png?height=96&lazyload=true&width=96",
+      "sha256": "8e61a01883675fb1bb5802333ee2bba92bdcb2a37837e0e36498d76c3462c9bb",
+      "bytes": 10725
+    },
+    {
+      "code": "SMUG",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_smug.png?height=96&lazyload=true&width=96",
+      "sha256": "cac089ba09789eb81f6c054fe1e860da5c951934d879cd462eca2f89f4e9f72c",
+      "bytes": 9503
+    },
+    {
+      "code": "ANGRY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_angry.png?height=96&lazyload=true&width=96",
+      "sha256": "006cb0da382d51a5b942edac28fc5dfb03a5943646138dbd2039ffc04b74791c",
+      "bytes": 11727
+    },
+    {
+      "code": "HAMMER",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/9f58ae35392bf5ef632ee1fc68aaaaa6_mLDLyug1S7.png?height=96&lazyload=true&width=97",
+      "sha256": "c3ef48e4eb24662ee66b4e895b19898cc7ebd6d2f79a3ce157a9c8ef28db5879",
+      "bytes": 18686
+    },
+    {
+      "code": "SHOCKED",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_shocked.png?height=96&lazyload=true&width=107",
+      "sha256": "27691e00a57ee68caa8309a4ac46b26f7ee4ae0a4261b8ade4c24f8fca40b3b1",
+      "bytes": 9636
+    },
+    {
+      "code": "TERROR",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_terror.png?height=96&lazyload=true&width=96",
+      "sha256": "a7f5f53d2b00ba600ad3edb3bf87a6aeced277d8a504688301007d539079d16b",
+      "bytes": 13698
+    },
+    {
+      "code": "PETRIFIED",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_petrified.png?height=96&lazyload=true&width=96",
+      "sha256": "15ae15917a929094d72a0464367a5f9617c3c4e5ebe08ef98b52d543eb604dee",
+      "bytes": 8218
+    },
+    {
+      "code": "SKULL",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_skull.png?height=96&lazyload=true&width=96",
+      "sha256": "d70a5cceaf6970a901c398217963b8cbd8b14654a8fb0fec89e20d1a20fc4fea",
+      "bytes": 6829
+    },
+    {
+      "code": "SWEAT",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_sweat.png?height=96&lazyload=true&width=100",
+      "sha256": "e32fbdca3456a3c515e03dec02f82b725cd9263151e27510e969d38d6bfd1686",
+      "bytes": 9966
+    },
+    {
+      "code": "SPEECHLESS",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_speechless.png?height=96&lazyload=true&width=103",
+      "sha256": "2541511c41fb44ff226f31dca613cbdd728b1d8f2dc29b7663e167d1f7a882f9",
+      "bytes": 10656
+    },
+    {
+      "code": "SLEEP",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_sleep.png?height=96&lazyload=true&width=96",
+      "sha256": "2e6a6971191376658c777ebd513c1907b0e3f2f49f5a6377be48cd67fe8066e6",
+      "bytes": 9576
+    },
+    {
+      "code": "DROWSY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_drowsy.png?height=96&lazyload=true&width=96",
+      "sha256": "d6c66da41ddc05e8636b30c41e2af12a29f06504160b4832814a3f2c41ae2d24",
+      "bytes": 11970
+    },
+    {
+      "code": "YAWN",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_yawn.png?height=96&lazyload=true&width=96",
+      "sha256": "dfcd447395462a709f3fa620d8a78720eb0602a820f9870452c4ccea930b3e70",
+      "bytes": 8910
+    },
+    {
+      "code": "SICK",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_sick.png?height=96&lazyload=true&width=96",
+      "sha256": "790fba15f58aad19295c6dd17a410866377707ea887e5a4c9af0def0cbb8db7b",
+      "bytes": 7964
+    },
+    {
+      "code": "PUKE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_puke.png?height=96&lazyload=true&width=96",
+      "sha256": "fe3565635795aeb7a815b99636c020605f29de31602cd844b692ac5ad93fe74f",
+      "bytes": 11906
+    },
+    {
+      "code": "BETRAYED",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_betrayed.png?height=96&lazyload=true&width=96",
+      "sha256": "3e441fdfbbbfd82925b9e2c013aaf46fc818c3989fdf805b04616bac0cfa9954",
+      "bytes": 12783
+    },
+    {
+      "code": "HEADSET",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_headset_v3.png?height=96&lazyload=true&width=106",
+      "sha256": "d1f3d8417cc8550dd81df2319585fac19e7cb75f74c2377e8b3f57a690cae5b2",
+      "bytes": 11928
+    },
+    {
+      "code": "EatingFood",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_eatingfood_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "8008575398ae077cab9ddb925e10a9f3dbe9e7298c6fb5fa035cb2594ba398c4",
+      "bytes": 13311
+    },
+    {
+      "code": "MeMeMe",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_mememe.png?height=96&lazyload=true&width=108",
+      "sha256": "903803e5acbb293bfdf03fca64b60ce921d3d58580a202df9353783c1795778a",
+      "bytes": 11686
+    },
+    {
+      "code": "Sigh",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_sigh.png?height=96&lazyload=true&width=96",
+      "sha256": "c29075acf7d4c112f313b78707d4bbe33d1f429e8003ad13b27d8fde06f0066d",
+      "bytes": 11070
+    },
+    {
+      "code": "Typing",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_typing.png?height=96&lazyload=true&width=96",
+      "sha256": "029b2e77414b025d72d4fb27601f90e2b08884014926773ae44ad60d87536013",
+      "bytes": 10778
+    },
+    {
+      "code": "Lemon",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_lemon_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "01b0f54634fd8f90d307cb46c8d0224ef7968d70664feed8c62f9459075fd8a7",
+      "bytes": 12054
+    },
+    {
+      "code": "Get",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_get_v3.png?height=96&lazyload=true&width=96",
+      "sha256": "f86c7440d81d05bcdddee6c09f75833fb50d34e08bf3c2ed43d3a8100feb6a06",
+      "bytes": 10626
+    },
+    {
+      "code": "LGTM",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_lgtm_v3.png?height=96&lazyload=true&width=97",
+      "sha256": "443d442b393c09fde26fc2c2dc0b2fd514e48ed0a8fc6f3e80b3eee3cead8405",
+      "bytes": 11230
+    },
+    {
+      "code": "OnIt",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/e01b24ed3d58ad17a3e9d6b94dc73e4b_nXfu7jkz2H.png?height=96&lazyload=true&width=110",
+      "sha256": "7b947261d483831d87373c67978eb8da7f87319fee6862e89ddf168bdcd924c3",
+      "bytes": 23278
+    },
+    {
+      "code": "OneSecond",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_onesecond.png?height=96&lazyload=true&width=108",
+      "sha256": "0627cc92bc8eef9b7150825a3fcd2046db5492f6c6a54d66ca47af968c3dab10",
+      "bytes": 10551
+    },
+    {
+      "code": "VRHeadset",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_vrheadset_v1.png?height=96&lazyload=true&width=96",
+      "sha256": "f73dc83f7913b820950f05dc56d4760b06c5fe30b0fad1fb7fb5e62b4365d0b0",
+      "bytes": 12197
+    },
+    {
+      "code": "YouAreTheBest",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_youarethebest.png?height=96&lazyload=true&width=97",
+      "sha256": "5005818c84b78bfe3f84fbee5b02802b457291f16dad613a3041b6cf4d63493c",
+      "bytes": 9548
+    },
+    {
+      "code": "SALUTE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_salute_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "0bd0adc4a0aacc9d5084f471d0572507c68eaae358abbf5f122b827b7dc41a30",
+      "bytes": 11051
+    },
+    {
+      "code": "SHAKE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_shake_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "731e8dc0d5ff362e839c5c953fad6b53540b7d014e92516c383a47c8b6ec33fe",
+      "bytes": 12681
+    },
+    {
+      "code": "HIGHFIVE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_highfive_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "eac257a4bb2ebef24b0ef6ef890947a966258f5e32a090d7c80c3a1192f45d74",
+      "bytes": 14610
+    },
+    {
+      "code": "UPPERLEFT",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_click_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "dddd8191abf0adece0c921ecc4adefcffeac5f2faa22bfe3c805cb7cbbd92ff2",
+      "bytes": 10541
+    },
+    {
+      "code": "ThumbsDown",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_thumbsdown_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "4e8c5914f0af023e97789603c7f383274c26b7081425ccc59ad2a8ab7fa5d7b4",
+      "bytes": 9609
+    },
+    {
+      "code": "SLIGHT",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_slight.png?height=96&lazyload=true&width=96",
+      "sha256": "11a7d9a36fbfa24472549dd1cc47239335725f50bca31c777de13b0d3899d0be",
+      "bytes": 13646
+    },
+    {
+      "code": "TONGUE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_tongue.png?height=96&lazyload=true&width=96",
+      "sha256": "e71f30c1f83d797bdf4ea1640eabe3b98e06570d14c24043b74c7ca336dd1aa7",
+      "bytes": 14492
+    },
+    {
+      "code": "EYESCLOSED",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_eyesclosed.png?height=96&lazyload=true&width=96",
+      "sha256": "3c113661932c1c9c3b25ca198842155b6597e6b72cf7b52a176a1607c630664b",
+      "bytes": 16805
+    },
+    {
+      "code": "RoarForYou",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_roarforyou.png?height=96&lazyload=true&width=132",
+      "sha256": "a2257ac606b2134e8dcd0eaecfd1b28794ebcc4e6e34096f0ac033bc59f4e487",
+      "bytes": 16457
+    },
+    {
+      "code": "CALF",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_calf.png?height=96&lazyload=true&width=96",
+      "sha256": "5eeb35d899295dc90c21653eefab2ec1e9bd7a2978dc7e20d5b675750ac8a0e4",
+      "bytes": 9790
+    },
+    {
+      "code": "BEAR",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_bear.png?height=96&lazyload=true&width=110",
+      "sha256": "dc9f43fa8ed7cbc8020714b5f4e898f6e381e3ea0b0ea2dcb24444c437d75bed",
+      "bytes": 12075
+    },
+    {
+      "code": "BULL",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_bull.png?height=96&lazyload=true&width=96",
+      "sha256": "2e3bf89c8464eb01c069459a5cd5824e20a7c7f5d297ea4cb3b68d6e0bbf084d",
+      "bytes": 12593
+    },
+    {
+      "code": "RAINBOWPUKE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_rainbowpuke_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "bccf597fef5c283acd1bb5d916a8015eba27a3d2c063a00dbbd092b4c1adc532",
+      "bytes": 5305
+    },
+    {
+      "code": "ROSE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_rose.png?height=96&lazyload=true&width=96",
+      "sha256": "c684c5b3c98dc90bef30f3615ed30025c671f42f2627a9d9321b7fac86b997a6",
+      "bytes": 5785
+    },
+    {
+      "code": "HEART",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_heart.png?height=96&lazyload=true&width=96",
+      "sha256": "72d565780187b16f5b91f90d70b7ff44ae76d5493acebf2aa2a5499fe416c6a1",
+      "bytes": 5154
+    },
+    {
+      "code": "PARTY",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_party.png?height=96&lazyload=true&width=96",
+      "sha256": "a70bb947a02fd8077c243bce5a6002a24e522f7cf16e034286db702e80c0abb3",
+      "bytes": 12597
+    },
+    {
+      "code": "LIPS",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/2e220353409b385bc596177d02dd215e_vzI98bHVC4.png?height=96&lazyload=true&width=96",
+      "sha256": "fae5fc1cd5a440ee9f56bd2669ef5b81075de7856d5fd0abcad4b1c7ab716c14",
+      "bytes": 7616
+    },
+    {
+      "code": "BEER",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_beer.png?height=96&lazyload=true&width=96",
+      "sha256": "786369fe8912e3bd8c3afc1873dc32eadcc77edfde8e23abe5d6c3af1b8a4598",
+      "bytes": 14062
+    },
+    {
+      "code": "CAKE",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_cake_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "457ce52cafd044c432d1449197ee7d2d68638d855ce6a066b3bfb38f380adb89",
+      "bytes": 11719
+    },
+    {
+      "code": "GIFT",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_gift_v3.png?height=96&lazyload=true&width=96",
+      "sha256": "88e2982dedef0be1a78a33a84ca40f552b19fe91fa162717985dc1ec11f36e9f",
+      "bytes": 10262
+    },
+    {
+      "code": "CUCUMBER",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_cucumber_v3.png?height=96&lazyload=true&width=96",
+      "sha256": "78cfcbe77d2f6ce459167e42fdcd48dd1559b11c33668433b03fb17e1d65331d",
+      "bytes": 9957
+    },
+    {
+      "code": "Drumstick",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_drumstick.png?height=96&lazyload=true&width=96",
+      "sha256": "7623c91f45400eddc447144243d4c1594abc3f04d88154b0d3ffacccc00aa5c7",
+      "bytes": 7547
+    },
+    {
+      "code": "Pepper",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_pepper.png?height=96&lazyload=true&width=96",
+      "sha256": "31b9790954189391dd4368bc4781ff38c2e960dc2b806336be58c455c75cf053",
+      "bytes": 7019
+    },
+    {
+      "code": "CANDIEDHAWS",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_candiedhaws.png?height=96&lazyload=true&width=96",
+      "sha256": "e9b10e8b9edd2f81bdf861d54ba63c1f5c5a346f319f247279c958be6681a09a",
+      "bytes": 6699
+    },
+    {
+      "code": "BubbleTea",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_bubbletea.png?height=96&lazyload=true&width=96",
+      "sha256": "7d5b5a090aa95612a0bc7e002774e76118b762d97567cae552d1a82cf07e5229",
+      "bytes": 6783
+    },
+    {
+      "code": "Coffee",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_coffee_v2.png?height=96&lazyload=true&width=104",
+      "sha256": "6732611d8965919914d83c214ae5843ba6497fc99cd5514baf3f87127ed54d76",
+      "bytes": 8040
+    },
+    {
+      "code": "Yes",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_yes_v2.png?height=96&lazyload=true&width=104",
+      "sha256": "6efbec34a09ff8c54177a09bcc7b73733e7ae3bd1a95299d6053fe4d1b883fa0",
+      "bytes": 8705
+    },
+    {
+      "code": "No",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_no_v3.png?height=96&lazyload=true&width=104",
+      "sha256": "d1e18066c729691fd403a9774da5a2ef367d95f1ac5410714b524cad9633c485",
+      "bytes": 9076
+    },
+    {
+      "code": "OKR",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_okr.png?height=96&lazyload=true&width=104",
+      "sha256": "4b6cb2264625fe716aa88f5f501cb695228c8ca7b0d6140ca25a5fd414068e3e",
+      "bytes": 5484
+    },
+    {
+      "code": "CheckMark",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_checkmark.png?height=96&lazyload=true&width=96",
+      "sha256": "7e3d2a6d68ba19ed17f90b6a359afa7e92393e5f8c6e12c1923c6a80a3214571",
+      "bytes": 3535
+    },
+    {
+      "code": "CrossMark",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_crossmark.png?height=96&lazyload=true&width=96",
+      "sha256": "de7a3ff2b11e57cf4c713422c05d19e1c382a4064ffb8a45330a48fa7b6fe52f",
+      "bytes": 5168
+    },
+    {
+      "code": "MinusOne",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_minusone_v4.png?height=96&lazyload=true&width=96",
+      "sha256": "1ec625115131f821c996f4298eb10025b4f8dcc50614f88dc4cb5e05b73fd2db",
+      "bytes": 3571
+    },
+    {
+      "code": "Hundred",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_hundred.png?height=96&lazyload=true&width=104",
+      "sha256": "3716f744d382910615213d14535f4f962db7824ff8ead0d0a3bbe2511c58fa02",
+      "bytes": 10256
+    },
+    {
+      "code": "AWESOMEN",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_socool_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "9c3084e39bf6f3e12647264fa5143b297aab636eeb3fc39041f52e19edb8a377",
+      "bytes": 9737
+    },
+    {
+      "code": "Pin",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_pin.png?height=96&lazyload=true&width=96",
+      "sha256": "5f7d7e5dd64fba12d74168fd35e2ca097a677e5e53166af8cced19ea36119656",
+      "bytes": 5737
+    },
+    {
+      "code": "Alarm",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_alarm.png?height=96&lazyload=true&width=96",
+      "sha256": "e2e469a06b818f5d802e72afce1ea21b36dfdfe978567b83db85fd729c2fea5e",
+      "bytes": 11938
+    },
+    {
+      "code": "Loudspeaker",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_loudspeaker.png?height=96&lazyload=true&width=96",
+      "sha256": "a240458652a0b070e5789111305d731eeccc0f6a631de665ec051f03168200a4",
+      "bytes": 10346
+    },
+    {
+      "code": "Trophy",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_trophy.png?height=96&lazyload=true&width=96",
+      "sha256": "8a497a234aa85e25eab2da28aa8b63aca7b46676a96be4919f90898c0be7b32b",
+      "bytes": 8467
+    },
+    {
+      "code": "Fire",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_fire.png?height=96&lazyload=true&width=96",
+      "sha256": "8267c4721f971a76aae584a3c29d06b9fe21ff3a5356abea41e057f08168e204",
+      "bytes": 9180
+    },
+    {
+      "code": "BOMB",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_bomb.png?height=96&lazyload=true&width=96",
+      "sha256": "0c9a0ad9fe4bd7c876736b4e688206bfd4f7306cd93702775827a68a624d2afd",
+      "bytes": 13062
+    },
+    {
+      "code": "Music",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_music_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "d1550b4475937def08b69e10d84fd7df27a3630e08ca9586ddbc625f466587cf",
+      "bytes": 5391
+    },
+    {
+      "code": "XmasTree",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_xmastree.png?height=96&lazyload=true&width=96",
+      "sha256": "5e2891266564a7d48c3e6f13c3a7260c97e93a2e32f3ff7f022ef458cf5c6f36",
+      "bytes": 9857
+    },
+    {
+      "code": "Snowman",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_snowman.png?height=96&lazyload=true&width=96",
+      "sha256": "c761dd0b3471b2f0729833820b3e1751b8252055cede623e60934886f67f3be1",
+      "bytes": 10231
+    },
+    {
+      "code": "XmasHat",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_xmashat.png?height=96&lazyload=true&width=96",
+      "sha256": "b3dc3ef8cd464c9dc1e562cd0e913ddb3d916d39013b0eced6187746d77b4577",
+      "bytes": 7744
+    },
+    {
+      "code": "FIREWORKS",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_fireworks_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "66a566e678092fe103041522a5c178a29402d7554968bc778683d04819b47954",
+      "bytes": 12150
+    },
+    {
+      "code": "2022",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_twentytwentytwo.png?height=96&lazyload=true&width=96",
+      "sha256": "6b5a4dcc58a55674fe5e551aa0d6ae01064e95b1ec72a6f821766b3b5c2c6423",
+      "bytes": 12411
+    },
+    {
+      "code": "REDPACKET",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_redpacket_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "8ce1d21ee0bc7fab6b7dd34b551b00580fa5edb9adfdf72d41bd0a1027f92198",
+      "bytes": 7646
+    },
+    {
+      "code": "FORTUNE",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/147622203e2662bb52dd3579678e6d6a_tSa2ZaOgaS.png?height=96&lazyload=true&width=96",
+      "sha256": "ab2c2aadb1db91bdb98d997bbd62c00401d31ba35d59f5f21dd491a550f179e5",
+      "bytes": 10390
+    },
+    {
+      "code": "LUCK",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_luck.png?height=96&lazyload=true&width=96",
+      "sha256": "0b6665f7c1bf84f1da0c9444b57755459bbca65f0d61e34b60113ba68774dba0",
+      "bytes": 11482
+    },
+    {
+      "code": "FIRECRACKER",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_firecracker_v3.png?height=96&lazyload=true&width=96",
+      "sha256": "d333df0333d1340a561883cedff2560edadc26db71e76484083da513ab5cedd9",
+      "bytes": 11584
+    },
+    {
+      "code": "StickyRiceBalls",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_stickyriceballs.png?height=96&lazyload=true&width=106",
+      "sha256": "0f0d2a439abd2950a45108e2b1e7abf66a8d297309baeacd9aca9828a7a84780",
+      "bytes": 11729
+    },
+    {
+      "code": "HEARTBROKEN",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_heartbroken.png?height=96&lazyload=true&width=96",
+      "sha256": "3710c9213609d79a2dafd1f2e20f4fc0368031a0bfd49ea26ece6696ab4c7ec3",
+      "bytes": 5047
+    },
+    {
+      "code": "POOP",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_poop.png?height=96&lazyload=true&width=96",
+      "sha256": "8a2f69391b7034440ceac9d72a98a16c84f3127b389af432bf23be39c4ca022d",
+      "bytes": 8090
+    },
+    {
+      "code": "StatusFlashOfInspiration",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_statusflashofInspiration.png?height=96&lazyload=true&width=96",
+      "sha256": "9aa766c4e2d5ad33b1282d4e2cf05242af7b4eb88f520941ba21ec9f1081cd2d",
+      "bytes": 7722
+    },
+    {
+      "code": "18X",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_eighteen.png?height=96&lazyload=true&width=96",
+      "sha256": "dfc31ed59b068671b9769eabaf0fbb3b67cc7930c2795df4bafda72601e3000d",
+      "bytes": 8250
+    },
+    {
+      "code": "CLEAVER",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/d920620f7b7a30fd2bf6cd565eae1d0a_I67ZCFoRsS.png?height=96&lazyload=true&width=96",
+      "sha256": "c539f083eef201480c8d8e0e58f327404979f4370ebb3365b6775fb037643347",
+      "bytes": 9546
+    },
+    {
+      "code": "Soccer",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_soccer_v3.png?height=96&lazyload=true&width=96",
+      "sha256": "95e05a9b4d3d438f185c5393728d373f479e8935875faf0b8bec01ffd4d9bcec",
+      "bytes": 8931
+    },
+    {
+      "code": "Basketball",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_basketball_v3.png?height=96&lazyload=true&width=96",
+      "sha256": "60d61c3f6ba05606e088062bc8b5208f84be7fe282a26b1abdb66bfacbef51bf",
+      "bytes": 13728
+    },
+    {
+      "code": "GeneralDoNotDisturb",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/742f3142e94afcd1cc4f4764d7c3174d_Xy8YMH6pha.png?height=96&lazyload=true&width=96",
+      "sha256": "71e2426aef7f317209f17ef8a9465b3ef8bf6f9effbf3b7e9ccc90a88dae78e4",
+      "bytes": 4397
+    },
+    {
+      "code": "Status_PrivateMessage",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_status_privatemessage.png?height=96&lazyload=true&width=96",
+      "sha256": "2d995d477c5fad56ce18ceb0056726f52b8a181888086609b4cc1f8c45563f8d",
+      "bytes": 7182
+    },
+    {
+      "code": "GeneralInMeetingBusy",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_generalInmeetingbusy_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "065896bf4fef2e4e55d78e488d2ad404770d0ac5453a996bc88c89233180908e",
+      "bytes": 5230
+    },
+    {
+      "code": "StatusReading",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_statusreading.png?height=96&lazyload=true&width=96",
+      "sha256": "ad9729ab39cac6734fb95eee46f510510fa08d6c6502990ddde2fc4d5c97883d",
+      "bytes": 6093
+    },
+    {
+      "code": "StatusInFlight",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_statusinflight.png?height=96&lazyload=true&width=96",
+      "sha256": "79a78e8c8db4f82dccbd7f451671406d21bba8fc6a11b2d33c27df19a40cc684",
+      "bytes": 9015
+    },
+    {
+      "code": "GeneralBusinessTrip",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_generalbusinesstrip_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "7bf5aa06031ee4c60fa8db345ae707642d15d32baf97cc968f1c5c991c49bfae",
+      "bytes": 5436
+    },
+    {
+      "code": "GeneralWorkFromHome",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_generalworkfromhome.png?height=96&lazyload=true&width=96",
+      "sha256": "7b92a67d97c73c75b1f1d9c342e42ff8b0044b78437e18842b3c3e8d0e641eb7",
+      "bytes": 10383
+    },
+    {
+      "code": "StatusEnjoyLife",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_statusenjoylife.png?height=96&lazyload=true&width=96",
+      "sha256": "e6d2d9e4742b6d43d65950cf51d747e0e37844070bec2312e52fcfe9c2a02eab",
+      "bytes": 9080
+    },
+    {
+      "code": "GeneralTravellingCar",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_generaltravellingcar.png?height=96&lazyload=true&width=96",
+      "sha256": "165bb6a3c701b35409c69a2cd18e58d84925b698ebbc09ea3aed7e1e00bc7d32",
+      "bytes": 8853
+    },
+    {
+      "code": "StatusBus",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_statusbus.png?height=96&lazyload=true&width=96",
+      "sha256": "96e1f558bb614f4ffcb536ac25ce8abb07c2addd511c8ff4e664cec62c3b9ecf",
+      "bytes": 6437
+    },
+    {
+      "code": "GeneralSun",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_generalsun.png?height=96&lazyload=true&width=96",
+      "sha256": "52249d423bd4fd5fa3cdec08a6b901b391ef3ced8e0f533781e629983a7da232",
+      "bytes": 9386
+    },
+    {
+      "code": "GeneralMoonRest",
+      "source": "https://sf3-ttcdn-tos.pstatp.com/obj/lark-reaction-cn/emoji_generalmoonrest_v2.png?height=96&lazyload=true&width=96",
+      "sha256": "97f694d3a1ad5d96dc66e1100edcc0151e4f161e766c4e486a0e10b2006447f5",
+      "bytes": 10515
+    },
+    {
+      "code": "MoonRabbit",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/dbfb263893cdc014f73685851b1352be_mBFyIx7ApY.png?height=96&lazyload=true&width=96",
+      "sha256": "bb6d7fc3767b60238ddfa897542e68d6d2dfdd9cd9f8b6596e04679dedaa298f",
+      "bytes": 12897
+    },
+    {
+      "code": "Mooncake",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/87bc24c03541a1ced9dddfb24fdb1865_D716318HXN.png?height=96&lazyload=true&width=96",
+      "sha256": "718a6763ab05f79e65a20dd16d77bdc3c42b72d4957b22a3836837605ebb477c",
+      "bytes": 14445
+    },
+    {
+      "code": "JubilantRabbit",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/45497d37d491c959a29a552c89b4d887_9YCTU0usnA.png?height=96&lazyload=true&width=96",
+      "sha256": "f88a284d2b9a3552c1a21a2da8064285ff0269e692a14e1922388fa0f882cb0e",
+      "bytes": 13264
+    },
+    {
+      "code": "TV",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/ab217b43ca7d0495cf46519271ffe7d6_S7JYKcnKVZ.png?height=96&lazyload=true&width=96",
+      "sha256": "d0640c28b0bd9b61391f0e6a5d068ac5e90d2a177708edb3422a3691eb6bfa0b",
+      "bytes": 10603
+    },
+    {
+      "code": "Movie",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/b332964ff17528489d91d0760a2a4ed8_kxPGKVx0qY.png?height=96&lazyload=true&width=96",
+      "sha256": "1089cee502a8dfc3bb60c5502d049042a1f37f09aecfb268f6e042fa0a7f3e4a",
+      "bytes": 5714
+    },
+    {
+      "code": "Pumpkin",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/fa192c5f1bc49b4f51de7580a605af7a_2yFMrKG9ou.png?height=96&lazyload=true&width=96",
+      "sha256": "ac377f4d5201745814487983fad90d13fc3e4f011cf1f446c543ef845d0a8667",
+      "bytes": 14250
+    },
+    {
+      "code": "BeamingFace",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/92daa29e246314a382ae764dfc87f641_BqicyGCojS.png?height=96&lazyload=true&width=96",
+      "sha256": "3766979d45fda271f32b44b9d5794bc651cc14077221e2defb0d186f1ad34a8e",
+      "bytes": 10015
+    },
+    {
+      "code": "Delighted",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/a9fe96121ba5e39b68a9fd3993f80b01_M8cfYKkM9U.png?height=96&lazyload=true&width=96",
+      "sha256": "b2a1a82189bcbf6103ebc6fdbe9d155aff4c8da670cf05509f38c1c1fcf02c61",
+      "bytes": 8872
+    },
+    {
+      "code": "ColdSweat",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/06985ef8af8d8b8b4219e690bd4e989e_mTUTPYP5dY.png?height=96&lazyload=true&width=96",
+      "sha256": "8e6ea5010903bffcc887c65685de31602ba0e4a16443731ad7b033869f2330b9",
+      "bytes": 9070
+    },
+    {
+      "code": "FullMoonFace",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/81e0b36d0fb3a9fcd9dec713e9750c1b_ciYC93YonW.png?height=96&lazyload=true&width=96",
+      "sha256": "b4c2914989b88dab5c172fdfca08b9fee2fb9a8c8ed8ddd0a5c1088421002bfc",
+      "bytes": 9400
+    },
+    {
+      "code": "Partying",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/9cfb7be26a970caae6d774498474988f_sQ3pgWOu31.png?height=96&lazyload=true&width=96",
+      "sha256": "932d2628e01e2b5344fcd08818a7da3e826cfb5f1521092440b91677f81f796f",
+      "bytes": 12889
+    },
+    {
+      "code": "GoGoGo",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/0a6df90764cd0d3f01d85bca6c814fb7_tvwAnSsTJS.png?height=96&lazyload=true&width=96",
+      "sha256": "6c91a7d801b9836e113674c1179dbad52add68228235f26b2194a852e0d68f3a",
+      "bytes": 11963
+    },
+    {
+      "code": "ThanksFace",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/a912450d9e0f85ad9455b3197634ee14_k46oc6Ok7K.png?height=96&lazyload=true&width=96",
+      "sha256": "94519bf13b09720deb04fb88b2036b13c5ff7f9f5256d12f66772e867d29fe75",
+      "bytes": 11486
+    },
+    {
+      "code": "SaluteFace",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/c16a76d4e345b0d098bbf39eb1a1eb59_QA6zdwvDqi.png?height=96&lazyload=true&width=96",
+      "sha256": "24c523ed872fc87bbde2f3102578b2b9bfa0eaced1d066d460117d8b4e1edec8",
+      "bytes": 10145
+    },
+    {
+      "code": "Shrug",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/756651e468c367877deb996502e14408_QkZKDz5o5T.png?height=96&lazyload=true&width=96",
+      "sha256": "5616e6713d2916cc3528319383d199279f6c12cfb01b2ddea62176d04773ff8e",
+      "bytes": 11111
+    },
+    {
+      "code": "ClownFace",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/860a4e71696cdcde0e218565ef5bf3b1_lOjQS7FSKS.png?height=96&lazyload=true&width=96",
+      "sha256": "28350e86085cb99b6f79f09e43302c208d94c30763d7dfd88ad00002ba740826",
+      "bytes": 12518
+    },
+    {
+      "code": "HappyDragon",
+      "source": "https://sf3-cn.feishucdn.com/obj/open-platform-opendoc/e8f7bab6f3609283a80c8f15d83f5580_gL6Cwjsqnu.png?height=96&lazyload=true&width=96",
+      "sha256": "cd2348b7a6a99f0b1f08e9c33ab7c3e7de57567112b5ae3394fc68859d4d7301",
+      "bytes": 14742
+    }
+  ]
+}
