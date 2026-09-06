@@ -92,6 +92,7 @@ jobs:
           import hashlib
           import json
           import os
+          import re
           from pathlib import Path
 
           artifacts = []
@@ -104,7 +105,11 @@ jobs:
                       digest.update(chunk)
               artifacts.append({'file': path.name, 'bytes': path.stat().st_size,
                                 'sha256': digest.hexdigest()})
+          version = re.search(r'^version:\s*(\S+)', Path('pubspec.yaml').read_text(), re.M).group(1)
+          companion = json.loads(Path('companion.json').read_text())
           manifest = {'commit': os.environ['GITHUB_SHA'],
+                      'app_version': version,
+                      'companion': companion,
                       'built_at_utc': datetime.now(timezone.utc).isoformat(),
                       'target': os.environ['OFFICE_TARGET'],
                       'flutter': '3.47.2',

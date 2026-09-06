@@ -12,6 +12,8 @@ import 'business_widgets.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
 import 'enterprise_apps.dart';
+import 'enterprise_organizations.dart';
+import 'professional_identity.dart';
 
 String enterpriseRole(dynamic value) =>
     const {'owner': '企业所有者', 'admin': '企业管理员', 'member': '普通成员'}[value] ??
@@ -28,6 +30,7 @@ const enterprisePermissions = {
   'view_audit': '查看管理审计',
   'manage_enterprise': '编辑企业信息',
   'manage_apps': '管理企业应用策略',
+  'manage_organizations': '管理组织目录',
 };
 
 class OfficeEnterprise extends StatefulWidget {
@@ -45,7 +48,15 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
   bool _busy = false;
   Timer? _searchTimer;
   String? _error;
-  static const _labels = ['企业概览', '成员与组织', '部门管理', '角色与权限', '管理日志', '企业应用'];
+  static const _labels = [
+    '企业概览',
+    '成员与组织',
+    '部门管理',
+    '角色与权限',
+    '管理日志',
+    '企业应用',
+    '组织管理',
+  ];
   static const _icons = [
     Icons.dashboard_outlined,
     Icons.people_outline,
@@ -53,6 +64,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
     Icons.admin_panel_settings_outlined,
     Icons.history,
     Icons.apps_outlined,
+    Icons.corporate_fare_outlined,
   ];
   @override
   void initState() {
@@ -140,6 +152,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 900;
+        if (constraints.maxWidth < 600) return _mobileEnterprise();
         return Column(
           children: [
             Padding(
@@ -304,6 +317,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                                   2 => _departments(),
                                   3 => _roles(),
                                   5 => OfficeEnterpriseApps(controller: e),
+                                  6 => OfficeOrganizations(controller: e),
                                   _ => _audit(),
                                 },
                               ),
@@ -318,6 +332,197 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
       },
     ),
   );
+
+  Widget _mobileEnterprise() => Column(
+    children: [
+      SizedBox(
+        height: 56,
+        child: Row(
+          children: [
+            if (_tab != 0)
+              IconButton(
+                tooltip: '返回企业管理',
+                onPressed: () => setState(() => _tab = 0),
+                icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+              )
+            else
+              const SizedBox(width: 48),
+            Expanded(
+              child: Text(
+                _tab == 0 ? '企业管理' : _labels[_tab],
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: '刷新企业信息',
+              onPressed: e.loading ? null : e.load,
+              icon: const Icon(Icons.refresh, size: 19),
+            ),
+          ],
+        ),
+      ),
+      const Divider(height: 1),
+      if (e.loading) const LinearProgressIndicator(minHeight: 2),
+      if (_error != null || e.error != null)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: BusinessError(_error ?? e.error),
+        ),
+      Expanded(
+        child: !e.can('access_admin')
+            ? _noAccess()
+            : switch (_tab) {
+                0 => _mobileOverview(),
+                1 => _members(),
+                2 => _departments(),
+                3 => _roles(),
+                5 => OfficeEnterpriseApps(controller: e),
+                6 => OfficeOrganizations(controller: e),
+                _ => _audit(),
+              },
+      ),
+    ],
+  );
+
+  Widget _mobileOverview() {
+    Widget entry(
+      String title,
+      IconData icon, {
+      String? value,
+      VoidCallback? onTap,
+      String? tooltip,
+    }) => ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 3),
+      leading: Icon(icon, color: accentColor, size: 21),
+      title: Text(title, style: const TextStyle(fontSize: 13)),
+      subtitle: value == null
+          ? null
+          : Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                color: mutedColor,
+                height: 1.8,
+              ),
+            ),
+      trailing: onTap == null
+          ? null
+          : Icon(
+              tooltip == '复制企业编号' ? Icons.copy_outlined : Icons.chevron_right,
+              size: 18,
+              color: mutedColor,
+            ),
+      onTap: onTap,
+    );
+    Widget section(String title, List<Widget> children) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 11, color: mutedColor),
+          ),
+        ),
+        Material(
+          color: Colors.white,
+          child: Column(
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                if (i > 0) const Divider(height: 1, indent: 54),
+                children[i],
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+    return ColoredBox(
+      color: const Color(0xfff5f6f8),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            section('企业信息', [
+              entry(
+                '企业名称',
+                Icons.apartment_outlined,
+                value: str(e.enterprise['name']),
+                onTap: e.can('manage_enterprise')
+                    ? () => showDialog<void>(
+                        context: context,
+                        builder: (_) => _EnterpriseProfile(controller: e),
+                      )
+                    : null,
+              ),
+              entry(
+                '企业编号',
+                Icons.fingerprint,
+                value: str(e.enterprise['id']),
+                tooltip: '复制企业编号',
+                onTap: () async {
+                  await Clipboard.setData(
+                    ClipboardData(text: str(e.enterprise['id'])),
+                  );
+                  if (mounted) notifyOffice(context, '企业编号已复制');
+                },
+              ),
+            ]),
+            section('通讯录', [
+              entry(
+                '成员与组织',
+                Icons.people_outline,
+                value:
+                    '${e.counts['humans'] ?? 0} 位人类成员 · ${e.counts['agents'] ?? 0} 位 Agent',
+                onTap: () => setState(() => _tab = 1),
+              ),
+              if (e.can('manage_members'))
+                entry('添加成员', Icons.person_add_alt, onTap: () => _editMember()),
+              entry(
+                '部门管理',
+                Icons.account_tree_outlined,
+                onTap: () => setState(() => _tab = 2),
+              ),
+              entry(
+                '组织管理',
+                Icons.corporate_fare_outlined,
+                onTap: () => setState(() => _tab = 6),
+              ),
+            ]),
+            section('权限与应用', [
+              entry(
+                '角色与权限',
+                Icons.admin_panel_settings_outlined,
+                onTap: () => setState(() => _tab = 3),
+              ),
+              entry(
+                '企业应用',
+                Icons.apps_outlined,
+                onTap: () => setState(() => _tab = 5),
+              ),
+              if (e.can('view_audit'))
+                entry(
+                  '管理日志',
+                  Icons.history,
+                  onTap: () => setState(() => _tab = 4),
+                ),
+              entry(
+                '导出企业管理文档',
+                Icons.download_outlined,
+                onTap: _busy ? null : _export,
+              ),
+            ]),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _noAccess() => ListView(
     padding: const EdgeInsets.all(25),
     children: [
@@ -674,13 +879,25 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
-                                            subtitle: Text(
-                                              '${enterpriseRole(member['role'])} · ${enterpriseStatus(member['status'])}\n${str(member['department_name'], '未分配部门')}${member['kind'] == 'agent' ? ' · Agent' : ''}',
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                color: mutedColor,
-                                                height: 1.8,
-                                              ),
+                                            subtitle: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  '${enterpriseRole(member['role'])} · ${enterpriseStatus(member['status'])}${member['kind'] == 'agent' ? ' · Agent' : ''}',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color: mutedColor,
+                                                    height: 1.8,
+                                                  ),
+                                                ),
+                                                ProfessionalIdentity(
+                                                  person: member,
+                                                  enterpriseName: str(
+                                                    e.enterprise['name'],
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                             trailing: e.canEditMember(member)
                                                 ? IconButton(
@@ -789,6 +1006,8 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
           DataColumn(label: Text('账号状态', style: TextStyle(fontSize: 11))),
           DataColumn(label: Text('管理角色', style: TextStyle(fontSize: 11))),
           DataColumn(label: Text('部门', style: TextStyle(fontSize: 11))),
+          DataColumn(label: Text('职业与职位', style: TextStyle(fontSize: 11))),
+          DataColumn(label: Text('任职组织', style: TextStyle(fontSize: 11))),
           DataColumn(label: Text('操作', style: TextStyle(fontSize: 11))),
         ],
         rows: e.members
@@ -854,6 +1073,39 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 11),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 140,
+                      child: Text(
+                        [
+                          str(member['profession']),
+                          str(member['job_title']),
+                        ].where((v) => v.isNotEmpty).join('\n'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11, height: 1.8),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    SizedBox(
+                      width: 145,
+                      child: Tooltip(
+                        message: str(member['source_organization_name']).isEmpty
+                            ? ''
+                            : '来源组织：${member['source_organization_name']}',
+                        child: Text(
+                          str(
+                            member['organization_name'],
+                            str(e.enterprise['name']),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11),
+                        ),
                       ),
                     ),
                   ),
@@ -1216,12 +1468,19 @@ class _EnterpriseMemberForm extends StatefulWidget {
 
 class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
   late final _name = TextEditingController(text: str(widget.member?['name']));
+  late final _profession = TextEditingController(
+    text: str(widget.member?['profession']),
+  );
+  late final _jobTitle = TextEditingController(
+    text: str(widget.member?['job_title']),
+  );
   final _credential = TextEditingController();
   final _clientId = OfficeState.newClientId();
   late String _kind = str(widget.member?['kind'], 'human'),
       _role = str(widget.member?['role'], 'member'),
       _status = str(widget.member?['status'], 'active');
   late String? _department = widget.member?['department_id'] as String?;
+  late String? _organization = widget.member?['organization_id'] as String?;
   String? _error;
   Json? _created;
   bool _busy = false;
@@ -1234,6 +1493,8 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
   @override
   void dispose() {
     _name.dispose();
+    _profession.dispose();
+    _jobTitle.dispose();
     _credential.dispose();
     super.dispose();
   }
@@ -1253,6 +1514,9 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
           name: _name.text.trim(),
           kind: _kind,
           departmentId: _department,
+          organizationId: _organization,
+          profession: _profession.text.trim(),
+          jobTitle: _jobTitle.text.trim(),
           clientId: _clientId,
         );
         if (mounted) {
@@ -1266,6 +1530,9 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
             'role': _role,
             'status': _status,
             'department_id': _department,
+            'organization_id': _organization,
+            'profession': _profession.text.trim(),
+            'job_title': _jobTitle.text.trim(),
           },
         });
         if (mounted) Navigator.pop(context);
@@ -1354,6 +1621,51 @@ class _EnterpriseMemberFormState extends State<_EnterpriseMemberForm> {
                     controller: _name,
                     maxLength: 100,
                     decoration: const InputDecoration(labelText: '成员名称'),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _profession,
+                    enabled: !_onlyName && !_busy,
+                    maxLength: 100,
+                    decoration: const InputDecoration(labelText: '职业'),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _jobTitle,
+                    enabled: !_onlyName && !_busy,
+                    maxLength: 100,
+                    decoration: const InputDecoration(labelText: '职位'),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    initialValue: _organization ?? '',
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: '任职组织'),
+                    items: [
+                      DropdownMenuItem(
+                        value: '',
+                        child: Text(str(e.enterprise['name'], '默认企业')),
+                      ),
+                      ...e.organizations.map(
+                        (o) => DropdownMenuItem(
+                          value: str(o['id']),
+                          child: Text(str(o['name'])),
+                        ),
+                      ),
+                      if (_organization != null &&
+                          !e.organizations.any((o) => o['id'] == _organization))
+                        DropdownMenuItem(
+                          value: _organization,
+                          child: Text(
+                            str(widget.member?['organization_name'], '当前组织'),
+                          ),
+                        ),
+                    ],
+                    onChanged: _onlyName || _busy
+                        ? null
+                        : (value) => setState(
+                            () => _organization = value == '' ? null : value,
+                          ),
                   ),
                   if (widget.member == null) ...[
                     const SizedBox(height: 14),

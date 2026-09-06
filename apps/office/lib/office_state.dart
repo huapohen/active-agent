@@ -4,8 +4,20 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:crypto/crypto.dart';
 
 typedef Json = Map<String, dynamic>;
+
+class OfficeExternalLogin {
+  const OfficeExternalLogin({
+    required this.providerId,
+    required this.authorizationUrl,
+    required this.verifier,
+    required this.expiresIn,
+  });
+  final String providerId, authorizationUrl, verifier;
+  final int expiresIn;
+}
 
 class OfficeException implements Exception {
   final int status;
@@ -34,6 +46,9 @@ class OfficeState extends ChangeNotifier {
   List<Json> meetings = [], calendarEvents = [], apps = [];
   List<String> appFavorites = [];
   Json settings = {}, accountInfo = {}, currentAttendance = {};
+  Json enterpriseSummary = {};
+  bool get canManageEnterprise =>
+      (enterpriseSummary['capabilities'] as Map?)?['access_admin'] == true;
   List<Json> contacts = [], plugins = [], capabilities = [];
   List<Json> attendanceRecords = [],
       approvalTemplates = [],
@@ -48,6 +63,8 @@ class OfficeState extends ChangeNotifier {
   Json? detail;
   String? selectedRoomId;
   bool loading = false, connected = false;
+  bool searchTruncated = false;
+  Json searchFilters = {};
   String error = '';
   int _generation = 0, _cursor = 0, _selection = 0, _search = 0;
   bool _disposed = false;
@@ -161,6 +178,8 @@ class OfficeState extends ChangeNotifier {
   void _denyModule(String id) {
     unavailableModules.add(id);
     searchResults = [];
+    searchTruncated = false;
+    searchFilters = {};
     switch (id) {
       case 'im':
         rooms = [];
@@ -292,6 +311,8 @@ class OfficeState extends ChangeNotifier {
     agents = [];
     catalog = [];
     searchResults = [];
+    searchTruncated = false;
+    searchFilters = {};
     allDocuments = [];
     allTasks = [];
     libraryRooms = [];
@@ -301,6 +322,7 @@ class OfficeState extends ChangeNotifier {
     appFavorites = [];
     settings = {};
     accountInfo = {};
+    enterpriseSummary = {};
     currentAttendance = {};
     attendanceRecords = [];
     approvalTemplates = [];
@@ -547,17 +569,37 @@ class OfficeState extends ChangeNotifier {
     await selectRoom(result['room']['id']);
   }
 
-  Future<void> search(String query) async {
+  Future<void> search(
+    String query, {
+    String type = 'all',
+    String? roomId,
+    String? authorId,
+    String? after,
+    String? before,
+  }) async {
     final generation = _generation, search = ++_search;
     if (query.trim().isEmpty) {
       searchResults = [];
+      searchTruncated = false;
+      searchFilters = {};
       _notify();
       return;
     }
-    final encoded = Uri.encodeQueryComponent(query.trim());
-    final result = await _request('/search?q=$encoded');
+    final encoded = Uri(
+      queryParameters: {
+        'q': query.trim(),
+        if (type != 'all') 'type': type,
+        'room_id': ?roomId,
+        'author_id': ?authorId,
+        'after': ?after,
+        'before': ?before,
+      },
+    ).query;
+    final result = await _request('/search?$encoded');
     if (generation == _generation && search == _search) {
       searchResults = _list(result['results']);
+      searchTruncated = result['truncated'] == true;
+      searchFilters = Json.from(result['filters'] ?? {});
       _notify();
     }
   }
@@ -708,8 +750,33 @@ class OfficeState extends ChangeNotifier {
         ))['document'],
       );
 
-  Future<Json> getRun(String id) async =>
-      Json.from((await _request(_room('/turns/$id')))['turn']);
+  Future<Uri> documentEditorUrl(String id, {required String roomId}) async {
+    final result = await _request(
+      _businessRoom(
+        roomId,
+        '/documents/${Uri.encodeComponent(id)}/editor-session',
+      ),
+      method: 'POST',
+      data: {},
+    );
+    final value = result['path'];
+    if (value is! String || !value.startsWith('/office-document#open=')) {
+      throw const FormatException('无效协作编辑器入口');
+    }
+    return Uri.parse(endpoint).resolve(value);
+  }
+
+  Future<Json> getRun(String id) async {
+    final route = _room('/turns/${Uri.encodeComponent(id)}');
+    final run = Json.from((await _request(route))['turn']);
+    if (run['action_plan'] is Map) {
+      final result = await _request('$route/plan');
+      if (result['plan'] is Map) run['action_plan'] = Json.from(result['plan']);
+      run['action_receipts'] = _list(result['receipts']);
+    }
+    return run;
+  }
+
   Future<Json> saveArtifact(String runId) async {
     final run = await getRun(runId);
     final artifact = run['result']?['artifact'];
@@ -733,6 +800,61 @@ class OfficeState extends ChangeNotifier {
       data: {'principal_id': principalId, 'mode': mode},
     );
     await _updated();
+  }
+
+  Future<Json> configureAgentAutonomy(
+    String roomId,
+    String principalId, {
+    required int baseRevision,
+    required Json autonomy,
+  }) async {
+    final result = await officeRequest(
+      '/rooms/${Uri.encodeComponent(roomId)}/participation',
+      method: 'PATCH',
+      data: {
+        'principal_id': principalId,
+        'base_revision': baseRevision,
+        'autonomy': autonomy,
+      },
+    );
+    _applyAgentMemberResult(roomId, principalId, result);
+    return result;
+  }
+
+  Future<Json> configureAgentParticipation(
+    String roomId,
+    String principalId, {
+    required String mode,
+    required int baseRevision,
+  }) async {
+    final result = await officeRequest(
+      '/rooms/${Uri.encodeComponent(roomId)}/participation',
+      method: 'PATCH',
+      data: {
+        'principal_id': principalId,
+        'base_revision': baseRevision,
+        'mode': mode,
+      },
+    );
+    _applyAgentMemberResult(roomId, principalId, result);
+    return result;
+  }
+
+  void _applyAgentMemberResult(String roomId, String principalId, Json result) {
+    if (selectedRoomId == roomId && detail != null && result['member'] is Map) {
+      final saved = Json.from(result['member']);
+      detail!['members'] = _list(detail!['members'])
+          .map(
+            (member) => (member['principal_id'] ?? member['id']) == principalId
+                ? {...member, ...saved}
+                : member,
+          )
+          .toList();
+      if (detail!['room'] is Map) {
+        detail!['room']['revision'] = result['room_revision'];
+      }
+      _notify();
+    }
   }
 
   Future<Json> installAgent(String templateId) async {
@@ -788,6 +910,109 @@ class OfficeState extends ChangeNotifier {
     _loginSessionId = result['session_id'] as String?;
   }
 
+  Future<Json> _publicAuthRequest(
+    String server,
+    String path, {
+    Json? data,
+  }) async {
+    final address = server.trim().replaceAll(RegExp(r'/+$'), '');
+    final uri = Uri.tryParse(address);
+    if (uri == null ||
+        !['http', 'https'].contains(uri.scheme) ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw OfficeException(422, '请输入完整的办公服务地址');
+    }
+    final request =
+        http.Request(
+            data == null ? 'GET' : 'POST',
+            Uri.parse('$address/api/im$path'),
+          )
+          ..followRedirects = false
+          ..headers['content-type'] = 'application/json';
+    if (data != null) request.body = jsonEncode(data);
+    final response = await http.Response.fromStream(
+      await _client.send(request).timeout(const Duration(seconds: 15)),
+    ).timeout(const Duration(seconds: 15));
+    Json result;
+    try {
+      result = Json.from(jsonDecode(response.body));
+    } catch (_) {
+      throw OfficeException(response.statusCode, '登录服务返回了无法识别的响应');
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final error = result['error'];
+      final code = result['code'] ?? (error is Map ? error['code'] : error);
+      throw OfficeException(
+        response.statusCode,
+        const {
+              'external_identity_unbound': '该企业身份尚未绑定工作成员，请联系管理员',
+              'auth_provider_disabled': '此企业登录方式已停用，请重新读取登录方式',
+              'oidc_authorization_failed': '授权未完成或一次性登录码已失效，请重新发起登录',
+              'login_rate_limited': '尝试次数过多，请稍后重试',
+            }[code] ??
+            '企业登录未完成，请重新发起登录',
+        code: code is String ? code : null,
+      );
+    }
+    return result;
+  }
+
+  Future<Json> discoverAuthProviders(String server) =>
+      _publicAuthRequest(server, '/auth/providers');
+
+  Future<OfficeExternalLogin> startExternalLogin(
+    String server,
+    String providerId,
+  ) async {
+    final random = Random.secure();
+    final verifier = base64UrlEncode(
+      List<int>.generate(32, (_) => random.nextInt(256)),
+    ).replaceAll('=', '');
+    final challenge = base64UrlEncode(
+      sha256.convert(utf8.encode(verifier)).bytes,
+    ).replaceAll('=', '');
+    final result = await _publicAuthRequest(
+      server,
+      '/auth/oidc/${Uri.encodeComponent(providerId)}/start',
+      data: {'code_challenge': challenge},
+    );
+    final url = result['authorization_url'] as String?;
+    final uri = Uri.tryParse(url ?? '');
+    if (uri == null ||
+        !['http', 'https'].contains(uri.scheme) ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty) {
+      throw OfficeException(422, '企业授权地址无效');
+    }
+    return OfficeExternalLogin(
+      providerId: providerId,
+      authorizationUrl: url!,
+      verifier: verifier,
+      expiresIn: (result['expires_in'] as num?)?.toInt() ?? 600,
+    );
+  }
+
+  Future<void> exchangeExternalLogin(
+    String server,
+    OfficeExternalLogin attempt,
+    String code,
+  ) async {
+    final result = await _publicAuthRequest(
+      server,
+      '/auth/oidc/${Uri.encodeComponent(attempt.providerId)}/exchange',
+      data: {'code': code.trim(), 'code_verifier': attempt.verifier},
+    );
+    final token = result['token'];
+    if (token is! String || token.isEmpty) {
+      throw OfficeException(422, '企业登录响应缺少工作身份');
+    }
+    await connect(server, token);
+    _loginSessionId = result['session_id'] as String?;
+  }
+
   void _selectAttendance() {
     currentAttendance =
         attendanceRecords
@@ -813,6 +1038,7 @@ class OfficeState extends ChangeNotifier {
       _request('/settings'),
       _request('/auth/account'),
       _backgroundRequest('/contacts', plugin: 'im'),
+      _request('/enterprise'),
     ]);
     if (generation != _generation) return;
     attendanceRecords = _list(results[0]['records']);
@@ -823,6 +1049,7 @@ class OfficeState extends ChangeNotifier {
     settings = Json.from(results[4]['settings'] ?? {});
     accountInfo = Json.from(results[5]['account'] ?? {});
     contacts = _list(results[6]['contacts']);
+    enterpriseSummary = Json.from(results[7]);
     await loadMail(mailFolder, query: _mailQuery);
     await loadPlugins();
     _notify();
@@ -1058,11 +1285,11 @@ class OfficeState extends ChangeNotifier {
     await _updated();
   }
 
-  Future<void> saveSettings(Json changes) async {
+  Future<void> saveSettings(Json changes, {int? baseRevision}) async {
     final result = await _request(
       '/settings',
       method: 'PATCH',
-      data: {...changes, 'base_revision': settings['revision'] ?? 1},
+      data: {...changes, 'base_revision': baseRevision ?? settings['revision'] ?? 1},
     );
     settings = Json.from(result['settings']);
     _notify();

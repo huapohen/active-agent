@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>人机</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -29,7 +29,7 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>CFBundleDisplayName</key>
-	<string>同席</string>
+	<string>人机</string>
 	<key>NSCameraUsageDescription</key>
 	<string>仅在你加入会议并开启摄像头时向会议成员共享画面。</string>
 	<key>NSMicrophoneUsageDescription</key>

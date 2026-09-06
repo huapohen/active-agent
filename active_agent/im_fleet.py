@@ -34,21 +34,24 @@ class OfficeFleet:
         self.settings = settings
         self.client = client or IMClient(settings.doc_free_url, settings.im_admin_token)
         self.factory, self.workers = factory, {}
-        self.slots = threading.BoundedSemaphore(3)
+        self.worker_tokens = {}
+        self.slots = threading.BoundedSemaphore(min(settings.im_model_concurrency, settings.im_worker_slots))
 
     def sync(self):
         registry = self.client.request("GET", "/admin/workers")["workers"]
-        desired = {entry["principal"]["id"]: entry["token"] for entry in registry}
-        if self.settings.im_token:
+        desired = {entry["principal"]["id"]: entry["token"] for entry in registry
+            if entry.get("runnable_room_count", 1) > 0}
+        if self.settings.im_token and self.settings.im_token not in desired.values():
             desired["local-primary"] = self.settings.im_token
-        # Eight local identities are enough for the preview. The store itself is
-        # durable; installations outside this host's capacity remain visibly idle.
-        desired = dict(list(desired.items())[:8])
+        # One bounded thread per eligible installed identity, no process per catalog entry.
+        # Legacy servers omit runnable_room_count; their workers remain long-poll idle.
+        desired = dict(list(desired.items())[:self.settings.im_worker_slots])
         for pid in list(self.workers):
             thread, stop = self.workers[pid]
-            if pid not in desired or not thread.is_alive():
+            if pid not in desired or not thread.is_alive() or self.worker_tokens.get(pid) != desired[pid]:
                 stop.set()
                 del self.workers[pid]
+                self.worker_tokens.pop(pid, None)
         for pid, token in desired.items():
             if pid in self.workers:
                 continue
@@ -66,6 +69,7 @@ class OfficeFleet:
 
             thread = threading.Thread(target=work, name="office-participant", daemon=True)
             self.workers[pid] = (thread, stop)
+            self.worker_tokens[pid] = token
             thread.start()
         return len(self.workers)
 

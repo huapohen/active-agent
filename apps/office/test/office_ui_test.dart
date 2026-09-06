@@ -207,7 +207,7 @@ class LayoutOfficeState extends OfficeState {
   }
 
   @override
-  Future<void> saveSettings(Json changes) async {
+  Future<void> saveSettings(Json changes, {int? baseRevision}) async {
     settings.addAll(changes);
     notifyListeners();
   }
@@ -354,6 +354,121 @@ class IndependentBusinessOfficeState extends LayoutOfficeState {
 }
 
 void main() {
+  testWidgets(
+    'Mobile Agent destination sits beside messages and opens colleague and store pages',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final state = LayoutOfficeState();
+      state.catalog = [
+        {
+          'id': 'writer',
+          'name': '演示技术作家',
+          'profession': '技术写作',
+          'description': '整理团队共同文档',
+          'category_name': '产品与研发',
+          'category_id': 'product',
+          'skills': ['技术文档'],
+        },
+      ];
+      await tester.pumpWidget(ActiveOfficeApp(state: state));
+      await tester.pumpAndSettle();
+      final navigation = tester.widget<NavigationBar>(
+        find.byType(NavigationBar),
+      );
+      expect(
+        navigation.destinations.whereType<NavigationDestination>().map(
+          (item) => item.label,
+        ),
+        ['消息', 'Agent', '云文档', '工作台', '更多'],
+      );
+      final messageTab = find.widgetWithText(NavigationDestination, '消息');
+      final agentTab = find.widgetWithText(NavigationDestination, 'Agent');
+      final documentsTab = find.widgetWithText(NavigationDestination, '云文档');
+      expect(
+        tester.getCenter(agentTab).dx,
+        greaterThan(tester.getCenter(messageTab).dx),
+      );
+      expect(
+        tester.getCenter(agentTab).dx,
+        lessThan(tester.getCenter(documentsTab).dx),
+      );
+      await tester.tap(agentTab);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        1,
+      );
+      expect(find.text('协作 Agent'), findsOneWidget);
+      expect(find.text('你的工作伙伴，共同参与、主动推进。'), findsOneWidget);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Agent 商店'));
+      await tester.pumpAndSettle();
+      expect(find.text('演示技术作家'), findsOneWidget);
+      await tester.tap(find.widgetWithText(NavigationDestination, '更多'));
+      await tester.pumpAndSettle();
+      expect(find.text('视频会议'), findsOneWidget);
+      expect(find.text('邮箱'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      state.dispose();
+    },
+  );
+  testWidgets('Mobile composer expands draft and opens actual task tools', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = LayoutOfficeState();
+    await tester.pumpWidget(ActiveOfficeApp(state: state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('协作测试项目').last);
+    await tester.pumpAndSettle();
+    final composer = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.hintText == '发送消息，或 @ 工作伙伴共同推进',
+    );
+    await tester.enterText(composer, '准备工作');
+    await tester.tap(find.byTooltip('展开消息编辑器'));
+    await tester.pumpAndSettle();
+    final expanded = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.hintText == '写下完整的消息，完成后回到会话继续发送',
+    );
+    await tester.enterText(expanded, '完整工作背景\n下一步一起完成');
+    await tester.tap(find.text('完成'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'Expanded editor must close safely',
+    );
+    expect(
+      tester.widget<TextField>(composer).controller!.text,
+      '完整工作背景\n下一步一起完成',
+    );
+    await tester.tap(find.byTooltip('更多工作工具'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'Mobile tools must fit the screen',
+    );
+    expect(find.text('文件与图片'), findsOneWidget);
+    expect(find.text('日程'), findsOneWidget);
+    expect(find.text('发起会议'), findsOneWidget);
+    await tester.tap(find.text('任务').last);
+    await tester.pumpAndSettle();
+    expect(find.text('新建任务'), findsOneWidget);
+    expect(find.text('目标与验收条件'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
   testWidgets('Docs and tasks remain writable when IM is disabled', (
     tester,
   ) async {
@@ -386,6 +501,50 @@ void main() {
     expect(state.taskUpdatedRoom, 'room-demo');
     expect(state.taskStatus, 'done');
     expect(state.selectedRoomId, isNull);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+  testWidgets('Document closing keeps unsaved draft through route transition', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = IndependentBusinessOfficeState();
+    state.endpoint = 'https://document-draft.example';
+    await tester.pumpWidget(ActiveOfficeApp(state: state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('云文档').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('独立共同文档'));
+    await tester.pumpAndSettle();
+    final title = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.hintText == '给这份文档起个名字',
+    );
+    final body = find.byWidgetPredicate(
+      (w) =>
+          w is TextField && w.decoration?.hintText == '# 共同目标\n\n写下背景、依据和行动计划…',
+    );
+    await tester.enterText(title, '还未提交的共同方案');
+    await tester.enterText(body, '# 新增依据\n保留我的本地修改');
+    await tester.tap(find.byTooltip('关闭文档'));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'Controllers must survive reverse animation',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('独立共同文档'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(title).controller!.text, '还未提交的共同方案');
+    expect(tester.widget<TextField>(body).controller!.text, '# 新增依据\n保留我的本地修改');
+    expect(state.documentSavedRoom, isNull);
+    expect(find.text('共同版本 r1'), findsOneWidget);
+    await tester.tap(find.byTooltip('关闭文档'));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     state.dispose();
@@ -499,6 +658,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('主页'), findsWidgets);
       expect(tester.takeException(), isNull);
+      if (dimensions.width < 760) {
+        await tester.tap(find.text('更多').first);
+        await tester.pumpAndSettle();
+      }
       await tester.tap(find.text('视频会议').first);
       await tester.pumpAndSettle();
       expect(find.text('发起会议'), findsOneWidget);

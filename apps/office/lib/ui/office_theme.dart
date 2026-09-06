@@ -9,6 +9,22 @@ const selectedColor = Color(0xffe8eeff);
 
 typedef Json = Map<String, dynamic>;
 
+class AppLogo extends StatelessWidget {
+  const AppLogo({super.key, this.size = 44});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(size * .24),
+    child: Image.asset(
+      'assets/branding/rocket.png',
+      width: size,
+      height: size,
+      semanticLabel: '人机火箭标志',
+    ),
+  );
+}
+
 ThemeData officeTheme() => ThemeData(
   useMaterial3: true,
   scaffoldBackgroundColor: shellColor,

@@ -16,22 +16,29 @@ class OfficeLauncherTest(unittest.TestCase):
 
         class Client:
             def __init__(self, base, token):
-                pass
+                self.token = token
 
             def request(self, method, route, body=None):
                 calls.append((method, route))
+                if (method, route) == ("POST", "/admin/default-colleagues"):
+                    if self.token != "test-admin" or body != {"legacy_activate_agent_id": "existing-agent"}:
+                        raise AssertionError("Adoption requires the exact existing identity and administrator credential")
+                    return {"default_colleagues": {"status": "ready"}}
                 if method != "GET" or route != "/me":
                     raise AssertionError("Restart must not alter established office membership")
                 return {"principal": {"kind": "agent"}}
 
         with tempfile.TemporaryDirectory() as folder:
             access = {"bootstrap_complete": True, "room_id": "existing-room",
-                **{name: {"token": "test-credential"} for name in ["human", "agent", "peer"]}}
+                **{name: {"token": "test-credential", "principal": {"id": "existing-" + name}}
+                   for name in ["human", "agent", "peer"]}}
             path = Path(folder) / "access.json"
             launcher.save_private(path, access)
             with patch.object(launcher, "IMClient", Client):
                 self.assertEqual(launcher.provision("http://localhost", "test-admin", path), access)
-            self.assertEqual(calls, [("GET", "/me")] * 3)
+            self.assertEqual(calls, [("GET", "/me")] * 3 + [("POST", "/admin/default-colleagues")])
+            self.assertFalse(any("/rooms" in route for _, route in calls),
+                             "Adopting the default colleague must not re-add previously removed room members")
             self.assertEqual(json.loads(path.read_text()), access)
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 

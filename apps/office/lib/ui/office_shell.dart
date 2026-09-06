@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../office_state.dart' hide Json;
+import '../message_groups.dart';
 import '../meeting_controller.dart';
 import 'app_workbench.dart';
 import 'approvals.dart';
@@ -10,6 +12,13 @@ import 'attendance.dart';
 import 'business_widgets.dart';
 import 'mailbox.dart';
 import 'settings.dart';
+import 'search_filters.dart';
+import 'mobile_navigation.dart';
+import 'profile_menu.dart';
+import 'minutes.dart';
+import 'message_group_widgets.dart';
+import 'message_group_editor.dart';
+import 'message_group_labels.dart';
 import 'calendar.dart';
 import 'conversation.dart';
 import 'enterprise.dart';
@@ -27,47 +36,45 @@ class OfficeShell extends StatefulWidget {
 }
 
 class _OfficeShellState extends State<OfficeShell> {
-  int _nav = 0;
+  int _nav = 0, _settingsTab = 0;
   final _meetingsKey = GlobalKey<OfficeMeetingsState>();
   final _calendarKey = GlobalKey<OfficeCalendarState>();
   final _approvalsKey = GlobalKey<OfficeApprovalsState>();
   final _mailKey = GlobalKey<OfficeMailboxState>();
+  final _minutesKey = GlobalKey<OfficeMinutesState>();
+  OfficeMessageGroups? _groupsController;
+  OfficeMessageGroups get _messageGroups {
+    if (_groupsController case final existing?) return existing;
+    final created = OfficeMessageGroups(s)..addListener(_groupsChanged);
+    _groupsController = created;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(created.refresh());
+    });
+    return created;
+  }
+
+  bool _groupsOpen = false;
   String _searchType = 'all';
   bool _searchOpen = false, _agentStore = false;
   bool _roomOpen = false, _unreadOnly = false;
   String _roomQuery = '', _globalQuery = '';
   Timer? _searchTimer;
   final _globalSearchInput = TextEditingController();
+  final _globalSearchFocus = FocusNode();
+  final _searchScroll = ScrollController();
+  OfficeSearchFilters _searchFilters = const OfficeSearchFilters();
+  int _searchIntent = 0, _selectedSearchResult = -1;
   bool _searching = false;
+  String? _searchError;
   final MeetingMediaController _media = MeetingMediaController();
   OfficeState get s => widget.state;
-  static const _labels = [
-    '消息',
-    'Agent',
-    '通讯录',
-    '云文档',
-    '任务',
-    '工作台',
-    '视频会议',
-    '日历',
-    '邮箱',
-    '考勤',
-    '审批',
-    '设置',
+  List<int> get _mobileNav => [
+    ...officeMobileNavigation(s).map((item) => item.route),
+    12,
   ];
-  static const _icons = [
-    Icons.chat_bubble_outline,
-    Icons.auto_awesome_outlined,
-    Icons.contacts_outlined,
-    Icons.folder_outlined,
-    Icons.task_alt,
-    Icons.grid_view_rounded,
-    Icons.videocam_outlined,
-    Icons.calendar_month_outlined,
-    Icons.mail_outline,
-    Icons.fingerprint,
-    Icons.fact_check_outlined,
-    Icons.settings_outlined,
+  List<OfficeNavigationItem> get _desktopNavigation => [
+    ...officeNavigationItems.where((item) => item.id != 'enterprise'),
+    const OfficeNavigationItem('settings', '设置', Icons.settings_outlined, 11),
   ];
   @override
   void initState() {
@@ -75,20 +82,82 @@ class _OfficeShellState extends State<OfficeShell> {
     _media.addListener(_mediaChanged);
   }
 
+  void _groupsChanged() {
+    if (mounted) {
+      setState(() => _unreadOnly = _messageGroups.selectedId == 'unread');
+    }
+  }
+
+  void _selectMessageGroup(String id) {
+    setState(() {
+      _unreadOnly = id == 'unread';
+      _roomOpen = false;
+    });
+    _messageGroups.select(id);
+  }
+
+  Widget _groupPanel({BuildContext? drawerContext}) => OfficeMessageGroupPanel(
+    controller: _messageGroups,
+    onSelected: (id) {
+      _selectMessageGroup(id);
+      if (drawerContext != null) Navigator.pop(drawerContext);
+    },
+    onManage: () => showOfficeMessageGroupEditor(context, _messageGroups),
+    onCreateLabel: () => showOfficeMessageLabelEditor(context, _messageGroups),
+  );
+
+  void _toggleGroups(bool mobile) {
+    if (!_messageGroups.loaded) unawaited(_messageGroups.refresh());
+    if (!mobile) {
+      setState(() => _groupsOpen = !_groupsOpen);
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black38,
+      builder: (drawerContext) => Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          width: (MediaQuery.sizeOf(drawerContext).width * .78).clamp(240, 350),
+          height: double.infinity,
+          child: SafeArea(child: _groupPanel(drawerContext: drawerContext)),
+        ),
+      ),
+    );
+  }
+
+  Widget _roomGroupingMenu(Json room) => PopupMenuButton<String>(
+    tooltip: '整理会话',
+    enabled: _messageGroups.loaded,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints(minWidth: 160),
+    icon: const Icon(Icons.more_horiz, size: 16, color: mutedColor),
+    onSelected: (_) => showOfficeRoomGrouping(context, _messageGroups, room),
+    itemBuilder: (_) => const [
+      PopupMenuItem(value: 'grouping', child: Text('标签、标记与已完成')),
+    ],
+  );
+
   void _mediaChanged() {
     if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _groupsController?.removeListener(_groupsChanged);
+    _groupsController?.dispose();
     _searchTimer?.cancel();
     _globalSearchInput.dispose();
+    _globalSearchFocus.dispose();
+    _searchScroll.dispose();
     _media.removeListener(_mediaChanged);
     _media.dispose();
     super.dispose();
   }
 
   void _changeNav(int value) {
+    _searchTimer?.cancel();
+    _searchIntent++;
     _globalSearchInput.clear();
     setState(() {
       _nav = value;
@@ -112,6 +181,41 @@ class _OfficeShellState extends State<OfficeShell> {
     }
   }
 
+  Widget _profileButton(Widget child) => Builder(
+    builder: (context) => Tooltip(
+      message: '我的与设置',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () async {
+          final box = context.findRenderObject()! as RenderBox;
+          final action = await showOfficeProfileMenu(
+            context,
+            s,
+            anchor: box.localToGlobal(Offset.zero) & box.size,
+          );
+          if (!mounted) return;
+          switch (action) {
+            case 'account':
+              _settingsTab = 0;
+              _changeNav(11);
+            case 'settings':
+              _settingsTab = 1;
+              _changeNav(11);
+            case 'workbench':
+              _changeNav(5);
+            case 'navigation':
+              await showOfficeNavigationEditor(this.context, s);
+            case 'enterprise':
+              if (s.canManageEnterprise) _changeNav(13);
+            case 'logout':
+              s.disconnect();
+          }
+        },
+        child: Padding(padding: const EdgeInsets.all(2), child: child),
+      ),
+    ),
+  );
+
   void _openApp(String route) {
     final id = route.contains('#')
         ? route.split('#').last
@@ -132,6 +236,7 @@ class _OfficeShellState extends State<OfficeShell> {
       'approval': 10,
       'settings': 11,
       'enterprise': 13,
+      'minutes': 14,
     }[id];
     if (nav != null) _changeNav(nav);
   }
@@ -142,6 +247,8 @@ class _OfficeShellState extends State<OfficeShell> {
   }
 
   Future<void> _open(String id) async {
+    _searchTimer?.cancel();
+    _searchIntent++;
     setState(() {
       _nav = 0;
       _roomOpen = true;
@@ -156,6 +263,7 @@ class _OfficeShellState extends State<OfficeShell> {
   }
 
   void _search(String query) {
+    final intent = ++_searchIntent;
     if (_globalSearchInput.text != query) {
       _globalSearchInput.value = TextEditingValue(
         text: query,
@@ -166,111 +274,194 @@ class _OfficeShellState extends State<OfficeShell> {
       _globalQuery = query;
       _searchOpen = true;
       _searching = query.trim().isNotEmpty;
+      _selectedSearchResult = -1;
+      _searchError = null;
     });
     _searchTimer?.cancel();
     if (query.trim().isEmpty) return;
     _searchTimer = Timer(const Duration(milliseconds: 350), () async {
       try {
-        await s.search(query);
+        await s.search(
+          query,
+          type: _searchType,
+          roomId: _searchFilters.roomId,
+          authorId: _searchFilters.authorId,
+          after: _searchFilters.after,
+          before: _searchFilters.before,
+        );
       } catch (e) {
-        if (mounted && query == _globalQuery) {
-          notifyOffice(context, friendlyError(e));
+        if (mounted && intent == _searchIntent) {
+          _searchError = friendlyError(e);
         }
       } finally {
-        if (mounted && query == _globalQuery) {
+        if (mounted && intent == _searchIntent) {
           setState(() => _searching = false);
         }
       }
     });
   }
 
+  void _closeSearch() {
+    _searchTimer?.cancel();
+    _searchIntent++;
+    _globalSearchInput.clear();
+    setState(() {
+      _globalQuery = '';
+      _searchOpen = false;
+      _searching = false;
+    });
+  }
+
+  void _focusSearch() {
+    _search(_globalQuery);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _searchOpen) _globalSearchFocus.requestFocus();
+    });
+  }
+
+  void _moveSearchResult(int direction) {
+    if (_searching || s.searchResults.isEmpty || _globalQuery.trim().isEmpty) {
+      return;
+    }
+    setState(() {
+      _selectedSearchResult = (_selectedSearchResult + direction).clamp(
+        0,
+        s.searchResults.length - 1,
+      );
+    });
+    if (_searchScroll.hasClients) {
+      final top = _selectedSearchResult * 104.0;
+      final viewport = _searchScroll.position.viewportDimension;
+      final offset = _searchScroll.offset;
+      if (top < offset || top + 104 > offset + viewport) {
+        _searchScroll.animateTo(
+          (top < offset ? top : top + 104 - viewport).clamp(
+            0,
+            _searchScroll.position.maxScrollExtent,
+          ),
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+  }
+
+  void _activateSearchResult() {
+    if (_searching || s.searchResults.isEmpty || _globalQuery.trim().isEmpty) {
+      return;
+    }
+    final index = _selectedSearchResult < 0 ? 0 : _selectedSearchResult;
+    if (index < s.searchResults.length) {
+      unawaited(_openSearchResult(s.searchResults[index]));
+    }
+  }
+
+  Future<void> _filterSearch() async {
+    final next = await showOfficeSearchFilters(
+      context,
+      s,
+      type: _searchType,
+      initial: _searchFilters,
+    );
+    if (next == null || !mounted) return;
+    _searchFilters = next;
+    _search(_globalQuery);
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final mobile = constraints.maxWidth < 760;
-      return Scaffold(
-        body: SafeArea(
-          child: mobile
-              ? Column(
-                  children: [
-                    if (_media.activeMeeting != null && _nav != 6) _callStrip(),
-                    Expanded(child: _mobile()),
-                  ],
-                )
-              : Row(
-                  children: [
-                    _rail(),
-                    if (_nav == 0 && s.moduleAvailable('im'))
-                      Container(
-                        width: constraints.maxWidth < 1050 ? 260 : 290,
-                        margin: const EdgeInsets.fromLTRB(0, 10, 9, 10),
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
+      return CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyK, control: true):
+              _focusSearch,
+          const SingleActivator(LogicalKeyboardKey.keyK, meta: true):
+              _focusSearch,
+          if (_searchOpen)
+            const SingleActivator(LogicalKeyboardKey.escape): _closeSearch,
+        },
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
+            body: SafeArea(
+              child: mobile
+                  ? Column(
+                      children: [
+                        if (_media.activeMeeting != null && _nav != 6)
+                          _callStrip(),
+                        Expanded(child: _mobile()),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        _rail(),
+                        if (_nav == 0 && s.moduleAvailable('im') && _groupsOpen)
+                          Container(
+                            width: 160,
+                            margin: const EdgeInsets.fromLTRB(0, 10, 8, 10),
+                            child: _groupPanel(),
+                          ),
+                        if (_nav == 0 && s.moduleAvailable('im'))
+                          Container(
+                            width: constraints.maxWidth < 1050 ? 260 : 290,
+                            margin: const EdgeInsets.fromLTRB(0, 10, 9, 10),
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: _roomList(),
+                          ),
+                        if (_nav == 3 && s.moduleAvailable('docs'))
+                          _documentSidebar(),
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Material(
+                              color: Colors.white,
+                              child: _searchOpen
+                                  ? _searchResults()
+                                  : _main(false),
+                            ),
+                          ),
                         ),
-                        child: _roomList(),
-                      ),
-                    if (_nav == 3 && s.moduleAvailable('docs'))
-                      _documentSidebar(),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Material(
-                          color: Colors.white,
-                          child: _searchOpen ? _searchResults() : _main(false),
-                        ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+            ),
+            bottomNavigationBar:
+                mobile &&
+                    !(_roomOpen && _nav == 0) &&
+                    !(_nav == 6 && _media.activeMeeting != null)
+                ? NavigationBar(
+                    height: 65,
+                    backgroundColor: Colors.white,
+                    indicatorColor: selectedColor,
+                    selectedIndex: _mobileNav.contains(_nav)
+                        ? _mobileNav.indexOf(_nav)
+                        : _mobileNav.length - 1,
+                    onDestinationSelected: (index) =>
+                        _changeNav(_mobileNav[index]),
+                    destinations: [
+                      for (final item in officeMobileNavigation(s))
+                        NavigationDestination(
+                          icon: Icon(item.icon, size: 20),
+                          label: item.label,
+                        ),
+                      const NavigationDestination(
+                        icon: Icon(Icons.more_horiz, size: 20),
+                        label: '更多',
+                      ),
+                    ],
+                  )
+                : null,
+          ),
         ),
-        bottomNavigationBar:
-            mobile &&
-                !(_roomOpen && _nav == 0) &&
-                !(_nav == 6 && _media.activeMeeting != null)
-            ? NavigationBar(
-                height: 65,
-                backgroundColor: Colors.white,
-                indicatorColor: selectedColor,
-                selectedIndex: [0, 3, 5, 6, 8].contains(_nav)
-                    ? [0, 3, 5, 6, 8].indexOf(_nav)
-                    : 5,
-                onDestinationSelected: (index) =>
-                    _changeNav([0, 3, 5, 6, 8, 12][index]),
-                destinations: const [
-                  NavigationDestination(
-                    icon: Icon(Icons.chat_bubble_outline, size: 20),
-                    label: '消息',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.folder_outlined, size: 20),
-                    label: '云文档',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.grid_view_rounded, size: 20),
-                    label: '工作台',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.videocam_outlined, size: 20),
-                    label: '视频会议',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.mail_outline, size: 20),
-                    label: '邮箱',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.more_horiz, size: 20),
-                    label: '更多',
-                  ),
-                ],
-              )
-            : null,
       );
     },
   );
@@ -282,10 +473,12 @@ class _OfficeShellState extends State<OfficeShell> {
         children: [
           Row(
             children: [
-              PersonAvatar(
-                name: str(s.me?['name']),
-                agent: s.me?['kind'] == 'agent',
-                size: 34,
+              _profileButton(
+                PersonAvatar(
+                  name: str(s.me?['name']),
+                  agent: s.me?['kind'] == 'agent',
+                  size: 34,
+                ),
               ),
               const SizedBox(width: 9),
               Expanded(
@@ -293,7 +486,7 @@ class _OfficeShellState extends State<OfficeShell> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '同席',
+                      '人机',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -316,9 +509,9 @@ class _OfficeShellState extends State<OfficeShell> {
           const SizedBox(height: 22),
           Expanded(
             child: ListView(
-              children: List.generate(
-                _labels.length,
-                (i) => Padding(
+              children: _desktopNavigation.map((entry) {
+                final i = entry.route;
+                return Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Material(
                     color: _nav == i
@@ -336,7 +529,7 @@ class _OfficeShellState extends State<OfficeShell> {
                         child: Row(
                           children: [
                             Icon(
-                              _icons[i],
+                              entry.icon,
                               size: 19,
                               color: _nav == i
                                   ? accentColor
@@ -344,7 +537,7 @@ class _OfficeShellState extends State<OfficeShell> {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              _labels[i],
+                              entry.label,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: _nav == i
@@ -380,8 +573,8 @@ class _OfficeShellState extends State<OfficeShell> {
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              }).toList(),
             ),
           ),
           if (_media.activeMeeting != null && _nav != 6) _callStrip(),
@@ -451,6 +644,18 @@ class _OfficeShellState extends State<OfficeShell> {
           },
           state: s,
           mobile: true,
+          onCreateCalendar: () {
+            _changeNav(7);
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _calendarKey.currentState?.createEvent(),
+            );
+          },
+          onCreateMeeting: () {
+            _changeNav(6);
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _meetingsKey.currentState?.createMeeting(),
+            );
+          },
           onBack: () => setState(() => _roomOpen = false),
         ),
       );
@@ -469,15 +674,17 @@ class _OfficeShellState extends State<OfficeShell> {
                     padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
                     child: Row(
                       children: [
-                        PersonAvatar(
-                          name: str(s.me?['name']),
-                          agent: s.me?['kind'] == 'agent',
-                          size: 27,
+                        _profileButton(
+                          PersonAvatar(
+                            name: str(s.me?['name']),
+                            agent: s.me?['kind'] == 'agent',
+                            size: 27,
+                          ),
                         ),
                         const SizedBox(width: 9),
                         const Expanded(
                           child: Text(
-                            '同席工作空间',
+                            '人机工作空间',
                             style: TextStyle(fontSize: 11, color: mutedColor),
                           ),
                         ),
@@ -508,6 +715,7 @@ class _OfficeShellState extends State<OfficeShell> {
     8: 'mail',
     9: 'attendance',
     10: 'approvals',
+    14: 'minutes',
   }[_nav];
   bool get _navAvailable =>
       _currentModule == null || s.moduleAvailable(_currentModule!);
@@ -586,11 +794,18 @@ class _OfficeShellState extends State<OfficeShell> {
       case 10:
         return OfficeApprovals(key: _approvalsKey, state: s);
       case 11:
-        return OfficeSettings(state: s, onEnterprise: () => _changeNav(13));
+        return OfficeSettings(
+          key: ValueKey('settings-$_settingsTab'),
+          state: s,
+          initialTab: _settingsTab,
+          onEnterprise: s.canManageEnterprise ? () => _changeNav(13) : null,
+        );
       case 12:
         return _more();
       case 13:
         return OfficeEnterprise(state: s);
+      case 14:
+        return OfficeMinutes(key: _minutesKey, state: s);
       default:
         return OfficeAppWorkbench(state: s, onOpen: _openApp);
     }
@@ -601,10 +816,12 @@ class _OfficeShellState extends State<OfficeShell> {
     children: [
       Row(
         children: [
-          PersonAvatar(
-            name: str(s.me?['name']),
-            agent: s.me?['kind'] == 'agent',
-            size: 43,
+          _profileButton(
+            PersonAvatar(
+              name: str(s.me?['name']),
+              agent: s.me?['kind'] == 'agent',
+              size: 43,
+            ),
           ),
           const SizedBox(width: 13),
           Expanded(
@@ -620,7 +837,7 @@ class _OfficeShellState extends State<OfficeShell> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  '同席工作空间',
+                  '人机工作空间',
                   style: TextStyle(fontSize: 11, color: mutedColor),
                 ),
               ],
@@ -629,26 +846,55 @@ class _OfficeShellState extends State<OfficeShell> {
         ],
       ),
       const SizedBox(height: 28),
-      ...[1, 2, 7, 4, 9, 10, 11].map(
-        (i) => ListTile(
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.view_carousel_outlined, color: accentColor),
+        title: const Text('编辑底栏', style: TextStyle(fontSize: 14)),
+        trailing: const Icon(Icons.tune, size: 18),
+        onTap: () => showOfficeNavigationEditor(context, s),
+      ),
+      ...officeNavigationItems
+          .where(
+            (item) =>
+                item.id != 'enterprise' &&
+                !officeMobileNavigation(s)
+                    .any((pinned) => pinned.id == item.id),
+          )
+          .map(
+            (item) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(item.icon, color: accentColor),
+              title: Text(item.label, style: const TextStyle(fontSize: 14)),
+              trailing: const Icon(
+                Icons.chevron_right,
+                size: 19,
+                color: mutedColor,
+              ),
+              onTap: () => _changeNav(item.route),
+            ),
+          ),
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.settings_outlined, color: accentColor),
+        title: const Text('设置', style: TextStyle(fontSize: 14)),
+        trailing: const Icon(Icons.chevron_right, size: 19, color: mutedColor),
+        onTap: () {
+          _settingsTab = 0;
+          _changeNav(11);
+        },
+      ),
+      if (s.canManageEnterprise)
+        ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: Icon(_icons[i], color: accentColor),
-          title: Text(_labels[i], style: const TextStyle(fontSize: 14)),
+          leading: const Icon(Icons.apartment_outlined, color: accentColor),
+          title: const Text('企业管理', style: TextStyle(fontSize: 14)),
           trailing: const Icon(
             Icons.chevron_right,
             size: 19,
             color: mutedColor,
           ),
-          onTap: () => _changeNav(i),
+          onTap: () => _changeNav(13),
         ),
-      ),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.apartment_outlined, color: accentColor),
-        title: const Text('企业管理', style: TextStyle(fontSize: 14)),
-        trailing: const Icon(Icons.chevron_right, size: 19, color: mutedColor),
-        onTap: () => _changeNav(13),
-      ),
       if (_media.activeMeeting != null)
         ListTile(
           contentPadding: EdgeInsets.zero,
@@ -696,7 +942,7 @@ class _OfficeShellState extends State<OfficeShell> {
               (r['preferences'] as Map?)?['favorite'] == true,
         )
         .toList();
-    final rooms = s.rooms
+    final rooms = _messageGroups.filteredRooms
         .where(
           (r) =>
               str(r['name']).toLowerCase().contains(_roomQuery.toLowerCase()) &&
@@ -710,10 +956,12 @@ class _OfficeShellState extends State<OfficeShell> {
           child: Row(
             children: [
               if (mobile) ...[
-                PersonAvatar(
-                  name: str(s.me?['name']),
-                  agent: s.me?['kind'] == 'agent',
-                  size: 36,
+                _profileButton(
+                  PersonAvatar(
+                    name: str(s.me?['name']),
+                    agent: s.me?['kind'] == 'agent',
+                    size: 36,
+                  ),
                 ),
                 const SizedBox(width: 11),
               ],
@@ -731,7 +979,7 @@ class _OfficeShellState extends State<OfficeShell> {
                           ),
                           const SizedBox(height: 4),
                           const Text(
-                            '同席工作空间',
+                            '人机工作空间',
                             style: TextStyle(fontSize: 10, color: mutedColor),
                           ),
                         ],
@@ -752,12 +1000,12 @@ class _OfficeShellState extends State<OfficeShell> {
                 )
               else
                 IconButton(
-                  onPressed: () => setState(() => _unreadOnly = !_unreadOnly),
-                  tooltip: _unreadOnly ? '查看全部消息' : '仅看未读',
+                  onPressed: () => _toggleGroups(false),
+                  tooltip: '消息分组',
                   icon: Icon(
-                    Icons.filter_list,
-                    color: _unreadOnly ? accentColor : mutedColor,
-                    size: 19,
+                    Icons.menu,
+                    color: _groupsOpen ? accentColor : mutedColor,
+                    size: 20,
                   ),
                 ),
               _quickMenu(),
@@ -771,7 +1019,7 @@ class _OfficeShellState extends State<OfficeShell> {
             onChanged: (q) => setState(() => _roomQuery = q),
           ),
         ),
-        if (favorites.isNotEmpty)
+        if (favorites.isNotEmpty && _messageGroups.selectedId == 'messages')
           SizedBox(
             height: 78,
             child: ListView.separated(
@@ -813,43 +1061,109 @@ class _OfficeShellState extends State<OfficeShell> {
           padding: const EdgeInsets.fromLTRB(18, 2, 18, 10),
           child: Row(
             children: [
-              if (mobile) ...[
-                ChoiceChip(
-                  label: const Text('消息', style: TextStyle(fontSize: 11)),
-                  selected: !_unreadOnly,
-                  showCheckmark: false,
-                  side: BorderSide.none,
-                  onSelected: (_) => setState(() => _unreadOnly = false),
+              if (mobile)
+                IconButton(
+                  tooltip: '消息分组',
+                  onPressed: () => _toggleGroups(true),
+                  icon: const Icon(Icons.menu, size: 20),
                 ),
-                const SizedBox(width: 9),
-                ChoiceChip(
-                  label: const Text('未读', style: TextStyle(fontSize: 11)),
-                  selected: _unreadOnly,
-                  showCheckmark: false,
-                  side: BorderSide.none,
-                  onSelected: (_) => setState(() => _unreadOnly = true),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final id
+                          in _messageGroups.loaded
+                              ? _messageGroups.shortcuts
+                              : ['messages', 'unread'])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 7),
+                          child: ChoiceChip(
+                            label: Text(
+                              str(
+                                _messageGroups.group(id)?['name'],
+                                id == 'unread' ? '未读' : '消息',
+                              ),
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            selected: _messageGroups.selectedId == id,
+                            showCheckmark: false,
+                            side: BorderSide.none,
+                            onSelected: (_) => _selectMessageGroup(id),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                const Spacer(),
-              ] else
-                Text(
-                  _unreadOnly ? '未读消息' : '全部会话',
-                  style: const TextStyle(fontSize: 10, color: mutedColor),
-                ),
-              const SizedBox(width: 5),
+              ),
               Text(
                 '${rooms.length}',
-                style: const TextStyle(fontSize: 9, color: Color(0xffb3bac7)),
+                style: const TextStyle(fontSize: 10, color: mutedColor),
               ),
             ],
           ),
         ),
+        if (_messageGroups.group(_messageGroups.selectedId)?['type'] == 'label')
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 10, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    str(
+                      _messageGroups.group(_messageGroups.selectedId)?['name'],
+                    ),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: '标签操作',
+                  icon: const Icon(Icons.more_horiz, size: 20),
+                  onSelected: (action) {
+                    final label = _messageGroups.group(
+                      _messageGroups.selectedId,
+                    )!;
+                    if (action == 'add') {
+                      showOfficeMessageLabelRooms(
+                        context,
+                        _messageGroups,
+                        label,
+                      );
+                    }
+                    if (action == 'edit') {
+                      showOfficeMessageLabelEditor(
+                        context,
+                        _messageGroups,
+                        label: label,
+                      );
+                    }
+                    if (action == 'delete') {
+                      deleteOfficeMessageLabel(context, _messageGroups, label);
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'add', child: Text('添加会话')),
+                    PopupMenuItem(value: 'edit', child: Text('编辑标签与规则')),
+                    PopupMenuItem(value: 'delete', child: Text('删除标签')),
+                  ],
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: rooms.isEmpty
               ? Padding(
                   padding: const EdgeInsets.all(23),
                   child: Center(
                     child: Text(
-                      _unreadOnly ? '没有未读消息' : '还没有工作会话\n创建工作群，或从通讯录发起私聊。',
+                      _unreadOnly
+                          ? '没有未读消息'
+                          : _messageGroups.selectedId != 'messages'
+                          ? '此分组暂无会话'
+                          : '还没有工作会话\n创建工作群，或从通讯录发起私聊。',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 11,
@@ -877,6 +1191,20 @@ class _OfficeShellState extends State<OfficeShell> {
                         borderRadius: BorderRadius.circular(6),
                         child: InkWell(
                           onTap: () => _open(str(r['id'])),
+                          onLongPress: _messageGroups.loaded
+                              ? () => showOfficeRoomGrouping(
+                                  context,
+                                  _messageGroups,
+                                  r,
+                                )
+                              : null,
+                          onSecondaryTap: _messageGroups.loaded
+                              ? () => showOfficeRoomGrouping(
+                                  context,
+                                  _messageGroups,
+                                  r,
+                                )
+                              : null,
                           borderRadius: BorderRadius.circular(6),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
@@ -916,6 +1244,11 @@ class _OfficeShellState extends State<OfficeShell> {
                                               fontSize: 9,
                                               color: Color(0xffb0b6c0),
                                             ),
+                                          ),
+                                          SizedBox(
+                                            width: 26,
+                                            height: 24,
+                                            child: _roomGroupingMenu(r),
                                           ),
                                         ],
                                       ),
@@ -1089,9 +1422,7 @@ class _OfficeShellState extends State<OfficeShell> {
     ),
   );
   Widget _searchResults() {
-    final results = s.searchResults
-        .where((r) => _searchType == 'all' || r['type'] == _searchType)
-        .toList();
+    final results = s.searchResults;
     const domains = {
       'all': '全部',
       'person': '联系人',
@@ -1111,22 +1442,33 @@ class _OfficeShellState extends State<OfficeShell> {
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _globalSearchInput,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    hintText: '搜索人、Agent 和工作内容',
-                    prefixIcon: Icon(Icons.search, size: 19),
+                child: CallbackShortcuts(
+                  bindings: {
+                    const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                        _moveSearchResult(1),
+                    const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                        _moveSearchResult(-1),
+                    const SingleActivator(LogicalKeyboardKey.enter): () {
+                      final composing = _globalSearchInput.value.composing;
+                      if (!composing.isValid || composing.isCollapsed) {
+                        _activateSearchResult();
+                      }
+                    },
+                  },
+                  child: TextField(
+                    controller: _globalSearchInput,
+                    focusNode: _globalSearchFocus,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      hintText: '搜索人、Agent 和工作内容',
+                      prefixIcon: Icon(Icons.search, size: 19),
+                    ),
+                    onChanged: _search,
                   ),
-                  onChanged: _search,
                 ),
               ),
               IconButton(
-                onPressed: () => setState(() {
-                  _globalQuery = '';
-                  _globalSearchInput.clear();
-                  _searchOpen = false;
-                }),
+                onPressed: _closeSearch,
                 tooltip: '关闭搜索',
                 icon: const Icon(Icons.close),
               ),
@@ -1149,14 +1491,53 @@ class _OfficeShellState extends State<OfficeShell> {
                       ),
                       selected: _searchType == e.key,
                       showCheckmark: false,
-                      onSelected: (_) => setState(() => _searchType = e.key),
+                      onSelected: (_) {
+                        _searchType = e.key;
+                        _searchFilters = _searchFilters.forType(e.key);
+                        _search(_globalQuery);
+                      },
                     ),
                   ),
                 )
                 .toList(),
           ),
         ),
-        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          child: Row(
+            children: [
+              if (!['person', 'agent', 'store'].contains(_searchType))
+                OutlinedButton.icon(
+                  onPressed: _filterSearch,
+                  icon: const Icon(Icons.tune, size: 16),
+                  label: Text(_searchFilters.active ? '筛选已启用' : '作者 / 会话 / 日期'),
+                ),
+              if (_searchFilters.active)
+                IconButton(
+                  tooltip: '清除搜索筛选',
+                  onPressed: () {
+                    _searchFilters = const OfficeSearchFilters();
+                    _search(_globalQuery);
+                  },
+                  icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                ),
+              const Spacer(),
+              if (MediaQuery.sizeOf(context).width >= 900)
+                const Text(
+                  '⌘ / Ctrl K 搜索 · ↑↓ 选择 · Enter 打开 · Esc 返回',
+                  style: TextStyle(fontSize: 10, color: mutedColor),
+                ),
+            ],
+          ),
+        ),
+        if (!_searching && _globalQuery.trim().isNotEmpty && s.searchTruncated)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Text(
+              '结果较多，当前只展示部分匹配项。请增加关键词或筛选条件。',
+              style: TextStyle(fontSize: 11, color: mutedColor),
+            ),
+          ),
         const Divider(height: 1),
         Expanded(
           child: _globalQuery.trim().isEmpty
@@ -1167,22 +1548,33 @@ class _OfficeShellState extends State<OfficeShell> {
                 )
               : _searching
               ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+              : _searchError != null
+              ? EmptyOffice(
+                  title: '搜索暂时无法完成',
+                  subtitle: _searchError!,
+                  icon: Icons.search_off_outlined,
+                )
               : results.isEmpty
               ? const EmptyOffice(
                   title: '没有找到匹配内容',
                   subtitle: '试试其他关键词或切换分类。',
                   icon: Icons.search,
                 )
-              : ListView.separated(
+              : ListView.builder(
+                  controller: _searchScroll,
                   padding: const EdgeInsets.all(20),
+                  itemExtent: 104,
                   itemCount: results.length,
-                  separatorBuilder: (_, _) => const Divider(height: 20),
                   itemBuilder: (context, index) {
                     final result = results[index],
                         type = str(results[index]['type']);
                     return Material(
-                      color: Colors.white,
+                      color: index == _selectedSearchResult
+                          ? selectedColor
+                          : Colors.white,
                       child: ListTile(
+                        key: ValueKey('search-result-$index'),
+                        selected: index == _selectedSearchResult,
                         contentPadding: EdgeInsets.zero,
                         leading: Icon(
                           const {
@@ -1201,10 +1593,12 @@ class _OfficeShellState extends State<OfficeShell> {
                         ),
                         title: Text(
                           str(result['title'], '工作内容'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 13),
                         ),
                         subtitle: Text(
-                          '${domains[type] ?? '工作内容'} · ${str(result['snippet'], str(result['content']))}',
+                          '${domains[type] ?? '工作内容'}${result['at'] == null ? '' : ' · ${clockText(result['at'], date: true)}'}\n${str(result['snippet'], str(result['content']))}',
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -1304,6 +1698,7 @@ class _OfficeShellState extends State<OfficeShell> {
     'calendar': 'calendar',
     'approval': 'approvals',
     'mail': 'mail',
+    'minutes': 'minutes',
   }[action];
   Widget _quickMenu() => PopupMenuButton<String>(
     tooltip: '新建与添加',
@@ -1323,6 +1718,7 @@ class _OfficeShellState extends State<OfficeShell> {
               'calendar': '新建日程',
               'approval': '发起审批',
               'mail': '写邮件',
+              'minutes': '人机妙记',
             }.entries
             .map(
               (entry) => PopupMenuItem<String>(
@@ -1389,6 +1785,7 @@ class _OfficeShellState extends State<OfficeShell> {
         'calendar': 7,
         'approval': 10,
         'mail': 8,
+        'minutes': 14,
       }[action];
       if (nav == null) return;
       _changeNav(nav);
@@ -1398,6 +1795,7 @@ class _OfficeShellState extends State<OfficeShell> {
         if (action == 'calendar') _calendarKey.currentState?.createEvent();
         if (action == 'approval') _approvalsKey.currentState?.create();
         if (action == 'mail') _mailKey.currentState?.compose();
+        if (action == 'minutes') _minutesKey.currentState?.createMinute();
       });
     } catch (e) {
       if (mounted) notifyOffice(context, friendlyError(e));

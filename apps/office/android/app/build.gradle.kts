@@ -5,6 +5,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val productionSigning = System.getenv("OFFICE_ANDROID_PRODUCTION_SIGNING") == "1"
+fun signingEnvironment(name: String): String = System.getenv(name)
+    ?.takeIf { it.isNotBlank() }
+    ?: throw GradleException("Missing production signing environment variable: $name")
+
 android {
     namespace = "com.huapohen.activeOffice"
     compileSdk = flutter.compileSdkVersion
@@ -29,11 +34,23 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (productionSigning) {
+            create("production") {
+                storeFile = file(signingEnvironment("ANDROID_KEYSTORE_PATH"))
+                if (!storeFile!!.isFile) throw GradleException("Production signing keystore is unavailable")
+                storePassword = signingEnvironment("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = signingEnvironment("ANDROID_KEY_ALIAS")
+                keyPassword = signingEnvironment("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Preview artifacts use the development key. Store distribution must
-            // provide a private release signing configuration outside this repository.
-            signingConfig = signingConfigs.getByName("debug")
+            // CI preview builds are explicitly development-signed. The production
+            // release script requires a configured release key and fails closed.
+            signingConfig = signingConfigs.getByName(if (productionSigning) "production" else "debug")
         }
     }
 }

@@ -1,0 +1,10 @@
+{
+  "name": "@active-agent/companion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Authenticated, bounded browser companion with isolated contexts and an in-page pointer",
+  "license": "MIT",
+  "engines": {"node": ">=22"},
+  "scripts": {"start": "node server.js", "test": "node --test tests/*.test.js"},
+  "dependencies": {"playwright-core": "1.62.1"}
+}

@@ -30,6 +30,7 @@ class _OfficeAppWorkbenchState extends State<OfficeAppWorkbench> {
         'contacts': Icons.contacts_outlined,
         'approvals': Icons.fact_check_outlined,
         'reports': Icons.bar_chart_outlined,
+        'minutes': Icons.graphic_eq,
       }[id] ??
       Icons.apps;
   Color _color(String id) =>
@@ -41,6 +42,7 @@ class _OfficeAppWorkbenchState extends State<OfficeAppWorkbench> {
         'calendar': Color(0xffeb8b91),
         'meetings': Color(0xff58a3dc),
         'contacts': Color(0xff73aea2),
+        'minutes': Color(0xff8e77c5),
       }[id] ??
       const Color(0xff9fa8ba);
   Future<void> _favorites({bool sorting = false}) async {
@@ -179,7 +181,7 @@ class _OfficeAppWorkbenchState extends State<OfficeAppWorkbench> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              '同席 · 共同推进每一项工作',
+                              '人机 · 共同推进每一项工作',
                               style: TextStyle(
                                 fontSize: desktop ? 21 : 17,
                                 fontWeight: FontWeight.w600,

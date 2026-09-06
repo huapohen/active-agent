@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../office_state.dart' hide Json;
 import 'office_dialogs.dart';
+import 'agent_catalog.dart';
+import 'professional_identity.dart';
 import 'office_theme.dart';
+import 'companion_identity.dart';
+import 'agent_personality.dart';
 
 class OfficePeople extends StatefulWidget {
   const OfficePeople({
@@ -26,6 +30,18 @@ class _OfficePeopleState extends State<OfficePeople> {
   bool _directory = false;
   final Set<String> _busy = {};
   OfficeState get s => widget.state;
+  List<Json> get _agentFriends => [
+    ...s.agents.where((agent) => agent['system_agent_key'] == 'activate-agent'),
+    ...s.agents.where(
+      (agent) => agent['system_agent_key'] == 'desktop-companion',
+    ),
+    ...s.agents.where(
+      (agent) => ![
+        'activate-agent',
+        'desktop-companion',
+      ].contains(agent['system_agent_key']),
+    ),
+  ];
   Future<void> _run(String id, Future<void> Function() action) async {
     if (_busy.contains(id)) return;
     setState(() => _busy.add(id));
@@ -42,13 +58,12 @@ class _OfficePeopleState extends State<OfficePeople> {
   Widget build(BuildContext context) {
     final people =
         (widget.agent
-                ? s.agents
+                ? _agentFriends
                 : (_directory ? s.principals : s.contacts)
                       .where((p) => p['kind'] == 'human')
                       .toList())
             .where(
-              (p) =>
-                  str(p['name']).toLowerCase().contains(_query.toLowerCase()),
+              (p) => professionalSearchText(p).contains(_query.toLowerCase()),
             )
             .toList();
     final available = s.principals
@@ -77,7 +92,7 @@ class _OfficePeopleState extends State<OfficePeople> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      widget.agent ? '你的工作伙伴，同席参与、主动推进。' : '找到工作伙伴，开始一次讨论。',
+                      widget.agent ? '你的工作伙伴，共同参与、主动推进。' : '找到工作伙伴，开始一次讨论。',
                       style: const TextStyle(fontSize: 11, color: mutedColor),
                     ),
                   ],
@@ -153,7 +168,10 @@ class _OfficePeopleState extends State<OfficePeople> {
         const Divider(height: 1),
         Expanded(
           child: _store && widget.agent
-              ? _catalog()
+              ? AgentCatalog(
+                  state: s,
+                  onInstalled: () => setState(() => _store = false),
+                )
               : ListView(
                   padding: const EdgeInsets.all(22),
                   children: [
@@ -238,11 +256,14 @@ class _OfficePeopleState extends State<OfficePeople> {
       ),
       child: Row(
         children: [
-          PersonAvatar(
-            name: str(p['name']),
-            agent: p['kind'] == 'agent',
-            size: 41,
-          ),
+          if (isOfficeCompanion(p))
+            CompanionAvatar(person: p, size: 41)
+          else
+            PersonAvatar(
+              name: str(p['name']),
+              agent: p['kind'] == 'agent',
+              size: 41,
+            ),
           const SizedBox(width: 13),
           Expanded(
             child: Column(
@@ -276,6 +297,7 @@ class _OfficePeopleState extends State<OfficePeople> {
                     color: online ? const Color(0xff34a575) : mutedColor,
                   ),
                 ),
+                ProfessionalIdentity(person: p),
               ],
             ),
           ),
@@ -296,7 +318,7 @@ class _OfficePeopleState extends State<OfficePeople> {
               ),
               child: const Text('发消息', style: TextStyle(fontSize: 11)),
             ),
-          if (canAddContact || canInvite)
+          if (canAddContact || canInvite || p['kind'] == 'agent')
             PopupMenuButton<String>(
               tooltip: '成员操作',
               iconSize: 18,
@@ -304,12 +326,19 @@ class _OfficePeopleState extends State<OfficePeople> {
                 if (action == 'contact') {
                   await s.addContact(id);
                   if (mounted) notifyOffice(context, '已添加联系人');
+                } else if (action == 'personality') {
+                  await showAgentPersonality(context, s, p);
                 } else {
                   await s.invite(id);
                   if (mounted) notifyOffice(context, '已邀请到当前工作群');
                 }
               }),
               itemBuilder: (_) => [
+                if (p['kind'] == 'agent')
+                  const PopupMenuItem(
+                    value: 'personality',
+                    child: Text('人格与参与'),
+                  ),
                 if (canAddContact)
                   const PopupMenuItem(value: 'contact', child: Text('添加联系人')),
                 if (canInvite)
@@ -320,161 +349,4 @@ class _OfficePeopleState extends State<OfficePeople> {
       ),
     );
   }
-
-  Widget _catalog() => ListView(
-    padding: const EdgeInsets.all(24),
-    children: [
-      Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xffedf2ff), Color(0xfff4f0fe)],
-          ),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '为工作，找到合适的 Agent',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
-            SizedBox(height: 10),
-            Text(
-              '添加为好友，开始私聊，或邀请加入项目工作群。\nAgent 通过原生协议使用整个办公空间，与人共享相同的工作能力。',
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xff8a92a7),
-                height: 1.9,
-              ),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 24),
-      const Text(
-        '工作空间提供的 Agent',
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-      const SizedBox(height: 15),
-      if (s.catalog.isEmpty)
-        const Text(
-          '商店暂时没有可添加的 Agent。',
-          style: TextStyle(fontSize: 12, color: mutedColor),
-        ),
-      ...s.catalog.map((a) {
-        final id = str(a['id']);
-        return Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            border: Border.all(color: borderColor),
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  PersonAvatar(name: str(a['name']), agent: true, size: 44),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          str(a['name']),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          '原生 Agent · 独立工作身份',
-                          style: TextStyle(fontSize: 10, color: mutedColor),
-                        ),
-                      ],
-                    ),
-                  ),
-                  FilledButton(
-                    onPressed: _busy.contains(id)
-                        ? null
-                        : () => _run(id, () async {
-                            await s.installAgent(id);
-                            if (mounted) {
-                              notifyOffice(context, '已添加为 Agent 好友');
-                              setState(() => _store = false);
-                            }
-                          }),
-                    child: Text(
-                      _busy.contains(id) ? '正在添加' : '添加好友',
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-              Text(
-                str(a['description']),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: mutedColor,
-                  height: 1.8,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 7,
-                runSpacing: 5,
-                children: (a['skills'] as List? ?? [])
-                    .map(
-                      (skill) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xfff3f5fa),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          str(skill),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Color(0xff7d89a7),
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-              if (a['instructions'] != null)
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  dense: true,
-                  title: const Text(
-                    '查看工作约定',
-                    style: TextStyle(fontSize: 11, color: accentColor),
-                  ),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: SelectableText(
-                        str(a['instructions']),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: mutedColor,
-                          height: 1.8,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-        );
-      }),
-    ],
-  );
 }

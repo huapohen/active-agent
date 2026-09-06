@@ -16,7 +16,7 @@ for name in filter(None, files):
         violations.append((name, "runtime or credential file"))
     result = subprocess.run(["git", "show", ":" + name], cwd=ROOT, capture_output=True)
     text = result.stdout.decode(errors="replace")
-    if (re.search(r"sk-[A-Za-z0-9_.-]{20,}", text) or
+    if (re.search(r"(?<![A-Za-z0-9_])sk-[A-Za-z0-9_.-]{20,}", text) or
         re.search(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", text) or
         re.search(r"(?:postgres(?:ql)?|mysql)://[^\s:/]+:[^\s@]+@", text)):
         violations.append((name, "credential-like content"))

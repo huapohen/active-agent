@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../office_state.dart' hide Json;
+import 'auth_providers.dart';
+
 import 'office_theme.dart';
 
 class OfficeLogin extends StatefulWidget {
@@ -8,11 +11,19 @@ class OfficeLogin extends StatefulWidget {
     required this.onConnect,
     required this.onLogin,
     required this.endpoint,
+    this.discoverProviders,
+    this.startExternalLogin,
+    this.exchangeExternalLogin,
   });
   final Future<void> Function(String endpoint, String token) onConnect;
   final Future<void> Function(String endpoint, String username, String password)
   onLogin;
   final String endpoint;
+  final Future<Json> Function(String)? discoverProviders;
+  final Future<OfficeExternalLogin> Function(String, String)?
+  startExternalLogin;
+  final Future<void> Function(String, OfficeExternalLogin, String)?
+  exchangeExternalLogin;
   @override
   State<OfficeLogin> createState() => _OfficeLoginState();
 }
@@ -25,6 +36,8 @@ class _OfficeLoginState extends State<OfficeLogin> {
   final _username = TextEditingController();
   final _password = TextEditingController();
   bool _advanced = false;
+  bool _passwordEnabled = true, _tokenEnabled = true;
+  bool get _useToken => _tokenEnabled && (_advanced || !_passwordEnabled);
   final _form = GlobalKey<FormState>();
   bool _busy = false;
   String? _error;
@@ -44,7 +57,7 @@ class _OfficeLoginState extends State<OfficeLogin> {
       _error = null;
     });
     try {
-      if (_advanced) {
+      if (_useToken) {
         await widget.onConnect(_endpoint.text.trim(), _token.text.trim());
       } else {
         await widget.onLogin(
@@ -85,26 +98,10 @@ class _OfficeLoginState extends State<OfficeLogin> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: accentColor,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  '＝',
-                                  style: TextStyle(
-                                    fontSize: 32,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
+                            const AppLogo(),
                             const SizedBox(height: 28),
                             const Text(
-                              '同席',
+                              '人机',
                               style: TextStyle(
                                 fontSize: 31,
                                 fontWeight: FontWeight.w700,
@@ -137,6 +134,10 @@ class _OfficeLoginState extends State<OfficeLogin> {
                             const SizedBox(height: 8),
                             TextFormField(
                               controller: _endpoint,
+                              onChanged: (_) => setState(() {
+                                _passwordEnabled = true;
+                                _tokenEnabled = true;
+                              }),
                               keyboardType: TextInputType.url,
                               autocorrect: false,
                               decoration: const InputDecoration(
@@ -149,28 +150,29 @@ class _OfficeLoginState extends State<OfficeLogin> {
                                   : '请输入完整工作空间地址',
                             ),
                             const SizedBox(height: 20),
-                            SegmentedButton<bool>(
-                              segments: const [
-                                ButtonSegment(
-                                  value: false,
-                                  label: Text('账号登录'),
-                                ),
-                                ButtonSegment(
-                                  value: true,
-                                  label: Text('高级：访问令牌'),
-                                ),
-                              ],
-                              selected: {_advanced},
-                              showSelectedIcon: false,
-                              onSelectionChanged: _busy
-                                  ? null
-                                  : (value) => setState(() {
-                                      _advanced = value.single;
-                                      _error = null;
-                                    }),
-                            ),
+                            if (_passwordEnabled && _tokenEnabled)
+                              SegmentedButton<bool>(
+                                segments: const [
+                                  ButtonSegment(
+                                    value: false,
+                                    label: Text('账号登录'),
+                                  ),
+                                  ButtonSegment(
+                                    value: true,
+                                    label: Text('高级：访问令牌'),
+                                  ),
+                                ],
+                                selected: {_advanced},
+                                showSelectedIcon: false,
+                                onSelectionChanged: _busy
+                                    ? null
+                                    : (value) => setState(() {
+                                        _advanced = value.single;
+                                        _error = null;
+                                      }),
+                              ),
                             const SizedBox(height: 22),
-                            if (!_advanced) ...[
+                            if (_passwordEnabled && !_useToken) ...[
                               TextFormField(
                                 controller: _username,
                                 autocorrect: false,
@@ -198,7 +200,7 @@ class _OfficeLoginState extends State<OfficeLogin> {
                                     v?.isNotEmpty == true ? null : '请输入密码',
                                 onFieldSubmitted: (_) => _connect(),
                               ),
-                            ] else
+                            ] else if (_tokenEnabled)
                               TextFormField(
                                 controller: _token,
                                 obscureText: true,
@@ -225,30 +227,51 @@ class _OfficeLoginState extends State<OfficeLogin> {
                                 ),
                               ),
                             const SizedBox(height: 25),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton(
-                                onPressed: _busy ? null : _connect,
-                                child: _busy
-                                    ? const SizedBox(
-                                        width: 17,
-                                        height: 17,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Text('进入工作空间'),
+                            if (_passwordEnabled || _tokenEnabled)
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton(
+                                  onPressed: _busy ? null : _connect,
+                                  child: _busy
+                                      ? const SizedBox(
+                                          width: 17,
+                                          height: 17,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('进入工作空间'),
+                                ),
                               ),
-                            ),
                             const SizedBox(height: 21),
-                            const Text(
-                              '使用管理员分配的账号进入。人和 Agent 均可登录。\n也可通过高级入口，使用个人访问令牌。',
+                            Text(
+                              _passwordEnabled || _tokenEnabled
+                                  ? '使用管理员分配的工作身份进入。人和 Agent 均可登录。'
+                                  : '此工作空间使用企业登录，请选择下方已配置的登录方式。',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: mutedColor,
                                 height: 1.8,
                               ),
                             ),
+                            if (widget.discoverProviders != null &&
+                                widget.startExternalLogin != null &&
+                                widget.exchangeExternalLogin != null)
+                              OfficeAuthProviders(
+                                key: ValueKey(_endpoint.text.trim()),
+                                endpoint: _endpoint.text.trim(),
+                                discover: widget.discoverProviders!,
+                                start: widget.startExternalLogin!,
+                                exchange: widget.exchangeExternalLogin!,
+                                onMethods: (password, token) {
+                                  if (mounted) {
+                                    setState(() {
+                                      _passwordEnabled = password;
+                                      _tokenEnabled = token;
+                                    });
+                                  }
+                                },
+                              ),
                           ],
                         ),
                       ),

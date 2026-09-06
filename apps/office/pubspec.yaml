@@ -1,7 +1,7 @@
 name: active_office
-description: "同席 · Active Office — native human and agent collaboration."
+description: "人机 · Active Office — native human and agent collaboration."
 publish_to: 'none'
-version: 0.5.0+2
+version: 0.6.0+3
 
 environment:
   sdk: ^3.13.2
@@ -12,6 +12,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   http: ^1.6.0
+  crypto: ^3.0.7
+  url_launcher: ^6.3.2
+  web: 1.1.1
   cupertino_icons: ^1.0.9
   flutter_webrtc: ^1.6.1
   file_picker: ^12.2.0
@@ -23,3 +26,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/rocket.png

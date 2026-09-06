@@ -7,15 +7,21 @@ import 'office_theme.dart';
 import 'plugins.dart';
 
 class OfficeSettings extends StatefulWidget {
-  const OfficeSettings({super.key, required this.state, this.onEnterprise});
+  const OfficeSettings({
+    super.key,
+    required this.state,
+    this.onEnterprise,
+    this.initialTab = 0,
+  });
   final OfficeState state;
   final VoidCallback? onEnterprise;
+  final int initialTab;
   @override
   State<OfficeSettings> createState() => _OfficeSettingsState();
 }
 
 class _OfficeSettingsState extends State<OfficeSettings> {
-  int _tab = 0;
+  late int _tab = widget.initialTab;
   bool _busy = false;
   String? _error;
   OfficeState get s => widget.state;

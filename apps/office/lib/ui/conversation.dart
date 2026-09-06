@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import '../office_state.dart' hide Json;
 import 'attachments.dart';
 import 'agent_collaboration.dart';
+import 'agent_message_content.dart';
 import 'mentions.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
@@ -19,11 +20,14 @@ class OfficeConversation extends StatefulWidget {
     this.onBack,
     this.mobile = false,
     this.onAgentStore,
+    this.onCreateCalendar,
+    this.onCreateMeeting,
   });
   final OfficeState state;
   final VoidCallback? onBack;
   final bool mobile;
   final VoidCallback? onAgentStore;
+  final VoidCallback? onCreateCalendar, onCreateMeeting;
   @override
   State<OfficeConversation> createState() => _OfficeConversationState();
 }
@@ -40,6 +44,7 @@ class _OfficeConversationState extends State<OfficeConversation> {
       _loadingHistory = false,
       _mentionOpen = false;
   int _tab = 0, _messageCount = 0;
+  bool _moreTools = false;
   Json? _reply;
   List<String> _mentions = [];
   bool get _everyoneMentioned {
@@ -93,6 +98,7 @@ class _OfficeConversationState extends State<OfficeConversation> {
     _messageCount = 0;
     _query = '';
     _searchOpen = false;
+    _moreTools = false;
   }
 
   Future<void> _send() async {
@@ -914,12 +920,20 @@ class _OfficeConversationState extends State<OfficeConversation> {
                                                   ),
                                                 if (str(m['content'])
                                                     .isNotEmpty)
-                                                  SelectableText(
-                                                    str(m['content']),
-                                                    style: const TextStyle(
-                                                      fontSize: 13,
-                                                      height: 1.7,
+                                                  AgentMessageContent(
+                                                    key: ValueKey(
+                                                      'message-content-${m['id']}',
                                                     ),
+                                                    message: m,
+                                                    runs: maps(
+                                                      s.detail?['runs'],
+                                                    ),
+                                                    onRecords: (id) =>
+                                                        OfficeDialogs.run(
+                                                          context,
+                                                          s,
+                                                          id,
+                                                        ),
                                                   ),
                                                 ...maps(m['attachments']).map(
                                                   (a) => MessageAttachment(
@@ -1258,38 +1272,54 @@ class _OfficeConversationState extends State<OfficeConversation> {
                   .toList(),
             ),
           ),
-        Focus(
-          onKeyEvent: (_, event) {
-            if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.enter &&
-                !HardwareKeyboard.instance.isShiftPressed &&
-                (s.settings['send_shortcut'] != 'mod_enter' ||
-                    HardwareKeyboard.instance.isControlPressed ||
-                    HardwareKeyboard.instance.isMetaPressed) &&
-                !(_input.value.composing.isValid &&
-                    !_input.value.composing.isCollapsed)) {
-              _send();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          child: TextField(
-            controller: _input,
-            focusNode: _focus,
-            minLines: widget.mobile ? 2 : 3,
-            maxLines: 7,
-            maxLength: 12000,
-            style: const TextStyle(fontSize: 13, height: 1.7),
-            decoration: const InputDecoration(
-              hintText: '发送消息，或 @ 工作伙伴共同推进',
-              filled: false,
-              counterText: '',
-              border: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 3),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Focus(
+                onKeyEvent: (_, event) {
+                  if (event is KeyDownEvent &&
+                      event.logicalKey == LogicalKeyboardKey.enter &&
+                      !HardwareKeyboard.instance.isShiftPressed &&
+                      (s.settings['send_shortcut'] != 'mod_enter' ||
+                          HardwareKeyboard.instance.isControlPressed ||
+                          HardwareKeyboard.instance.isMetaPressed) &&
+                      !(_input.value.composing.isValid &&
+                          !_input.value.composing.isCollapsed)) {
+                    _send();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                child: TextField(
+                  controller: _input,
+                  focusNode: _focus,
+                  minLines: widget.mobile ? 1 : 3,
+                  maxLines: 7,
+                  maxLength: 12000,
+                  style: const TextStyle(fontSize: 13, height: 1.7),
+                  decoration: const InputDecoration(
+                    hintText: '发送消息，或 @ 工作伙伴共同推进',
+                    filled: false,
+                    counterText: '',
+                    border: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 3),
+                  ),
+                  onChanged: _inputChanged,
+                  onTap: () {
+                    if (_moreTools) setState(() => _moreTools = false);
+                  },
+                ),
+              ),
             ),
-            onChanged: _inputChanged,
-          ),
+            if (widget.mobile)
+              IconButton(
+                tooltip: '展开消息编辑器',
+                onPressed: _expandComposer,
+                icon: const Icon(Icons.open_in_full, size: 16),
+              ),
+          ],
         ),
         if (_error != null)
           Align(
@@ -1352,20 +1382,35 @@ class _OfficeConversationState extends State<OfficeConversation> {
                         color: accentColor,
                       ),
                     ),
-                    IconButton(
-                      onPressed: s.moduleAvailable('docs')
-                          ? () => OfficeDialogs.document(context, s)
-                          : null,
-                      tooltip: '新建共同文档',
-                      icon: const Icon(Icons.description_outlined, size: 18),
-                    ),
-                    IconButton(
-                      onPressed: s.moduleAvailable('tasks')
-                          ? () => OfficeDialogs.task(context, s)
-                          : null,
-                      tooltip: '创建任务',
-                      icon: const Icon(Icons.add_task_outlined, size: 18),
-                    ),
+                    if (!widget.mobile)
+                      IconButton(
+                        onPressed: s.moduleAvailable('docs')
+                            ? () => OfficeDialogs.document(context, s)
+                            : null,
+                        tooltip: '新建共同文档',
+                        icon: const Icon(Icons.description_outlined, size: 18),
+                      ),
+                    if (!widget.mobile)
+                      IconButton(
+                        onPressed: s.moduleAvailable('tasks')
+                            ? () => OfficeDialogs.task(context, s)
+                            : null,
+                        tooltip: '创建任务',
+                        icon: const Icon(Icons.add_task_outlined, size: 18),
+                      ),
+                    if (widget.mobile)
+                      IconButton(
+                        tooltip: _moreTools ? '收起更多工具' : '更多工作工具',
+                        onPressed: () {
+                          _focus.unfocus();
+                          setState(() => _moreTools = !_moreTools);
+                        },
+                        icon: Icon(
+                          _moreTools ? Icons.close : Icons.add_circle_outline,
+                          size: 21,
+                          color: _moreTools ? accentColor : mutedColor,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -1403,7 +1448,156 @@ class _OfficeConversationState extends State<OfficeConversation> {
             ),
           ],
         ),
+        if (widget.mobile && _moreTools) _mobileTools(),
       ],
+    ),
+  );
+
+  Future<void> _expandComposer() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) => _ExpandedMessageEditor(text: _input.text),
+    );
+    if (result != null && mounted) {
+      _input.value = TextEditingValue(
+        text: result,
+        selection: TextSelection.collapsed(offset: result.length),
+      );
+      _saveDraft();
+      setState(() {});
+    }
+  }
+
+  Widget _mobileTools() {
+    final tools = <(String, IconData, VoidCallback?)>[
+      (
+        '文件与图片',
+        Icons.folder_open_outlined,
+        _attachments.length >= 8 ? null : _pickAttachments,
+      ),
+      (
+        '云文档',
+        Icons.description_outlined,
+        s.moduleAvailable('docs')
+            ? () => OfficeDialogs.document(context, s)
+            : null,
+      ),
+      (
+        '任务',
+        Icons.task_alt_outlined,
+        s.moduleAvailable('tasks')
+            ? () => OfficeDialogs.task(context, s)
+            : null,
+      ),
+      if (widget.onCreateCalendar != null)
+        (
+          '日程',
+          Icons.calendar_month_outlined,
+          s.moduleAvailable('calendar') ? widget.onCreateCalendar : null,
+        ),
+      if (widget.onCreateMeeting != null)
+        (
+          '发起会议',
+          Icons.videocam_outlined,
+          s.moduleAvailable('meetings') ? widget.onCreateMeeting : null,
+        ),
+      (
+        '工作记录',
+        Icons.history,
+        s.moduleAvailable('workbench') ? () => setState(() => _tab = 3) : null,
+      ),
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: GridView.count(
+        crossAxisCount: 4,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        childAspectRatio: 1.05,
+        children: tools
+            .map(
+              (tool) => TextButton(
+                onPressed: tool.$3 == null
+                    ? null
+                    : () {
+                        setState(() => _moreTools = false);
+                        tool.$3!();
+                      },
+                style: TextButton.styleFrom(padding: const EdgeInsets.all(3)),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(11),
+                      decoration: BoxDecoration(
+                        color: const Color(0xfff4f6fa),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        tool.$2,
+                        color: tool.$3 == null ? mutedColor : accentColor,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(tool.$1, style: const TextStyle(fontSize: 10)),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _ExpandedMessageEditor extends StatefulWidget {
+  const _ExpandedMessageEditor({required this.text});
+  final String text;
+  @override
+  State<_ExpandedMessageEditor> createState() => _ExpandedMessageEditorState();
+}
+
+class _ExpandedMessageEditorState extends State<_ExpandedMessageEditor> {
+  late final _controller = TextEditingController(text: widget.text);
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Dialog.fullscreen(
+    child: Scaffold(
+      appBar: AppBar(
+        title: const Text('编辑消息'),
+        leading: IconButton(
+          tooltip: '返回会话草稿',
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, _controller.text),
+            child: const Text('完成'),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: TextField(
+          controller: _controller,
+          autofocus: true,
+          expands: true,
+          maxLines: null,
+          minLines: null,
+          maxLength: 12000,
+          decoration: const InputDecoration(
+            hintText: '写下完整的消息，完成后回到会话继续发送',
+            border: InputBorder.none,
+          ),
+        ),
+      ),
     ),
   );
 }

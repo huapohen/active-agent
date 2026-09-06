@@ -14,9 +14,9 @@ Native conversations, shared tasks, living documents, and standing agent partici
 
 </div>
 
-A project room brings together people, agents, tasks and documents. Assign work to an agent as a team member. It notices eligible work, reads the visible shared context, and returns a useful draft. Everyone can inspect what it read, why it responded, and what it produced.
+A project room brings together people, agents, tasks and documents. Assign work to an agent as a team member. It notices eligible work, reads the visible shared context, publishes a plan and performs permitted office actions. Everyone can inspect the source context, document changes and server execution receipts.
 
-**0.5 office preview · `equal_rights`.** A shared Flutter client targets macOS, Windows, iOS, Android and Web. This iteration adds account sign-in, internal mail, attendance and approvals, native API/MCP/A2A, and an enterprise console where authorized people and agents manage members, departments and application availability. Enterprise SSO, large-scale conferencing, push notifications and distributed operations remain roadmap work; the dated capability matrix records the gaps against Feishu.
+**0.6 office preview · 人机 · `equal_rights`.** A shared Flutter client targets macOS, Windows, iOS, Android and Web. This iteration adds 100 professional templates and two device companion templates, per-colleague participation and autonomy policies, eight real office actions, scoped Doc Free rich-text collaboration, configurable OIDC login and structured global search. Read the [0.6 release record](docs/equal_rights/2026-09-06/RELEASE_0_6_1600.md) for implementation commits, build provenance and actual verification; older 0.5 packages remain historical artifacts.
 
 ## The office workflow
 
@@ -26,24 +26,27 @@ flowchart LR
     D[Shared versioned documents] --> C[Visible work context]
     T --> C
     C --> A[Standing agent participation]
-    A --> O[Reply and document draft]
+    A --> P[Public action plan]
+    P --> O[Permitted actions and durable receipts]
     O --> V[Team review]
     V --> D
 ```
 
-- **Enterprise administration.** Versioned human/agent membership, departments, fixed owner/admin/member roles, real application access policies and readable audit exports. Enterprise roles do not grant access to private mail or unrelated rooms.
+- **Professional colleagues.** Choose from 102 searchable templates: 100 professional colleagues and desktop/mobile companions. Filter by profession, role, skills and source organization; companion cards state actual runtime requirements. Install the colleagues you need; the catalog does not start 100 model processes. Source organization and current employment organization are displayed separately. Every agent has room-scoped participation settings; proactive participation, pause and autonomous actions remain separate controls.
+- **Enterprise administration.** Versioned human/agent membership, departments, organization records, fixed owner/admin/member roles, real application access policies and readable audit exports. Enterprise roles do not grant access to private mail or unrelated rooms.
 - **Everyday business.** Individual account sessions, server-time attendance, private approvals and approved corrections, internal mailbox drafts/delivery, and personal settings. External SMTP/IMAP and hardware adapters are not connected.
 - **Native protocols.** Authenticated REST and MCP share the same authorization with an A2A task gateway. Cached A2A results are checked against current access before replay.
 - **Independent identities.** People and agents hold individual credentials. The server binds authorship; room membership and ownership determine capabilities.
-- **Native work conversations.** Project rooms, mentions, replies, durable messages, reconnect cursors, message search and room export.
+- **Native work conversations.** Project rooms, mentions, replies, durable messages, reconnect cursors and room export. Global search applies type, author, room and date filters on the server; keyboard navigation and explicit result-limit notices are included.
 - **Office apps.** Schedule meetings, respond to calendar invitations, organize favorite workbench apps, and link meeting notes to canonical shared documents. WebRTC supports small rooms with capture disabled until explicitly enabled.
 - **Files and message actions.** Scoped attachment uploads and downloads, image previews, pins, forwarded copies, revision-checked edits and recall.
 - **A shared task board.** Either kind of member can create, assign and update tasks. Concurrent updates require the current revision.
-- **Documents as the shared carrier.** Room documents use Doc Free canonical storage and version checks. Exact model inputs, omissions, decisions and deliverables remain inspectable and exportable as Markdown.
-- **Standing participation.** Agents respond to assigned work and meaningful room events. Active, mentions-only and paused modes control participation. Explicit agent handoffs have causal depth and response budgets.
+- **Documents as the shared carrier.** Open a room document in the Doc Free rich-text editor with your own office identity. A single-document session connects to canonical Yjs collaboration and rechecks current access. Revision-checked Markdown editing remains available. Exact model inputs, omissions, decisions and deliverables remain inspectable and exportable.
+- **Standing participation.** Agents respond to assigned work and meaningful room events. Each colleague has a per-room policy for enabled actions, a one-to-four-step limit and a review interval. Active, mentions-only and paused modes remain separate. Explicit agent handoffs have causal depth and response budgets.
 - **Visible work records.** The server saves the exact context before inference. Fenced leases and stable completion receipts prevent stale or duplicate publication. Interrupted inference may be retried; inference is not claimed to be exactly once.
-- **Concrete office deliverables.** Agents can draft specifications, plans, summaries and decision memos. Members review a draft and save it as a shared document. The standard worker does not mark a task done on the strength of a model claim.
-- **Preserved document workspace.** The earlier Yjs/Tiptap collaboration and evidence-backed proposal review remain at `/workbench` under the separate workspace administrator credential.
+- **Real office actions.** The worker can create/update tasks, add a colleague as a contact, create/update/respond to calendar events, and create/update canonical shared documents when the document adapter is connected. Task completion requires captured shared-document evidence. Success comes from durable receipts; an uncertain document submission stays pending. Verified message appendices fold into a compact link to the full work record.
+- **Enterprise login.** Configured OIDC providers use an authorization-code flow, principal mapping and a one-time exchange bound to the initiating client. Password and machine-token login remain available according to server configuration. No real enterprise issuer has been connected in this release's verification.
+- **Preserved document workspace.** The earlier `/workbench` administrator workspace and evidence-backed proposal review remain separate. Native members now have the scoped room-document editor; they do not receive workspace administrator access.
 
 ## Start locally
 
@@ -79,7 +82,30 @@ active-agent im       # continuous participation
 active-agent im-tick  # one bounded work cycle
 ```
 
-The native IM token does not authenticate the legacy workspace or CRDT administrator interfaces. Native room document editing currently uses revision-checked Markdown saves. The earlier full CRDT editor remains a separate administrator workspace. See the [integration and limits documentation](docs/equal_rights/README.md).
+The native IM token does not authenticate the legacy administrator workspace. Use **协作编辑器** in a room document to open the full rich-text editor through a short-lived, single-document session. The original office token stays out of the browser URL. Logout, removal from the room and revoked document access invalidate subsequent access. See the [integration and limits documentation](docs/equal_rights/README.md).
+
+### Five people on a modest local setup
+
+Use one macOS client, one existing iPhone simulator and three independent Web sessions for five human accounts, plus three installed agent colleagues. One shared local service and a bounded worker host serve them; no extra simulator or process per template is required. This is a reproducible demo layout, not a measured minimum hardware specification.
+
+To limit simultaneous model calls, add these non-secret settings to the ignored `.env` before starting the launcher:
+
+```dotenv
+AA_IM_WORKER_SLOTS=8
+AA_IM_MODEL_CONCURRENCY=1
+```
+
+With the local office service running, provision the synthetic company in another terminal:
+
+```bash
+python scripts/demo_office_company.py
+```
+
+The script reuses the local owner and creates four more human accounts, three professional agents, an organization and a shared room. It sets the demo agents to at most three actions per turn and five-minute reviews. Sign-in details remain in ignored `data/office/demo-company.json`; the script does not start simulators. Sequential model capacity trades throughput for lower concurrency; use `--no-worker` on the launcher for UI-only exploration. See the [three-agent real-model evidence](docs/equal_rights/2026-09-06/REAL_COMPANY_MODEL_1546.md), which records eight committed actions and independent human readback separately from UI checks.
+
+## Current limits
+
+This is a single-workspace office preview. Organization records do not provide tenant isolation, and fixed enterprise roles do not implement a custom resource-administration matrix. OIDC is implemented and tested with a controlled provider; production enterprise-issuer integration remains unverified. External mail delivery, push notifications, location geofencing, large-scale conferencing, distributed workers and complete enterprise security administration remain outside the delivered scope. The [Feishu comparison](docs/equal_rights/2026-09-06/FEISHU_LIVE_DEEP_COMPARISON_1530.md) and [frontend implementation record](docs/equal_rights/2026-09-06/STAGE_3_FRONTEND_IMPLEMENTATION_1538.md) distinguish observed reference features from implemented behavior.
 
 ## Verify
 
@@ -97,11 +123,13 @@ Tests cover individual authentication, membership isolation, durable replay, dup
 
 | Component | Responsibility |
 |---|---|
-| `active_agent/im.py` | Native participant client, standing office worker, validated drafts |
+| `active_agent/im.py`, `active_agent/im_fleet.py` | Native participant, bounded worker host, frozen plans and real actions |
 | `active_agent/documents.py` | Earlier document observation and proposal workflow |
 | `active_agent/llm.py` | Responses / Chat adapters, finalized JSON output |
 | `scripts/dev_office.py` | Isolated office launcher and private identity provisioning |
+| `scripts/demo_office_company.py` | Five-human, three-agent local company provisioning |
 | Doc Free `native-im.js` | Identity, rooms, tasks, event log, scope checks and work receipts |
+| Doc Free `native-actions.js`, `native-document-editor.js`, `native-auth.js` | Action receipts, scoped rich-text sessions and OIDC |
 | `apps/office` | Flutter five-platform office client and authenticated WebRTC transport |
 | Doc Free `office-features.js`, `native-attachments.js` | Calendar, meetings, workbench and scoped attachments |
 | Doc Free `im.*` | Smaller HTML conversation preview |

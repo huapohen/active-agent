@@ -23,6 +23,13 @@ class Service {
       return json({}, 401);
     }
     final path = request.url.path.replaceFirst('/api/im', '');
+    if (path == '/enterprise') {
+      return json({
+        'enterprise': {'name': 'Test workspace'},
+        'membership': {'role': 'member'},
+        'capabilities': {'access_admin': false},
+      });
+    }
     final module = path.startsWith('/mail')
         ? 'mail'
         : [

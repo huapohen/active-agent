@@ -40,6 +40,10 @@ def provision(base_url, admin_token, path):
             continue
         access[name] = admin.request("POST", "/admin/principals", {"name": label, "kind": kind})
         save_private(path, access)
+    # Only this exact development identity is adopted; never infer it from a
+    # display name. Existing machine credentials and persona remain unchanged.
+    admin.request("POST", "/admin/default-colleagues", {
+        "legacy_activate_agent_id": access["agent"]["principal"]["id"]})
     if access.get("bootstrap_complete"):
         return access
     human = IMClient(base_url, access["human"]["token"])
@@ -92,7 +96,7 @@ def provision_local_enterprise(base_url, admin_token, access):
     view = IMClient(base_url, identity["token"]).request("GET", "/enterprise")
     if not view["enterprise"]["initialized"]:
         IMClient(base_url, admin_token).request("POST", "/admin/enterprise/bootstrap", {
-            "principal_id": identity["principal"]["id"], "name": "同席 · 本机开发工作空间"})
+            "principal_id": identity["principal"]["id"], "name": "人机 · 本机开发工作空间"})
 
 
 def main():
@@ -127,11 +131,17 @@ def main():
     admin_token = json.loads(admin_path.read_text())["token"]
     base_url = "http://127.0.0.1:%s" % args.port
     environment = {**os.environ, "DOC_FREE_TOKEN": admin_token, "PORT": str(args.port),
-        "COLLAB_PORT": str(args.collab_port), "COLLAB_HOST": "127.0.0.1",
+        "COLLAB_PORT": str(args.collab_port), "COLLAB_HOST": "127.0.0.1", "DOC_FREE_EMBED_COLLAB": "1",
         "COLLAB_URL": "http://127.0.0.1:%s" % args.collab_port,
         "DOC_FREE_DATA": str(data / "documents.json"), "DOC_FREE_CRDT_DIR": str(data / "crdt"),
         "DOC_FREE_OFFICE_BUILD": str(ROOT / "apps" / "office" / "build" / "web"),
         "DOC_FREE_IM_DATA": str(data / "native-im.json"), "HOST": "127.0.0.1"}
+    access_path = data / "access.json"
+    if access_path.exists():
+        existing_access = json.loads(access_path.read_text())
+        default_identity = existing_access.get("agent", {}).get("principal", {}).get("id")
+        if default_identity:
+            environment["DOC_FREE_DEFAULT_ACTIVATE_ID"] = default_identity
     node_environment = {k: v for k, v in environment.items() if not k.startswith("AA_")}
     subprocess.run(["npm", "run", "build"], cwd=repository, env=node_environment, check=True)
     processes = []
@@ -141,7 +151,7 @@ def main():
 
     signal.signal(signal.SIGTERM, terminate)
     try:
-        for file in ["collab-server.js", "server.js"]:
+        for file in ["server.js"]:
             processes.append(subprocess.Popen(["node", file], cwd=repository, env=node_environment))
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         for _ in range(80):

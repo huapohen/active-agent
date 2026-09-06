@@ -4,6 +4,8 @@ import '../office_state.dart' hide Json;
 import 'business_widgets.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
+import 'agent_autonomy.dart';
+import 'professional_identity.dart';
 
 Future<void> showAgentCollaboration(
   BuildContext context,
@@ -246,68 +248,32 @@ class _AgentCollaborationState extends State<_AgentCollaboration> {
                                         ],
                                       ),
                                       const SizedBox(height: 10),
-                                      if (owner ||
-                                          personId(agent) ==
-                                              personId(s.me ?? {}))
-                                        DropdownButtonFormField<String>(
-                                          initialValue: str(
-                                            agent['mode'],
-                                            'mentions',
-                                          ),
-                                          decoration: const InputDecoration(
-                                            labelText: '参与方式',
-                                          ),
-                                          items: const [
-                                            DropdownMenuItem(
-                                              value: 'active',
-                                              child: Text('主动参与'),
-                                            ),
-                                            DropdownMenuItem(
-                                              value: 'mentions',
-                                              child: Text('被提及时参与'),
-                                            ),
-                                            DropdownMenuItem(
-                                              value: 'paused',
-                                              child: Text('暂停参与'),
-                                            ),
-                                          ],
-                                          onChanged: _busy
-                                              ? null
-                                              : (mode) async {
-                                                  if (mode == null) return;
-                                                  setState(() {
-                                                    _busy = true;
-                                                    _error = null;
-                                                  });
-                                                  try {
-                                                    await s.setParticipation(
-                                                      personId(agent),
-                                                      mode,
-                                                    );
-                                                  } catch (e) {
-                                                    if (mounted) {
-                                                      setState(
-                                                        () => _error =
-                                                            friendlyError(e),
-                                                      );
-                                                    }
-                                                  } finally {
-                                                    if (mounted) {
-                                                      setState(
-                                                        () => _busy = false,
-                                                      );
-                                                    }
-                                                  }
-                                                },
-                                        )
-                                      else
-                                        Text(
-                                          '参与方式：${statusName(agent['mode'])}',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: mutedColor,
-                                          ),
+                                      ProfessionalIdentity(person: agent),
+                                      TextButton.icon(
+                                        onPressed: () => showAgentAutonomy(
+                                          context,
+                                          s,
+                                          agent,
+                                          roomId: s.selectedRoomId!,
+                                          canEdit:
+                                              owner ||
+                                              personId(agent) ==
+                                                  personId(s.me ?? {}),
                                         ),
+                                        icon: const Icon(Icons.tune, size: 16),
+                                        label: const Text('人格与参与'),
+                                      ),
+                                      const Text(
+                                        '参与方式',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: mutedColor,
+                                        ),
+                                      ),
+                                      Text(
+                                        statusName(agent['mode']),
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
                                     ],
                                   ),
                                 ),

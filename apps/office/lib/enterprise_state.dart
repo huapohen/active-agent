@@ -12,7 +12,12 @@ class EnterpriseState extends ChangeNotifier {
   bool _disposed = false, loading = false, loaded = false;
   String? error;
   Json enterprise = {}, membership = {}, capabilities = {}, counts = {};
-  List<Json> members = [], departments = [], roles = [], audit = [], apps = [];
+  List<Json> members = [],
+      departments = [],
+      organizations = [],
+      roles = [],
+      audit = [],
+      apps = [];
   int memberPage = 1, memberTotal = 0, auditPage = 1, auditTotal = 0;
   String memberQuery = '',
       memberStatus = 'all',
@@ -67,12 +72,14 @@ class EnterpriseState extends ChangeNotifier {
         await Future.wait([
           loadMembers(),
           loadDepartments(),
+          if (can('manage_organizations')) loadOrganizations(),
           loadRoles(),
           if (can('view_audit')) loadAudit(),
         ]);
       } else {
         members = [];
         departments = [];
+        organizations = [];
         roles = [];
         audit = [];
         apps = [];
@@ -85,6 +92,7 @@ class EnterpriseState extends ChangeNotifier {
           capabilities = {};
           members = [];
           departments = [];
+          organizations = [];
           roles = [];
           audit = [];
           apps = [];
@@ -141,6 +149,45 @@ class EnterpriseState extends ChangeNotifier {
     );
     _notify();
   }
+
+  Future<void> loadOrganizations() async {
+    organizations = _list(
+      (await _request('/enterprise/admin/organizations'))['organizations'],
+    );
+    _notify();
+  }
+
+  Future<void> saveOrganization({
+    Json? organization,
+    required String name,
+    required String description,
+    required String clientId,
+  }) async {
+    await _request(
+      '/enterprise/admin/organizations${organization == null ? '' : '/${Uri.encodeComponent(strId(organization['id']))}'}',
+      method: organization == null ? 'POST' : 'PATCH',
+      data: {
+        'name': name,
+        'description': description,
+        if (organization == null)
+          'client_id': clientId
+        else
+          'base_revision': organization['revision'],
+      },
+    );
+    await _refreshAfterWrite();
+  }
+
+  Future<void> deleteOrganization(Json organization) async {
+    await _request(
+      '/enterprise/admin/organizations/${Uri.encodeComponent(strId(organization['id']))}',
+      method: 'DELETE',
+      data: {'base_revision': organization['revision']},
+    );
+    await _refreshAfterWrite();
+  }
+
+  String strId(dynamic value) => value?.toString() ?? '';
 
   Future<void> loadRoles() async {
     roles = _list((await _request('/enterprise/admin/roles'))['roles']);
@@ -215,6 +262,7 @@ class EnterpriseState extends ChangeNotifier {
     await Future.wait([
       loadMembers(),
       loadDepartments(),
+      if (can('manage_organizations')) loadOrganizations(),
       if (can('view_audit')) loadAudit(),
     ]);
     _notify();
@@ -225,6 +273,9 @@ class EnterpriseState extends ChangeNotifier {
     required String kind,
     required String clientId,
     String? departmentId,
+    String? organizationId,
+    String profession = '',
+    String jobTitle = '',
   }) async {
     final result = await _request(
       '/enterprise/admin/members',
@@ -234,6 +285,9 @@ class EnterpriseState extends ChangeNotifier {
         'kind': kind,
         'client_id': clientId,
         'department_id': ?departmentId,
+        'organization_id': ?organizationId,
+        if (profession.isNotEmpty) 'profession': profession,
+        if (jobTitle.isNotEmpty) 'job_title': jobTitle,
       },
     );
     // The one-time credential is returned directly to its creation dialog,

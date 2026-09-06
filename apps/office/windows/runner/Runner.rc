@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "huapohen" "\0"
-            VALUE "FileDescription", "Active Office" "\0"
+            VALUE "FileDescription", "人机" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "active_office" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 huapohen. MIT License." "\0"
             VALUE "OriginalFilename", "active_office.exe" "\0"
-            VALUE "ProductName", "Active Office" "\0"
+            VALUE "ProductName", "人机" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

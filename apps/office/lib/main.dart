@@ -44,7 +44,7 @@ class _ActiveOfficeAppState extends State<ActiveOfficeApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '同席 · Active Office',
+      title: '人机 · Active Office',
       debugShowCheckedModeBanner: false,
       theme: officeTheme(),
       locale: const Locale('zh', 'CN'),
@@ -73,6 +73,9 @@ class _ActiveOfficeAppState extends State<ActiveOfficeApp> {
                     : state.endpoint,
                 onConnect: state.connect,
                 onLogin: state.loginWithPassword,
+                discoverProviders: state.discoverAuthProviders,
+                startExternalLogin: state.startExternalLogin,
+                exchangeExternalLogin: state.exchangeExternalLogin,
               )
             : OfficeShell(state: state),
       ),

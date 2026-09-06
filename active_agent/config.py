@@ -51,9 +51,17 @@ class Settings:
     im_token: str = ""
     im_admin_token: str = ""
     im_wait_seconds: int = 20
+    im_worker_slots: int = 8
+    im_model_concurrency: int = 3
     document_poll_seconds: int = 2
     tick_seconds: int = 30
     min_silence_seconds: int = 300
+
+    def __post_init__(self):
+        for name, low, high in [("im_worker_slots", 1, 32), ("im_model_concurrency", 1, 8)]:
+            value = getattr(self, name)
+            if type(value) is not int or not low <= value <= high:
+                raise ValueError("%s must be an integer from %s to %s" % (name, low, high))
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -74,6 +82,8 @@ class Settings:
             im_token=os.getenv("AA_IM_TOKEN", ""),
             im_admin_token=os.getenv("AA_IM_ADMIN_TOKEN", ""),
             im_wait_seconds=max(1, min(25, int(os.getenv("AA_IM_WAIT_SECONDS", "20")))),
+            im_worker_slots=int(os.getenv("AA_IM_WORKER_SLOTS", "8")),
+            im_model_concurrency=int(os.getenv("AA_IM_MODEL_CONCURRENCY", "3")),
             document_poll_seconds=max(1, int(os.getenv("AA_DOCUMENT_POLL_SECONDS", "2"))),
             tick_seconds=max(5, int(os.getenv("AA_TICK_SECONDS", "30"))),
             min_silence_seconds=max(0, int(os.getenv("AA_MIN_SILENCE_SECONDS", "300"))),

@@ -1,4 +1,4 @@
-# 同席 · Active Office
+# 人机 · Active Office
 
 One Flutter client for macOS, Windows, iOS, Android and Web. The client uses the same
 `active-im/v1` identity, room, document, message and task APIs as an Agent worker.
