@@ -54,3 +54,11 @@
 工作流内嵌 provenance/封装步骤，仓库没有 `scripts/package_office.py`。本地需要封装时复用 workflow 中的实际 tar/ditto/zip 操作与清单 schema，不依赖不存在的脚本。
 
 这些产物仍是开发预览：macOS 未 notarize，iOS 真机 app 未签名，Android 未配置发行签名。五端 build 成功不等于真实音视频采集、跨网络会议质量、企业规模或应用商店发布已验证。
+
+## 5. 后续完成注记 · 2026-09-06T12:34:02+08:00
+
+以上标题、状态和“仍为 0.4.0+1 / 尚无第二阶段构建”描述保留为 `2026-09-06T12:11:10+08:00` 的准备快照。后续已提交 Active Agent `2fad0ac68a05a39cf7d6abe55624b771bfa3ae62`（`feat: add enterprise office console and human-agent business workflows`）及 Doc Free `901b49bdd268b98dae74613a19d40d7d69891137`（`feat: add equal-rights enterprise administration and native office protocols`），两者提交时间均为 `2026-09-06T12:23:53+08:00`；客户端已更新为 `0.5.0+2`。
+
+准确 Active Agent 提交触发的 [Office clients run 34011406113](https://github.com/huapohen/active-agent/actions/runs/34011406113) 已完成，Web、Android、macOS、iOS unsigned、Windows 五个 job 全部成功，最后一个 job 于 `2026-09-06T04:29:56Z` 完成。共享 Flutter 套件为 24 项，跨 runner 重复执行不累加成独立新测试。本地干净 `2fad0ac` worktree 另外完成 iOS Simulator debug 与 macOS release 构建，记录见 `output/builds/2fad0ac/local/LOCAL-BUILD-MANIFEST.json`。
+
+这条追加记录确认实现提交、版本和上述构建已完成，不替代最终归档清单。下载完成、GitHub 外层摘要、包内 SHA、签名状态及具体平台交互证据由新的发布台账逐项关联；第一阶段 `1ae44da` 的包继续保留为旧证据。默认 worker 的可靠多动作执行合同仍为待实现设计，本次构建没有实现该设计中的新动作端点与恢复机制。

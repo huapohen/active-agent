@@ -12,11 +12,13 @@
 | Doc Free 基线 | `da9f5d0fe3d9dad50ca79bd8f90446e20db2cefd` | 见原提交 | evolve 共享文档基础 |
 | Active Agent 五端首版 | `1ae44da253a9f097b02a7335678d485b285796cf` | 2026-09-06T10:44:22+08:00 | Flutter五端、原生身份、协作与办公模块 |
 | Doc Free 办公首版 | `134e0a78fc51345689be377004e793dd6a7fd71d` | 2026-09-06T10:42:30+08:00 | 会议、日历、附件与消息深层操作 |
+| Active Agent 企业办公 0.5 | `2fad0ac68a05a39cf7d6abe55624b771bfa3ae62` | 2026-09-06T12:23:53+08:00 | 企业管理 UI、应用策略及同权办公工作流 |
+| Doc Free 企业办公 0.5 | `901b49bdd268b98dae74613a19d40d7d69891137` | 2026-09-06T12:23:53+08:00 | 企业角色、应用范围与原生协议当前权限 |
 | Doc Free 首版 IM | `9f97b516542715ab7818ee3f32d7e73611cda2bd` | 2026-09-06T09:58:32+08:00 | 独立身份、群聊、任务、文档、Agent 商店、MCP |
 
-本轮后续实现与最终验证的精确提交，将在发布完成时追加到 `VERSION.json` 和本表。不会用未提交工作区的测试结果证明历史提交。
+0.5 实现和准确五端产物已记录于 [发布台账](RELEASE.md)、[VERSION.json](VERSION.json) 与 [界面验收](LIVE_UI_ACCEPTANCE.md)。台账提交晚于实现提交，不改变安装包的源码归属。
 
-## 已执行真实协作验证
+## 第一阶段真实协作验证
 
 使用本机隔离身份与文档，未向飞书真实联系人发送消息。
 
@@ -37,3 +39,9 @@
 本轮新增账号/会话、考勤与补卡/审批、内部邮箱、设置、联系人、插件、统一搜索、A2A以及企业管理和真实应用策略。详见[企业实看与范围](ENTERPRISE_REFERENCE_AND_SCOPE.md)。可靠的默认worker多动作执行另见[待实现设计](NATIVE_ACTION_EXECUTION_DESIGN.md)。服务端协议与回归报告见Doc Free同分支文档。
 
 第一阶段commit `1ae44da`的五端GitHub Actions [34007336316](https://github.com/huapohen/active-agent/actions/runs/34007336316) 全部成功；对应本机归档为 `output/builds/1ae44da`，已验证GitHub artifact摘要与包内SHA。它们不包含0.5新业务。0.5包必须来自新的准确实现提交，不能重标旧产物。
+
+## 0.5 发布结果
+
+记录时间：2026-09-06T12:40:38+08:00。新版 [五端 CI 34011406113](https://github.com/huapohen/active-agent/actions/runs/34011406113) 全部成功，五份归档两层 SHA 校验通过，本机目录 `output/builds/2fad0ac`。Python 37、Flutter 24、Node 114 项通过，后端套件包含 217 次真实 HTTP 请求。人类界面限制 Agent、Agent 原生 MCP 恢复企业策略、Agent 账号审批补卡和完整正文内部邮件闭环均有 [界面证据](LIVE_UI_ACCEPTANCE.md)。
+
+准确提交、时间、产物 SHA、签名限制与仍未完成的范围见 [发布台账](RELEASE.md)；默认 worker 多动作执行仍是待实现设计。
