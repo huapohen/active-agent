@@ -36,7 +36,7 @@ class OfficeShell extends StatefulWidget {
 }
 
 class _OfficeShellState extends State<OfficeShell> {
-  int _nav = 0, _settingsTab = 0;
+  int _nav = 0, _settingsTab = -1;
   final _meetingsKey = GlobalKey<OfficeMeetingsState>();
   final _calendarKey = GlobalKey<OfficeCalendarState>();
   final _approvalsKey = GlobalKey<OfficeApprovalsState>();
@@ -199,12 +199,10 @@ class _OfficeShellState extends State<OfficeShell> {
               _settingsTab = 0;
               _changeNav(11);
             case 'settings':
-              _settingsTab = 1;
+              _settingsTab = -1;
               _changeNav(11);
             case 'workbench':
               _changeNav(5);
-            case 'navigation':
-              await showOfficeNavigationEditor(this.context, s);
             case 'enterprise':
               if (s.canManageEnterprise) _changeNav(13);
             case 'logout':
@@ -436,6 +434,7 @@ class _OfficeShellState extends State<OfficeShell> {
             ),
             bottomNavigationBar:
                 mobile &&
+                    _nav != 11 &&
                     !(_roomOpen && _nav == 0) &&
                     !(_nav == 6 && _media.activeMeeting != null)
                 ? NavigationBar(
@@ -631,6 +630,7 @@ class _OfficeShellState extends State<OfficeShell> {
     ),
   );
   Widget _mobile() {
+    if (_nav == 11) return Material(color: Colors.white, child: _main(true));
     if (!_navAvailable) {
       return Material(color: Colors.white, child: _main(true));
     }
@@ -798,6 +798,9 @@ class _OfficeShellState extends State<OfficeShell> {
           key: ValueKey('settings-$_settingsTab'),
           state: s,
           initialTab: _settingsTab,
+          onClose: () => _changeNav(12),
+          onNavigation: () => showOfficeNavigationEditor(context, s),
+          onOpenModule: _changeNav,
           onEnterprise: s.canManageEnterprise ? () => _changeNav(13) : null,
         );
       case 12:
@@ -879,7 +882,7 @@ class _OfficeShellState extends State<OfficeShell> {
         title: const Text('设置', style: TextStyle(fontSize: 14)),
         trailing: const Icon(Icons.chevron_right, size: 19, color: mutedColor),
         onTap: () {
-          _settingsTab = 0;
+          _settingsTab = -1;
           _changeNav(11);
         },
       ),

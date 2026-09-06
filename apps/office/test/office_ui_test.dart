@@ -778,15 +778,22 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('消息与效率').first);
+    await tester.tap(find.text('通用').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('所有消息左对齐'));
     await tester.pumpAndSettle();
     expect(state.settings['message_alignment'], 'left');
+    await tester.tap(find.text('快捷键').first);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Ctrl / ⌘ + Enter 发送'));
     await tester.pumpAndSettle();
     expect(state.settings['send_shortcut'], 'mod_enter');
-    await tester.tap(find.text('插件与能力').first);
+    await tester.scrollUntilVisible(
+      find.text('Agent 与插件'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Agent 与插件').first);
     await tester.pumpAndSettle();
     expect(find.text('已登记，尚未连接'), findsOneWidget);
     final extensionSwitch = find.byWidgetPredicate(

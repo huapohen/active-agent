@@ -158,9 +158,8 @@ class OfficeProfilePanel extends StatelessWidget {
             ),
             const Divider(height: 18),
             action('我的账号与设备', Icons.manage_accounts_outlined, 'account'),
-            action('个人设置', Icons.settings_outlined, 'settings'),
+            action('设置', Icons.settings_outlined, 'settings'),
             action('工作台', Icons.grid_view_rounded, 'workbench'),
-            action('编辑手机底栏', Icons.view_carousel_outlined, 'navigation'),
             if (state.canManageEnterprise)
               action('企业管理', Icons.apartment_outlined, 'enterprise'),
             const Divider(height: 18),

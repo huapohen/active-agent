@@ -259,9 +259,25 @@ void main() {
         expect(find.text('真实协作企业'), findsOneWidget);
         expect(find.text('账号：test.member'), findsOneWidget);
         expect(find.text('企业管理'), admin ? findsOneWidget : findsNothing);
-        await tester.tap(find.text('个人设置'));
+        expect(find.text('编辑手机底栏'), findsNothing);
+        expect(find.text('个人设置'), findsNothing);
+        await tester.tap(find.text('设置').last);
+        await tester.pumpAndSettle();
+        if (!admin) {
+          expect(find.byType(NavigationBar), findsNothing);
+          await tester.tap(find.text('通用'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('返回设置'));
+          await tester.pumpAndSettle();
+          expect(find.text('账号安全中心'), findsOneWidget);
+        }
+        await tester.tap(find.text('通用').first);
         await tester.pumpAndSettle();
         expect(find.text('文字大小'), findsOneWidget);
+        await tester.ensureVisible(find.text('编辑底栏'));
+        await tester.tap(find.text('编辑底栏'));
+        await tester.pumpAndSettle();
+        expect(find.text('保存'), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
         state.dispose();
