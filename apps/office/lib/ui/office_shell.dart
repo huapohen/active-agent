@@ -5,8 +5,14 @@ import 'package:flutter/material.dart';
 import '../office_state.dart' hide Json;
 import '../meeting_controller.dart';
 import 'app_workbench.dart';
+import 'approvals.dart';
+import 'attendance.dart';
+import 'business_widgets.dart';
+import 'mailbox.dart';
+import 'settings.dart';
 import 'calendar.dart';
 import 'conversation.dart';
+import 'enterprise.dart';
 import 'meetings.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
@@ -22,9 +28,17 @@ class OfficeShell extends StatefulWidget {
 
 class _OfficeShellState extends State<OfficeShell> {
   int _nav = 0;
+  final _meetingsKey = GlobalKey<OfficeMeetingsState>();
+  final _calendarKey = GlobalKey<OfficeCalendarState>();
+  final _approvalsKey = GlobalKey<OfficeApprovalsState>();
+  final _mailKey = GlobalKey<OfficeMailboxState>();
+  String _searchType = 'all';
+  bool _searchOpen = false, _agentStore = false;
   bool _roomOpen = false, _unreadOnly = false;
   String _roomQuery = '', _globalQuery = '';
   Timer? _searchTimer;
+  final _globalSearchInput = TextEditingController();
+  bool _searching = false;
   final MeetingMediaController _media = MeetingMediaController();
   OfficeState get s => widget.state;
   static const _labels = [
@@ -36,6 +50,10 @@ class _OfficeShellState extends State<OfficeShell> {
     '工作台',
     '视频会议',
     '日历',
+    '邮箱',
+    '考勤',
+    '审批',
+    '设置',
   ];
   static const _icons = [
     Icons.chat_bubble_outline,
@@ -46,6 +64,10 @@ class _OfficeShellState extends State<OfficeShell> {
     Icons.grid_view_rounded,
     Icons.videocam_outlined,
     Icons.calendar_month_outlined,
+    Icons.mail_outline,
+    Icons.fingerprint,
+    Icons.fact_check_outlined,
+    Icons.settings_outlined,
   ];
   @override
   void initState() {
@@ -60,17 +82,27 @@ class _OfficeShellState extends State<OfficeShell> {
   @override
   void dispose() {
     _searchTimer?.cancel();
+    _globalSearchInput.dispose();
     _media.removeListener(_mediaChanged);
     _media.dispose();
     super.dispose();
   }
 
   void _changeNav(int value) {
+    _globalSearchInput.clear();
     setState(() {
       _nav = value;
       _roomOpen = false;
       _globalQuery = '';
+      _searchOpen = false;
     });
+    if ([8, 9, 10, 11].contains(value)) {
+      unawaited(
+        s.refreshBusiness().catchError((Object e) {
+          if (mounted) notifyOffice(context, friendlyError(e));
+        }),
+      );
+    }
     if (value == 5 || value == 6 || value == 7) {
       unawaited(
         s.refreshOffice().catchError((Object e) {
@@ -94,6 +126,12 @@ class _OfficeShellState extends State<OfficeShell> {
       'workbench': 5,
       'meetings': 6,
       'calendar': 7,
+      'mail': 8,
+      'attendance': 9,
+      'approvals': 10,
+      'approval': 10,
+      'settings': 11,
+      'enterprise': 13,
     }[id];
     if (nav != null) _changeNav(nav);
   }
@@ -108,6 +146,7 @@ class _OfficeShellState extends State<OfficeShell> {
       _nav = 0;
       _roomOpen = true;
       _globalQuery = '';
+      _searchOpen = false;
     });
     try {
       await s.selectRoom(id);
@@ -117,14 +156,30 @@ class _OfficeShellState extends State<OfficeShell> {
   }
 
   void _search(String query) {
-    setState(() => _globalQuery = query);
+    if (_globalSearchInput.text != query) {
+      _globalSearchInput.value = TextEditingValue(
+        text: query,
+        selection: TextSelection.collapsed(offset: query.length),
+      );
+    }
+    setState(() {
+      _globalQuery = query;
+      _searchOpen = true;
+      _searching = query.trim().isNotEmpty;
+    });
     _searchTimer?.cancel();
     if (query.trim().isEmpty) return;
     _searchTimer = Timer(const Duration(milliseconds: 350), () async {
       try {
         await s.search(query);
       } catch (e) {
-        if (mounted) notifyOffice(context, friendlyError(e));
+        if (mounted && query == _globalQuery) {
+          notifyOffice(context, friendlyError(e));
+        }
+      } finally {
+        if (mounted && query == _globalQuery) {
+          setState(() => _searching = false);
+        }
       }
     });
   }
@@ -145,7 +200,7 @@ class _OfficeShellState extends State<OfficeShell> {
               : Row(
                   children: [
                     _rail(),
-                    if (_nav == 0)
+                    if (_nav == 0 && s.moduleAvailable('im'))
                       Container(
                         width: constraints.maxWidth < 1050 ? 260 : 290,
                         margin: const EdgeInsets.fromLTRB(0, 10, 9, 10),
@@ -156,7 +211,8 @@ class _OfficeShellState extends State<OfficeShell> {
                         ),
                         child: _roomList(),
                       ),
-                    if (_nav == 3) _documentSidebar(),
+                    if (_nav == 3 && s.moduleAvailable('docs'))
+                      _documentSidebar(),
                     Expanded(
                       child: Container(
                         margin: const EdgeInsets.fromLTRB(0, 10, 10, 10),
@@ -167,9 +223,7 @@ class _OfficeShellState extends State<OfficeShell> {
                         ),
                         child: Material(
                           color: Colors.white,
-                          child: _globalQuery.isNotEmpty
-                              ? _searchResults()
-                              : _main(false),
+                          child: _searchOpen ? _searchResults() : _main(false),
                         ),
                       ),
                     ),
@@ -184,11 +238,11 @@ class _OfficeShellState extends State<OfficeShell> {
                 height: 65,
                 backgroundColor: Colors.white,
                 indicatorColor: selectedColor,
-                selectedIndex: [0, 3, 5, 6].contains(_nav)
-                    ? [0, 3, 5, 6].indexOf(_nav)
-                    : 4,
+                selectedIndex: [0, 3, 5, 6, 8].contains(_nav)
+                    ? [0, 3, 5, 6, 8].indexOf(_nav)
+                    : 5,
                 onDestinationSelected: (index) =>
-                    _changeNav([0, 3, 5, 6, 8][index]),
+                    _changeNav([0, 3, 5, 6, 8, 12][index]),
                 destinations: const [
                   NavigationDestination(
                     icon: Icon(Icons.chat_bubble_outline, size: 20),
@@ -205,6 +259,10 @@ class _OfficeShellState extends State<OfficeShell> {
                   NavigationDestination(
                     icon: Icon(Icons.videocam_outlined, size: 20),
                     label: '视频会议',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.mail_outline, size: 20),
+                    label: '邮箱',
                   ),
                   NavigationDestination(
                     icon: Icon(Icons.more_horiz, size: 20),
@@ -250,94 +308,82 @@ class _OfficeShellState extends State<OfficeShell> {
                   ],
                 ),
               ),
-              PopupMenuButton<String>(
-                tooltip: '创建与身份',
-                padding: EdgeInsets.zero,
-                icon: const Icon(
-                  Icons.add_circle_outline,
-                  size: 20,
-                  color: Color(0xff818b9b),
-                ),
-                onSelected: (v) {
-                  if (v == 'group') OfficeDialogs.createRoom(context, s);
-                  if (v == 'agent') _changeNav(1);
-                  if (v == 'logout') s.disconnect();
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'group', child: Text('创建工作群')),
-                  const PopupMenuItem(value: 'agent', child: Text('添加 Agent')),
-                  const PopupMenuItem(value: 'logout', child: Text('退出当前身份')),
-                ],
-              ),
+              _quickMenu(),
             ],
           ),
           const SizedBox(height: 23),
           OfficeSearch(hint: '搜索', onChanged: _search),
           const SizedBox(height: 22),
-          ...List.generate(
-            _labels.length,
-            (i) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Material(
-                color: _nav == i ? const Color(0xffdde6fc) : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-                child: InkWell(
-                  onTap: () => _changeNav(i),
-                  borderRadius: BorderRadius.circular(6),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 11,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _icons[i],
-                          size: 19,
-                          color: _nav == i
-                              ? accentColor
-                              : const Color(0xff626f87),
+          Expanded(
+            child: ListView(
+              children: List.generate(
+                _labels.length,
+                (i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Material(
+                    color: _nav == i
+                        ? const Color(0xffdde6fc)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    child: InkWell(
+                      onTap: () => _changeNav(i),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 11,
                         ),
-                        const SizedBox(width: 12),
-                        Text(
-                          _labels[i],
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: _nav == i
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                            color: _nav == i
-                                ? accentColor
-                                : const Color(0xff43516b),
-                          ),
-                        ),
-                        if (i == 0 &&
-                            s.rooms.fold<int>(
-                                  0,
-                                  (a, r) =>
-                                      a +
-                                      ((r['unread_count'] as num?)?.toInt() ??
-                                          0),
-                                ) >
-                                0) ...[
-                          const Spacer(),
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Color(0xfff56c6c),
-                              shape: BoxShape.circle,
+                        child: Row(
+                          children: [
+                            Icon(
+                              _icons[i],
+                              size: 19,
+                              color: _nav == i
+                                  ? accentColor
+                                  : const Color(0xff626f87),
                             ),
-                          ),
-                        ],
-                      ],
+                            const SizedBox(width: 12),
+                            Text(
+                              _labels[i],
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: _nav == i
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: _nav == i
+                                    ? accentColor
+                                    : const Color(0xff43516b),
+                              ),
+                            ),
+                            if (i == 0 &&
+                                s.rooms.fold<int>(
+                                      0,
+                                      (a, r) =>
+                                          a +
+                                          ((r['unread_count'] as num?)
+                                                  ?.toInt() ??
+                                              0),
+                                    ) >
+                                    0) ...[
+                              const Spacer(),
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xfff56c6c),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-          const Spacer(),
           if (_media.activeMeeting != null && _nav != 6) _callStrip(),
           Row(
             children: [
@@ -392,32 +438,113 @@ class _OfficeShellState extends State<OfficeShell> {
     ),
   );
   Widget _mobile() {
+    if (!_navAvailable) {
+      return Material(color: Colors.white, child: _main(true));
+    }
     if (_nav == 0 && _roomOpen) {
       return Material(
         color: Colors.white,
         child: OfficeConversation(
+          onAgentStore: () {
+            _agentStore = true;
+            _changeNav(1);
+          },
           state: s,
           mobile: true,
           onBack: () => setState(() => _roomOpen = false),
         ),
       );
     }
-    if (_globalQuery.isNotEmpty) {
+    if (_searchOpen) {
       return Material(color: Colors.white, child: _searchResults());
     }
     return Material(
       color: Colors.white,
-      child: _nav == 0 ? _roomList(mobile: true) : _main(true),
+      child: _nav == 0
+          ? _roomList(mobile: true)
+          : Column(
+              children: [
+                if (!(_nav == 6 && _media.activeMeeting != null))
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+                    child: Row(
+                      children: [
+                        PersonAvatar(
+                          name: str(s.me?['name']),
+                          agent: s.me?['kind'] == 'agent',
+                          size: 27,
+                        ),
+                        const SizedBox(width: 9),
+                        const Expanded(
+                          child: Text(
+                            '同席工作空间',
+                            style: TextStyle(fontSize: 11, color: mutedColor),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '全局搜索',
+                          onPressed: () => setState(() => _searchOpen = true),
+                          icon: const Icon(Icons.search, size: 21),
+                        ),
+                        _quickMenu(),
+                      ],
+                    ),
+                  ),
+                Expanded(child: _main(true)),
+              ],
+            ),
     );
   }
 
+  String? get _currentModule => const {
+    0: 'im',
+    1: 'im',
+    2: 'im',
+    3: 'docs',
+    4: 'tasks',
+    5: 'workbench',
+    6: 'meetings',
+    7: 'calendar',
+    8: 'mail',
+    9: 'attendance',
+    10: 'approvals',
+  }[_nav];
+  bool get _navAvailable =>
+      _currentModule == null || s.moduleAvailable(_currentModule!);
   Widget _main(bool mobile) {
+    if (!_navAvailable) {
+      return EmptyOffice(
+        title: '企业策略已限制此应用',
+        subtitle: '当前身份不在可用范围，或关联能力受到限制。可以在企业管理中查看权限。',
+        icon: Icons.lock_outline,
+        action: Wrap(
+          spacing: 10,
+          children: [
+            TextButton(
+              onPressed: () => _changeNav(11),
+              child: const Text('打开设置'),
+            ),
+            TextButton(
+              onPressed: () => _changeNav(13),
+              child: const Text('企业管理'),
+            ),
+          ],
+        ),
+      );
+    }
     switch (_nav) {
       case 0:
-        return OfficeConversation(state: s);
+        return OfficeConversation(
+          state: s,
+          onAgentStore: () {
+            _agentStore = true;
+            _changeNav(1);
+          },
+        );
       case 1:
         return OfficePeople(
-          key: const ValueKey('agents'),
+          key: ValueKey('agents-$_agentStore'),
+          initialStore: _agentStore,
           state: s,
           agent: true,
           onConversation: () => setState(() {
@@ -441,14 +568,29 @@ class _OfficeShellState extends State<OfficeShell> {
         return WorkTaskLibrary(state: s);
       case 6:
         return OfficeMeetings(
+          key: _meetingsKey,
           state: s,
           media: _media,
           onCalendar: () => _changeNav(7),
         );
       case 7:
-        return OfficeCalendar(state: s, onMeeting: _joinMeeting);
+        return OfficeCalendar(
+          key: _calendarKey,
+          state: s,
+          onMeeting: _joinMeeting,
+        );
       case 8:
+        return OfficeMailbox(key: _mailKey, state: s);
+      case 9:
+        return OfficeAttendance(state: s);
+      case 10:
+        return OfficeApprovals(key: _approvalsKey, state: s);
+      case 11:
+        return OfficeSettings(state: s, onEnterprise: () => _changeNav(13));
+      case 12:
         return _more();
+      case 13:
+        return OfficeEnterprise(state: s);
       default:
         return OfficeAppWorkbench(state: s, onOpen: _openApp);
     }
@@ -487,7 +629,7 @@ class _OfficeShellState extends State<OfficeShell> {
         ],
       ),
       const SizedBox(height: 28),
-      ...[1, 2, 7, 4].map(
+      ...[1, 2, 7, 4, 9, 10, 11].map(
         (i) => ListTile(
           contentPadding: EdgeInsets.zero,
           leading: Icon(_icons[i], color: accentColor),
@@ -499,6 +641,13 @@ class _OfficeShellState extends State<OfficeShell> {
           ),
           onTap: () => _changeNav(i),
         ),
+      ),
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.apartment_outlined, color: accentColor),
+        title: const Text('企业管理', style: TextStyle(fontSize: 14)),
+        trailing: const Icon(Icons.chevron_right, size: 19, color: mutedColor),
+        onTap: () => _changeNav(13),
       ),
       if (_media.activeMeeting != null)
         ListTile(
@@ -596,35 +745,22 @@ class _OfficeShellState extends State<OfficeShell> {
                       ),
               ),
               if (mobile)
-                PopupMenuButton<String>(
-                  tooltip: '当前身份',
-                  icon: PersonAvatar(
-                    name: str(s.me?['name']),
-                    agent: s.me?['kind'] == 'agent',
-                    size: 27,
+                IconButton(
+                  tooltip: '全局搜索',
+                  onPressed: () => setState(() => _searchOpen = true),
+                  icon: const Icon(Icons.search, size: 22),
+                )
+              else
+                IconButton(
+                  onPressed: () => setState(() => _unreadOnly = !_unreadOnly),
+                  tooltip: _unreadOnly ? '查看全部消息' : '仅看未读',
+                  icon: Icon(
+                    Icons.filter_list,
+                    color: _unreadOnly ? accentColor : mutedColor,
+                    size: 19,
                   ),
-                  onSelected: (_) => s.disconnect(),
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'logout',
-                      child: Text('${str(s.me?['name'])} · 退出'),
-                    ),
-                  ],
                 ),
-              IconButton(
-                onPressed: () => setState(() => _unreadOnly = !_unreadOnly),
-                tooltip: _unreadOnly ? '查看全部消息' : '仅看未读',
-                icon: Icon(
-                  Icons.filter_list,
-                  color: _unreadOnly ? accentColor : mutedColor,
-                  size: 19,
-                ),
-              ),
-              IconButton(
-                onPressed: () => OfficeDialogs.createRoom(context, s),
-                tooltip: '创建工作群',
-                icon: const Icon(Icons.add, size: 21),
-              ),
+              _quickMenu(),
             ],
           ),
         ),
@@ -788,7 +924,10 @@ class _OfficeShellState extends State<OfficeShell> {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              last['retracted_at'] != null
+                                              s.settings['show_message_preview'] ==
+                                                      false
+                                                  ? '消息预览已隐藏'
+                                                  : last['retracted_at'] != null
                                                   ? '一条消息已撤回'
                                                   : str(
                                                       last['content'],
@@ -949,86 +1088,319 @@ class _OfficeShellState extends State<OfficeShell> {
       ],
     ),
   );
-  Widget _searchResults() => Column(
-    children: [
-      Padding(
-        padding: const EdgeInsets.all(22),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '搜索 “$_globalQuery”',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+  Widget _searchResults() {
+    final results = s.searchResults
+        .where((r) => _searchType == 'all' || r['type'] == _searchType)
+        .toList();
+    const domains = {
+      'all': '全部',
+      'person': '联系人',
+      'agent': 'Agent 好友',
+      'store': 'Agent 商店',
+      'message': '消息',
+      'document': '文档',
+      'task': '任务',
+      'mail': '邮件',
+      'approval': '审批',
+      'calendar': '日程',
+    };
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _globalSearchInput,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: '搜索人、Agent 和工作内容',
+                    prefixIcon: Icon(Icons.search, size: 19),
+                  ),
+                  onChanged: _search,
                 ),
               ),
-            ),
-            IconButton(
-              onPressed: () => setState(() => _globalQuery = ''),
-              tooltip: '关闭搜索',
-              icon: const Icon(Icons.close),
-            ),
-          ],
-        ),
-      ),
-      const Divider(height: 1),
-      Expanded(
-        child: s.searchResults.isEmpty
-            ? const EmptyOffice(
-                title: '没有找到匹配内容',
-                subtitle: '搜索已加入会话中的消息、文档和任务。',
-                icon: Icons.search,
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.all(20),
-                itemCount: s.searchResults.length,
-                separatorBuilder: (_, _) => const Divider(height: 20),
-                itemBuilder: (context, index) {
-                  final result = s.searchResults[index];
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      result['type'] == 'document'
-                          ? Icons.description_outlined
-                          : result['type'] == 'task'
-                          ? Icons.task_alt
-                          : Icons.chat_bubble_outline,
-                      color: accentColor,
-                      size: 21,
-                    ),
-                    title: Text(
-                      str(
-                        result['title'],
-                        result['type'] == 'message' ? '会话消息' : '工作内容',
-                      ),
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    subtitle: Text(
-                      str(result['content']),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: mutedColor,
-                        height: 1.8,
-                      ),
-                    ),
-                    onTap: () async {
-                      await _open(str(result['room_id']));
-                      if (result['type'] == 'document' && context.mounted) {
-                        final document = maps(s.detail?['documents'])
-                            .where((d) => d['id'] == result['id'])
-                            .firstOrNull;
-                        if (document != null) {
-                          OfficeDialogs.document(context, s, document);
-                        }
-                      }
-                    },
-                  );
-                },
+              IconButton(
+                onPressed: () => setState(() {
+                  _globalQuery = '';
+                  _globalSearchInput.clear();
+                  _searchOpen = false;
+                }),
+                tooltip: '关闭搜索',
+                icon: const Icon(Icons.close),
               ),
-      ),
-    ],
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 45,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: domains.entries
+                .map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(
+                        e.value,
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      selected: _searchType == e.key,
+                      showCheckmark: false,
+                      onSelected: (_) => setState(() => _searchType = e.key),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Divider(height: 1),
+        Expanded(
+          child: _globalQuery.trim().isEmpty
+              ? const EmptyOffice(
+                  title: '搜索整个工作空间',
+                  subtitle: '找到工作伙伴、商店 Agent 与有权访问的工作内容。',
+                  icon: Icons.search,
+                )
+              : _searching
+              ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+              : results.isEmpty
+              ? const EmptyOffice(
+                  title: '没有找到匹配内容',
+                  subtitle: '试试其他关键词或切换分类。',
+                  icon: Icons.search,
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: results.length,
+                  separatorBuilder: (_, _) => const Divider(height: 20),
+                  itemBuilder: (context, index) {
+                    final result = results[index],
+                        type = str(results[index]['type']);
+                    return Material(
+                      color: Colors.white,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          const {
+                                'person': Icons.person_outline,
+                                'agent': Icons.auto_awesome_outlined,
+                                'store': Icons.storefront_outlined,
+                                'document': Icons.description_outlined,
+                                'task': Icons.task_alt,
+                                'mail': Icons.mail_outline,
+                                'approval': Icons.fact_check_outlined,
+                                'calendar': Icons.calendar_month_outlined,
+                              }[type] ??
+                              Icons.chat_bubble_outline,
+                          color: accentColor,
+                          size: 22,
+                        ),
+                        title: Text(
+                          str(result['title'], '工作内容'),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        subtitle: Text(
+                          '${domains[type] ?? '工作内容'} · ${str(result['snippet'], str(result['content']))}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: mutedColor,
+                            height: 1.8,
+                          ),
+                        ),
+                        onTap: () => _openSearchResult(result),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openSearchResult(Json result) async {
+    try {
+      final type = str(result['type']);
+      if (type == 'person' || type == 'agent') {
+        await s.openDirect(str(result['id']));
+        if (mounted) {
+          setState(() {
+            _nav = 0;
+            _roomOpen = true;
+            _searchOpen = false;
+            _globalQuery = '';
+          });
+        }
+        return;
+      }
+      if (type == 'store') {
+        _agentStore = true;
+        _changeNav(1);
+        return;
+      }
+      if (type == 'mail') {
+        _changeNav(8);
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _mailKey.currentState?.open(str(result['id'])),
+        );
+        return;
+      }
+      if (type == 'approval') {
+        _changeNav(10);
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _approvalsKey.currentState?.open(str(result['id'])),
+        );
+        return;
+      }
+      if (type == 'calendar') {
+        _changeNav(7);
+        if (result['event'] is Map) {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _calendarKey.currentState?.openEvent(
+              Json.from(result['event']),
+            ),
+          );
+        }
+        return;
+      }
+      if (type == 'document') {
+        await OfficeDialogs.document(context, s, {
+          'id': result['id'],
+          'room_id': result['room_id'],
+        });
+        return;
+      }
+      if (type == 'task') {
+        final task = s.allTasks
+            .where((t) => t['id'] == result['id'])
+            .firstOrNull;
+        if (task == null) {
+          notifyOffice(context, '任务列表已变化，请刷新后重新打开。');
+          return;
+        }
+        await WorkTaskLibrary.openTask(context, s, task);
+        return;
+      }
+      await _open(str(result['room_id']));
+    } catch (e) {
+      if (mounted) notifyOffice(context, friendlyError(e));
+    }
+  }
+
+  String? _quickModule(String action) => const {
+    'group': 'im',
+    'person': 'im',
+    'agent': 'im',
+    'store': 'im',
+    'document': 'docs',
+    'task': 'tasks',
+    'meeting': 'meetings',
+    'join': 'meetings',
+    'calendar': 'calendar',
+    'approval': 'approvals',
+    'mail': 'mail',
+  }[action];
+  Widget _quickMenu() => PopupMenuButton<String>(
+    tooltip: '新建与添加',
+    padding: EdgeInsets.zero,
+    icon: const Icon(Icons.add_circle_outline, size: 21),
+    onSelected: _quickAction,
+    itemBuilder: (_) =>
+        const {
+              'group': '创建群组 · 人与 Agent',
+              'person': '添加联系人 / 发起私聊',
+              'agent': '添加 Agent 好友',
+              'store': '安装商店 Agent',
+              'document': '创建文档',
+              'task': '分派任务',
+              'meeting': '发起视频会议',
+              'join': '加入视频会议',
+              'calendar': '新建日程',
+              'approval': '发起审批',
+              'mail': '写邮件',
+            }.entries
+            .map(
+              (entry) => PopupMenuItem<String>(
+                value: entry.key,
+                enabled: s.moduleAvailable(_quickModule(entry.key)!),
+                child: Text(entry.value),
+              ),
+            )
+            .toList(),
   );
+
+  Future<void> _quickAction(String action) async {
+    final module = _quickModule(action);
+    if (module != null && !s.moduleAvailable(module)) {
+      notifyOffice(context, '企业策略已限制此应用');
+      return;
+    }
+    try {
+      if (action == 'group') {
+        await OfficeDialogs.createRoom(context, s);
+        return;
+      }
+      if (action == 'agent' || action == 'store') {
+        _agentStore = action == 'store';
+        _changeNav(1);
+        return;
+      }
+      if (action == 'person') {
+        final ids = await chooseOfficePeople(
+          context,
+          s,
+          single: true,
+          title: '选择联系人',
+          people: s.principals
+              .where(
+                (p) =>
+                    p['kind'] != 'agent' && personId(p) != personId(s.me ?? {}),
+              )
+              .toList(),
+        );
+        if (ids?.isNotEmpty == true) {
+          await s.addContact(ids!.single);
+          await s.openDirect(ids.single);
+          if (mounted) {
+            setState(() {
+              _nav = 0;
+              _roomOpen = true;
+            });
+          }
+        }
+        return;
+      }
+      if (action == 'document') {
+        await OfficeDialogs.document(context, s);
+        return;
+      }
+      if (action == 'task') {
+        await OfficeDialogs.task(context, s);
+        return;
+      }
+      final nav = {
+        'meeting': 6,
+        'join': 6,
+        'calendar': 7,
+        'approval': 10,
+        'mail': 8,
+      }[action];
+      if (nav == null) return;
+      _changeNav(nav);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (action == 'meeting') _meetingsKey.currentState?.createMeeting();
+        if (action == 'join') _meetingsKey.currentState?.joinMeeting();
+        if (action == 'calendar') _calendarKey.currentState?.createEvent();
+        if (action == 'approval') _approvalsKey.currentState?.create();
+        if (action == 'mail') _mailKey.currentState?.compose();
+      });
+    } catch (e) {
+      if (mounted) notifyOffice(context, friendlyError(e));
+    }
+  }
 }

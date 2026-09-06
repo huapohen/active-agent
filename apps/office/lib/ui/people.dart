@@ -10,9 +10,11 @@ class OfficePeople extends StatefulWidget {
     required this.state,
     required this.agent,
     required this.onConversation,
+    this.initialStore = false,
   });
   final OfficeState state;
   final bool agent;
+  final bool initialStore;
   final VoidCallback onConversation;
   @override
   State<OfficePeople> createState() => _OfficePeopleState();
@@ -20,7 +22,8 @@ class OfficePeople extends StatefulWidget {
 
 class _OfficePeopleState extends State<OfficePeople> {
   String _query = '';
-  bool _store = false;
+  late bool _store = widget.initialStore;
+  bool _directory = false;
   final Set<String> _busy = {};
   OfficeState get s => widget.state;
   Future<void> _run(String id, Future<void> Function() action) async {
@@ -40,7 +43,9 @@ class _OfficePeopleState extends State<OfficePeople> {
     final people =
         (widget.agent
                 ? s.agents
-                : s.principals.where((p) => p['kind'] == 'human').toList())
+                : (_directory ? s.principals : s.contacts)
+                      .where((p) => p['kind'] == 'human')
+                      .toList())
             .where(
               (p) =>
                   str(p['name']).toLowerCase().contains(_query.toLowerCase()),
@@ -116,6 +121,27 @@ class _OfficePeopleState extends State<OfficePeople> {
               ],
             ),
           ),
+        if (!widget.agent)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(25, 0, 25, 14),
+            child: Wrap(
+              spacing: 9,
+              children: [
+                ChoiceChip(
+                  label: const Text('我的联系人', style: TextStyle(fontSize: 11)),
+                  selected: !_directory,
+                  showCheckmark: false,
+                  onSelected: (_) => setState(() => _directory = false),
+                ),
+                ChoiceChip(
+                  label: const Text('工作空间成员', style: TextStyle(fontSize: 11)),
+                  selected: _directory,
+                  showCheckmark: false,
+                  onSelected: (_) => setState(() => _directory = true),
+                ),
+              ],
+            ),
+          ),
         if (!_store)
           Padding(
             padding: const EdgeInsets.fromLTRB(25, 0, 25, 14),
@@ -133,10 +159,16 @@ class _OfficePeopleState extends State<OfficePeople> {
                   children: [
                     if (people.isEmpty)
                       EmptyOffice(
-                        title: widget.agent ? '遇见你的下一位工作伙伴' : '还没有其他工作成员',
+                        title: widget.agent
+                            ? '遇见你的下一位工作伙伴'
+                            : _directory
+                            ? '还没有其他工作成员'
+                            : '你的联系人',
                         subtitle: widget.agent
                             ? '从 Agent 商店添加伙伴，或关联现有 Agent 身份。'
-                            : '工作空间管理员创建身份后，成员会出现在这里。',
+                            : _directory
+                            ? '工作空间管理员创建身份后，成员会出现在这里。'
+                            : '在工作空间成员中选择伙伴，添加到联系人。',
                         icon: widget.agent
                             ? Icons.auto_awesome_outlined
                             : Icons.people_outline,
@@ -188,6 +220,14 @@ class _OfficePeopleState extends State<OfficePeople> {
   Widget _person(Json p) {
     final id = personId(p), self = id == personId(s.me ?? {});
     final presence = p['presence'] is Map ? p['presence'] as Map : {};
+    final canAddContact =
+        !self &&
+        p['kind'] != 'agent' &&
+        !s.contacts.any((c) => personId(c) == id);
+    final canInvite =
+        !self &&
+        s.selectedRoomId != null &&
+        (s.detail?['room'] as Map?)?['kind'] != 'direct';
     final online = presence['status'] == 'online';
     return Container(
       margin: const EdgeInsets.only(bottom: 11),
@@ -256,18 +296,24 @@ class _OfficePeopleState extends State<OfficePeople> {
               ),
               child: const Text('发消息', style: TextStyle(fontSize: 11)),
             ),
-          if (!self &&
-              s.selectedRoomId != null &&
-              ((s.detail?['room'] as Map?)?['kind'] != 'direct'))
+          if (canAddContact || canInvite)
             PopupMenuButton<String>(
               tooltip: '成员操作',
               iconSize: 18,
-              onSelected: (_) => _run(id, () async {
-                await s.invite(id);
-                if (mounted) notifyOffice(context, '已邀请到当前工作群');
+              onSelected: (action) => _run(id, () async {
+                if (action == 'contact') {
+                  await s.addContact(id);
+                  if (mounted) notifyOffice(context, '已添加联系人');
+                } else {
+                  await s.invite(id);
+                  if (mounted) notifyOffice(context, '已邀请到当前工作群');
+                }
               }),
               itemBuilder: (_) => [
-                const PopupMenuItem(value: 'invite', child: Text('邀请到当前工作群')),
+                if (canAddContact)
+                  const PopupMenuItem(value: 'contact', child: Text('添加联系人')),
+                if (canInvite)
+                  const PopupMenuItem(value: 'invite', child: Text('邀请到当前工作群')),
               ],
             ),
         ],

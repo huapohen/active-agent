@@ -10,6 +10,8 @@
 | --- | --- | --- | --- |
 | Active Agent 基线 | `a1224d9074870570b148c715770d7c5bbda7936a` | 2026-09-06T02:55:46+08:00 | evolve 文档发布台账 |
 | Doc Free 基线 | `da9f5d0fe3d9dad50ca79bd8f90446e20db2cefd` | 见原提交 | evolve 共享文档基础 |
+| Active Agent 五端首版 | `1ae44da253a9f097b02a7335678d485b285796cf` | 2026-09-06T10:44:22+08:00 | Flutter五端、原生身份、协作与办公模块 |
+| Doc Free 办公首版 | `134e0a78fc51345689be377004e793dd6a7fd71d` | 2026-09-06T10:42:30+08:00 | 会议、日历、附件与消息深层操作 |
 | Doc Free 首版 IM | `9f97b516542715ab7818ee3f32d7e73611cda2bd` | 2026-09-06T09:58:32+08:00 | 独立身份、群聊、任务、文档、Agent 商店、MCP |
 
 本轮后续实现与最终验证的精确提交，将在发布完成时追加到 `VERSION.json` 和本表。不会用未提交工作区的测试结果证明历史提交。
@@ -29,3 +31,9 @@
 ## 阅读顺序
 
 先读 [实看对照](FEISHU_REFERENCE.md)，再读 [能力矩阵](CAPABILITIES.md) 与 [架构](ARCHITECTURE.md)。原生服务协议见 Doc Free 同分支 `docs/equal_rights`。此记录明确区分参考范围、代码实现、测试验证和发行包，不将其混为“已全量复刻”。
+
+## 0.5 后续实现
+
+本轮新增账号/会话、考勤与补卡/审批、内部邮箱、设置、联系人、插件、统一搜索、A2A以及企业管理和真实应用策略。详见[企业实看与范围](ENTERPRISE_REFERENCE_AND_SCOPE.md)。可靠的默认worker多动作执行另见[待实现设计](NATIVE_ACTION_EXECUTION_DESIGN.md)。服务端协议与回归报告见Doc Free同分支文档。
+
+第一阶段commit `1ae44da`的五端GitHub Actions [34007336316](https://github.com/huapohen/active-agent/actions/runs/34007336316) 全部成功；对应本机归档为 `output/builds/1ae44da`，已验证GitHub artifact摘要与包内SHA。它们不包含0.5新业务。0.5包必须来自新的准确实现提交，不能重标旧产物。

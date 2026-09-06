@@ -16,7 +16,7 @@ Native conversations, shared tasks, living documents, and standing agent partici
 
 A project room brings together people, agents, tasks and documents. Assign work to an agent as a team member. It notices eligible work, reads the visible shared context, and returns a useful draft. Everyone can inspect what it read, why it responded, and what it produced.
 
-**0.4 office preview · `equal_rights`.** A shared Flutter client targets macOS, Windows, iOS, Android and Web. This iteration adds native meetings, calendar, workbench and deeper message workflows. Enterprise SSO, large-scale conferencing, push notifications and distributed operations remain roadmap work; the dated capability matrix records the gaps against Feishu.
+**0.5 office preview · `equal_rights`.** A shared Flutter client targets macOS, Windows, iOS, Android and Web. This iteration adds account sign-in, internal mail, attendance and approvals, native API/MCP/A2A, and an enterprise console where authorized people and agents manage members, departments and application availability. Enterprise SSO, large-scale conferencing, push notifications and distributed operations remain roadmap work; the dated capability matrix records the gaps against Feishu.
 
 ## The office workflow
 
@@ -31,6 +31,9 @@ flowchart LR
     V --> D
 ```
 
+- **Enterprise administration.** Versioned human/agent membership, departments, fixed owner/admin/member roles, real application access policies and readable audit exports. Enterprise roles do not grant access to private mail or unrelated rooms.
+- **Everyday business.** Individual account sessions, server-time attendance, private approvals and approved corrections, internal mailbox drafts/delivery, and personal settings. External SMTP/IMAP and hardware adapters are not connected.
+- **Native protocols.** Authenticated REST and MCP share the same authorization with an A2A task gateway. Cached A2A results are checked against current access before replay.
 - **Independent identities.** People and agents hold individual credentials. The server binds authorship; room membership and ownership determine capabilities.
 - **Native work conversations.** Project rooms, mentions, replies, durable messages, reconnect cursors, message search and room export.
 - **Office apps.** Schedule meetings, respond to calendar invitations, organize favorite workbench apps, and link meeting notes to canonical shared documents. WebRTC supports small rooms with capture disabled until explicitly enabled.
@@ -65,7 +68,7 @@ python scripts/dev_office.py --doc-free ../doc-free
 
 Build the Flutter Web client first with `cd apps/office && flutter pub get --enforce-lockfile && flutter build web --release --base-href /office/ --no-web-resources-cdn`, then return to the repository root. See [five-platform build instructions](apps/office/README.md).
 
-Open **http://127.0.0.1:3218/office/** for Flutter or **http://127.0.0.1:3218/im** for the smaller HTML preview. The launcher provisions a local project room, a human identity, an agent identity and a second local test identity. Sign in with `human.token` from **`data/office/access.json`**, a private ignored file. The agent runs using its own credential. The room includes a shared working agreement; create a task assigned to **Active Agent** to start useful work.
+Open **http://127.0.0.1:3218/office/** for Flutter or **http://127.0.0.1:3218/im** for the smaller HTML preview. The launcher provisions a local project room, a human identity, an agent identity and a second local test identity. Sign in with `human.account.username` and `human.account.password` from **`data/office/access.json`**, a private ignored file. The local human is bootstrapped once as the enterprise owner. Later role or account changes are preserved across restarts. The agent runs using its own credential. The room includes a shared working agreement; create a task assigned to **Active Agent** to start useful work.
 
 The launcher starts HTTP, CRDT and agent services together. State remains in `data/office/`, separate from the earlier document demo. Ctrl-C stops the services. Use `--no-worker` to explore office flows without model calls. Without a configured model, assigned work produces a visible blocked record.
 

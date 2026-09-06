@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../office_state.dart' hide Json;
+import 'business_widgets.dart';
 import 'office_theme.dart';
 
 String friendlyError(Object error) => error
@@ -16,11 +17,12 @@ class OfficeDialogs {
 
   static Future<void> createRoom(
     BuildContext context,
-    OfficeState state,
-  ) async {
+    OfficeState state, {
+    List<String> memberIds = const [],
+  }) async {
     final title = TextEditingController(),
         description = TextEditingController();
-    final members = <String>{};
+    final members = memberIds.toSet()..remove(personId(state.me ?? {}));
     var busy = false;
     String? error;
     await showDialog<void>(
@@ -338,13 +340,19 @@ class OfficeDialogs {
     );
   }
 
-  static Future<void> task(BuildContext context, OfficeState state) async {
+  static Future<void> task(
+    BuildContext context,
+    OfficeState state, {
+    String? roomId,
+  }) async {
+    roomId ??= state.selectedRoomId ?? await chooseOfficeRoom(context, state);
+    if (roomId == null || !context.mounted) return;
     final title = TextEditingController(),
         description = TextEditingController();
     String? assignee;
     String? error;
     var busy = false;
-    final people = maps(state.detail?['members']);
+    final people = officeRoomPeople(state, roomId);
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -432,6 +440,7 @@ class OfficeDialogs {
                           title.text.trim(),
                           description: description.text.trim(),
                           assigneeId: assignee,
+                          roomId: roomId,
                         );
                         if (dialogContext.mounted) Navigator.pop(dialogContext);
                       } catch (e) {
@@ -458,8 +467,21 @@ class OfficeDialogs {
     OfficeState state, [
     Json? source,
   ]) async {
+    final roomIds = (source?['room_ids'] as List? ?? []).map(str).toList();
+    final roomId =
+        source?['room_id'] as String? ??
+        (roomIds.contains(state.selectedRoomId)
+            ? state.selectedRoomId
+            : roomIds.firstOrNull) ??
+        state.selectedRoomId ??
+        await chooseOfficeRoom(context, state);
+    if (roomId == null || !context.mounted) return;
+    if (source?['id'] != null && source?['content'] == null) {
+      source = await state.getDocument(str(source!['id']), roomId: roomId);
+      if (!context.mounted) return;
+    }
     final draftKey =
-        '${state.endpoint}:${personId(state.me ?? {})}:${state.selectedRoomId}:${source?['id'] ?? 'new'}';
+        '${state.endpoint}:${personId(state.me ?? {})}:$roomId:${source?['id'] ?? 'new'}';
     final draft = _documentDrafts[draftKey];
     final title = TextEditingController(
       text: str(draft?['title'] ?? source?['title']),
@@ -586,13 +608,11 @@ class OfficeDialogs {
                         TextButton(
                           onPressed: () async {
                             try {
-                              if (state.selectedRoomId != null) {
-                                await state.selectRoom(state.selectedRoomId!);
-                              }
-                              final latest = maps(state.detail?['documents'])
-                                  .where((d) => d['id'] == id)
-                                  .firstOrNull;
-                              if (latest == null) return;
+                              final latest = await state.getDocument(
+                                id!,
+                                roomId: roomId,
+                              );
+                              if (!dialogContext.mounted) return;
                               change(() {
                                 revision = latest['revision'];
                                 content.text =
@@ -624,6 +644,7 @@ class OfficeDialogs {
                                     title: title.text.trim(),
                                     content: content.text,
                                     baseRevision: revision,
+                                    roomId: roomId,
                                   );
                                   if (!dialogContext.mounted) return;
                                   change(() {

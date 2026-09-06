@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:active_office/main.dart';
 import 'package:active_office/office_state.dart';
+import 'package:active_office/ui/settings.dart';
+import 'package:active_office/ui/mailbox.dart';
+import 'package:active_office/ui/approvals.dart';
+import 'package:active_office/ui/office_theme.dart' show officeTheme;
 
 class LayoutOfficeState extends OfficeState {
   LayoutOfficeState({String kind = 'human'}) {
@@ -103,11 +107,111 @@ class LayoutOfficeState extends OfficeState {
       },
     ];
     appFavorites = ['docs', 'meetings', 'calendar', 'tasks'];
+    approvalTemplates = [
+      {
+        'id': 'general',
+        'name': '通用审批',
+        'fields': ['title', 'description', 'approver_id'],
+      },
+      {
+        'id': 'leave',
+        'name': '请假申请',
+        'fields': ['title', 'description', 'approver_id', 'payload'],
+      },
+      {
+        'id': 'expense',
+        'name': '报销申请',
+        'fields': ['title', 'description', 'approver_id', 'payload'],
+      },
+      {
+        'id': 'attendance_correction',
+        'name': '补卡申请',
+        'fields': ['date', 'check_in_at'],
+      },
+    ];
+    plugins = [
+      {
+        'id': 'native-docs',
+        'name': '协作文档插件',
+        'description': '共享内容',
+        'builtin': true,
+        'available': true,
+        'enabled': true,
+        'revision': 1,
+        'config_schema': {},
+        'capabilities': [],
+      },
+      {
+        'id': 'demo-device',
+        'name': '待连接设备',
+        'description': '已登记的设备扩展',
+        'builtin': false,
+        'kind': 'hardware',
+        'available': false,
+        'enabled': false,
+        'revision': 1,
+        'config_schema': {
+          'enabled_notes': {
+            'type': 'boolean',
+            'label': '记录备注',
+            'default': false,
+          },
+        },
+        'config': {},
+        'capabilities': [],
+      },
+    ];
+    settings = {
+      'message_alignment': 'split',
+      'send_shortcut': 'enter',
+      'text_scale': 1.0,
+      'show_message_preview': true,
+      'revision': 1,
+    };
+    mailFolders = [
+      {'id': 'inbox', 'name': '收件箱', 'count': 0},
+      {'id': 'sent', 'name': '已发送', 'count': 0},
+      {'id': 'drafts', 'name': '草稿箱', 'count': 0},
+      {'id': 'archive', 'name': '归档', 'count': 0},
+      {'id': 'trash', 'name': '废纸篓', 'count': 0},
+    ];
     meetings = [];
     calendarEvents = [];
   }
   @override
   Future<void> refreshOffice() async {}
+  @override
+  Future<void> refreshBusiness() async {}
+  @override
+  Future<void> getAccount() async {}
+  @override
+  Future<void> loadAccountSessions() async {}
+  @override
+  Future<void> loadPlugins() async {}
+  @override
+  Future<void> configurePlugin(
+    Json plugin, {
+    bool? enabled,
+    Json? config,
+  }) async {
+    final stored = plugins.firstWhere((p) => p['id'] == plugin['id']);
+    if (enabled != null) stored['enabled'] = enabled;
+    if (config != null) stored['config'] = config;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> loadMail(String folder, {String query = ''}) async {
+    mailFolder = folder;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> saveSettings(Json changes) async {
+    settings.addAll(changes);
+    notifyListeners();
+  }
+
   @override
   Future<void> refresh() async {}
   @override
@@ -117,7 +221,244 @@ class LayoutOfficeState extends OfficeState {
   }
 }
 
+class MailConflictOfficeState extends LayoutOfficeState {
+  String? savedBody;
+  int? savedRevision;
+  List<String>? savedRecipients;
+  @override
+  Future<Json> getMail(String id) async => {
+    'id': id,
+    'revision': 2,
+    'status': 'draft',
+    'subject': '共同邮件',
+    'body': '另一个客户端的新内容',
+    'to_ids': ['agent-demo'],
+  };
+  @override
+  Future<Json> saveMailDraft({
+    String? id,
+    int? baseRevision,
+    List<String> toIds = const [],
+    List<String> ccIds = const [],
+    List<String> bccIds = const [],
+    String subject = '',
+    String body = '',
+  }) async {
+    if (baseRevision == 1) throw OfficeException(409, '共同版本已变化。你的草稿仍在');
+    savedBody = body;
+    savedRevision = baseRevision;
+    savedRecipients = toIds;
+    return {
+      'id': id,
+      'revision': 3,
+      'status': 'draft',
+      'subject': subject,
+      'body': body,
+      'to_ids': toIds,
+    };
+  }
+}
+
+class ApprovalDetailOfficeState extends LayoutOfficeState {
+  @override
+  Future<Json> getApproval(String id) async => {
+    'id': id,
+    'title': '补卡申请',
+    'created_by': 'me',
+    'approver_id': 'agent-demo',
+    'status': 'approved',
+    'created_at': '2026-09-06T00:00:00Z',
+    'description': '恢复漏记的上班记录',
+    'payload': {
+      'principal_id': 'me',
+      'date': '2026-09-06',
+      'timezone': 'Asia/Shanghai',
+      'record_id': 'private-record-id',
+      'base_record_revision': 3,
+      'check_in_at': '2026-09-06T01:30:00Z',
+      'check_out_at': null,
+    },
+    'audit': <Json>[],
+  };
+}
+
+class IndependentBusinessOfficeState extends LayoutOfficeState {
+  IndependentBusinessOfficeState() {
+    libraryRooms = [
+      {'id': 'room-demo', 'name': '独立业务空间', 'members': principals},
+    ];
+    selectedRoomId = null;
+    detail = null;
+    rooms = [];
+    unavailableModules.add('im');
+    allDocuments = [
+      {
+        'id': 'doc-demo',
+        'title': '独立共同文档',
+        'revision': 1,
+        'room_ids': ['room-demo'],
+      },
+    ];
+    allTasks = [
+      {
+        'id': 'task-demo',
+        'room_id': 'room-demo',
+        'room_name': '独立业务空间',
+        'title': '交付共同成果',
+        'status': 'open',
+        'revision': 1,
+        'assignee_id': 'agent-demo',
+      },
+    ];
+  }
+  String? documentReadRoom, documentSavedRoom, taskUpdatedRoom, taskStatus;
+  @override
+  Future<void> selectRoom(String id) async =>
+      throw StateError('IM must remain unavailable');
+  @override
+  Future<Json> getDocument(String id, {required String roomId}) async {
+    documentReadRoom = roomId;
+    return {'id': id, 'title': '独立共同文档', 'content': '独立业务正文', 'revision': 1};
+  }
+
+  @override
+  Future<Json> saveDocument({
+    String? id,
+    required String title,
+    required String content,
+    int? baseRevision,
+    String? roomId,
+  }) async {
+    documentSavedRoom = roomId;
+    return {
+      'id': id ?? 'new-doc',
+      'title': title,
+      'content': content,
+      'revision': 2,
+    };
+  }
+
+  @override
+  Future<void> updateTask(
+    Json task, {
+    String? status,
+    String? assigneeId,
+    String? roomId,
+  }) async {
+    taskUpdatedRoom = roomId ?? task['room_id'];
+    taskStatus = status;
+    task['status'] = status ?? task['status'];
+    task['revision'] = 2;
+    notifyListeners();
+  }
+}
+
 void main() {
+  testWidgets('Docs and tasks remain writable when IM is disabled', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1512, 982);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = IndependentBusinessOfficeState();
+    await tester.pumpWidget(ActiveOfficeApp(state: state));
+    await tester.pumpAndSettle();
+    expect(find.text('企业策略已限制此应用'), findsOneWidget);
+    await tester.tap(find.text('云文档').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('独立共同文档'));
+    await tester.pumpAndSettle();
+    expect(state.documentReadRoom, 'room-demo');
+    expect(find.text('独立业务正文'), findsOneWidget);
+    await tester.tap(find.text('保存共同文档'));
+    await tester.pumpAndSettle();
+    expect(state.documentSavedRoom, 'room-demo');
+    await tester.tap(find.byTooltip('关闭文档'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('任务').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('交付共同成果'));
+    await tester.pumpAndSettle();
+    expect(find.text('协作 Agent · Agent'), findsOneWidget);
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
+    expect(state.taskUpdatedRoom, 'room-demo');
+    expect(state.taskStatus, 'done');
+    expect(state.selectedRoomId, isNull);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+  testWidgets('Approval shows business time and folds record identifiers', (
+    tester,
+  ) async {
+    final state = ApprovalDetailOfficeState();
+    final key = GlobalKey<OfficeApprovalsState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: officeTheme(),
+        home: Scaffold(
+          body: OfficeApprovals(key: key, state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    key.currentState!.open('approval-demo');
+    await tester.pumpAndSettle();
+    expect(find.text('上班时间：2026/09/06 09:30（北京时间）'), findsOneWidget);
+    expect(find.text('时区：北京时间（UTC+8）'), findsOneWidget);
+    expect(find.text('原记录版本：第 3 版'), findsOneWidget);
+    expect(find.textContaining('下班时间'), findsNothing);
+    expect(find.textContaining('principal_id'), findsNothing);
+    expect(find.textContaining('private-record-id'), findsNothing);
+    await tester.ensureVisible(find.text('记录详情'));
+    await tester.tap(find.text('记录详情'));
+    await tester.pumpAndSettle();
+    expect(find.text('考勤记录编号：private-record-id'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+  testWidgets('Denied apps lock inner tabs and composer actions', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1512, 982);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = LayoutOfficeState()
+      ..unavailableModules.addAll(['docs', 'tasks']);
+    await tester.pumpWidget(ActiveOfficeApp(state: state));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byWidgetPredicate(
+              (w) => w is IconButton && w.tooltip == '新建共同文档',
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byWidgetPredicate(
+              (w) => w is IconButton && w.tooltip == '创建任务',
+            ),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.text('云文档').last);
+    await tester.pumpAndSettle();
+    expect(find.text('企业策略限制了此应用'), findsOneWidget);
+    expect(find.text('团队共同方案'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
   for (final dimensions in [
     const Size(390, 844),
     const Size(943, 665),
@@ -170,6 +511,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('今天'), findsOneWidget);
       expect(tester.takeException(), isNull);
+      for (final entry in ['邮箱', '考勤', '审批', '设置']) {
+        if (dimensions.width < 760) {
+          await tester.tap(find.text('更多').first);
+          await tester.pumpAndSettle();
+          if (entry == '邮箱') {
+            await tester.tap(find.text('邮箱').first);
+          } else {
+            await tester.ensureVisible(find.text(entry).first);
+            await tester.tap(find.text(entry).first);
+          }
+        } else {
+          await tester.ensureVisible(find.text(entry).first);
+          await tester.tap(find.text(entry).first);
+        }
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: entry);
+        expect(find.text(entry), findsWidgets);
+      }
+
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
       state.dispose();
@@ -196,6 +556,127 @@ void main() {
       expect(find.text(entry), findsWidgets);
     }
     expect(find.text('发送'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    state.dispose();
+  });
+  for (final size in [const Size(390, 844), const Size(1512, 982)]) {
+    testWidgets('Native mention and Agent collaboration ${size.width}', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = size;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final state = LayoutOfficeState();
+      await tester.pumpWidget(ActiveOfficeApp(state: state));
+      await tester.pumpAndSettle();
+      if (size.width < 760) {
+        await tester.tap(find.text('协作测试项目').last);
+        await tester.pumpAndSettle();
+      }
+      final composer = find.byWidgetPredicate(
+        (w) => w is TextField && w.decoration?.hintText == '发送消息，或 @ 工作伙伴共同推进',
+      );
+      await tester.enterText(composer, '');
+      await tester.enterText(composer, '继续讨论 @');
+      await tester.pumpAndSettle();
+      expect(find.text('选择成员'), findsOneWidget);
+      expect(find.text('所有人 (2)'), findsOneWidget);
+      await tester.tap(find.byTooltip('取消选择'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(composer).controller!.text, '继续讨论 @');
+      await tester.tap(find.byTooltip('Agent 协作'));
+      await tester.pumpAndSettle();
+      expect(find.text('工作记录与成果'), findsOneWidget);
+      expect(find.text('参与方式'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.byTooltip('关闭 Agent 协作'));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      state.dispose();
+    });
+  }
+  testWidgets('Office settings persist actual selected behavior', (
+    tester,
+  ) async {
+    final state = LayoutOfficeState();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: officeTheme(),
+        home: Scaffold(
+          body: AnimatedBuilder(
+            animation: state,
+            builder: (_, _) => OfficeSettings(state: state),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('消息与效率').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('所有消息左对齐'));
+    await tester.pumpAndSettle();
+    expect(state.settings['message_alignment'], 'left');
+    await tester.tap(find.text('Ctrl / ⌘ + Enter 发送'));
+    await tester.pumpAndSettle();
+    expect(state.settings['send_shortcut'], 'mod_enter');
+    await tester.tap(find.text('插件与能力').first);
+    await tester.pumpAndSettle();
+    expect(find.text('已登记，尚未连接'), findsOneWidget);
+    final extensionSwitch = find.byWidgetPredicate(
+      (w) => w is SwitchListTile && w.value == false,
+    );
+    await tester.ensureVisible(extensionSwitch);
+    await tester.tap(extensionSwitch);
+    await tester.pumpAndSettle();
+    expect(state.plugins.last['enabled'], true);
+    expect(find.text('已登记，尚未连接'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+  testWidgets('Mail draft conflict keeps author text until explicit merge', (
+    tester,
+  ) async {
+    final state = MailConflictOfficeState();
+    final key = GlobalKey<OfficeMailboxState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: officeTheme(),
+        home: Scaffold(
+          body: OfficeMailbox(key: key, state: state),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    key.currentState!.compose({
+      'id': 'mail-draft',
+      'revision': 1,
+      'status': 'draft',
+      'subject': '共同邮件',
+      'body': '本地旧内容',
+      'to_ids': ['agent-demo'],
+    });
+    await tester.pumpAndSettle();
+    final body = find.byWidgetPredicate(
+      (w) => w is TextField && w.decoration?.hintText == '写下需要正式沟通的内容',
+    );
+    await tester.enterText(body, '我正在合并的编辑');
+    await tester.tap(find.text('保存草稿'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(body).controller!.text, '我正在合并的编辑');
+    expect(find.textContaining('另一个客户端的新内容'), findsOneWidget);
+    final merge = find.text('保留我的编辑，以最新版本继续合并');
+    await tester.ensureVisible(merge);
+    await tester.tap(merge);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存草稿'));
+    await tester.pumpAndSettle();
+    expect(state.savedBody, '我正在合并的编辑');
+    expect(state.savedRevision, 2);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();

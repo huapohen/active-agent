@@ -1,13 +1,15 @@
 name: active_office
 description: "同席 · Active Office — native human and agent collaboration."
 publish_to: 'none'
-version: 0.4.0+1
+version: 0.5.0+2
 
 environment:
   sdk: ^3.13.2
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   http: ^1.6.0
   cupertino_icons: ^1.0.9

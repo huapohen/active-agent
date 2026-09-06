@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../office_state.dart' hide Json;
+import 'business_widgets.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
 
@@ -18,25 +19,7 @@ class _WorkDocumentsState extends State<WorkDocuments> {
   OfficeState get state => widget.state;
   Future<void> _open(Json doc) async {
     try {
-      if (doc['content'] == null) {
-        final roomIds = (doc['room_ids'] as List? ?? [])
-            .map((e) => e.toString())
-            .toList();
-        if (roomIds.isEmpty) return;
-        await state.selectRoom(
-          roomIds.contains(state.selectedRoomId)
-              ? state.selectedRoomId!
-              : roomIds.first,
-        );
-        final full = maps(state.detail?['documents'])
-            .where((d) => d['id'] == doc['id'])
-            .firstOrNull;
-        if (mounted && full != null) {
-          await OfficeDialogs.document(context, state, full);
-        }
-      } else {
-        await OfficeDialogs.document(context, state, doc);
-      }
+      await OfficeDialogs.document(context, state, doc);
     } catch (e) {
       if (mounted) notifyOffice(context, friendlyError(e));
     }
@@ -46,7 +29,7 @@ class _WorkDocumentsState extends State<WorkDocuments> {
     final ids = (doc['room_ids'] as List? ?? [state.selectedRoomId])
         .map((e) => e.toString())
         .toList();
-    return state.rooms
+    return officeBusinessRooms(state)
         .where((r) => ids.contains(r['id']))
         .map((r) => str(r['name']))
         .join('、');
@@ -109,16 +92,15 @@ class _WorkDocumentsState extends State<WorkDocuments> {
                     _creationCard(
                       Icons.note_add_outlined,
                       '新建文档',
-                      '在当前会话中共同创作',
-                      state.selectedRoomId == null
-                          ? null
-                          : () => OfficeDialogs.document(context, state),
+                      '选择工作会话，共同创作',
+                      () => OfficeDialogs.document(context, state),
                     ),
                     _creationCard(
                       Icons.ios_share_outlined,
                       '导出工作资料',
                       '携带讨论、文档与依据',
-                      state.selectedRoomId == null
+                      state.selectedRoomId == null ||
+                              !state.moduleAvailable('im')
                           ? null
                           : () => OfficeDialogs.export(context, state),
                     ),
@@ -423,12 +405,11 @@ class WorkTaskLibrary extends StatelessWidget {
                 style: TextStyle(fontSize: 23, fontWeight: FontWeight.w600),
               ),
             ),
-            if (state.selectedRoomId != null)
-              FilledButton.icon(
-                onPressed: () => OfficeDialogs.task(context, state),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('新建任务'),
-              ),
+            FilledButton.icon(
+              onPressed: () => OfficeDialogs.task(context, state),
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('新建任务'),
+            ),
           ],
         ),
       ),
@@ -488,36 +469,7 @@ class WorkTaskLibrary extends StatelessWidget {
                     ),
                     onTap: () async {
                       try {
-                        await state.selectRoom(str(task['room_id']));
-                        if (!context.mounted) return;
-                        await showDialog<void>(
-                          context: context,
-                          builder: (dialogContext) => Dialog(
-                            insetPadding: const EdgeInsets.all(18),
-                            backgroundColor: Colors.white,
-                            child: SizedBox(
-                              width: 730,
-                              height:
-                                  MediaQuery.sizeOf(dialogContext).height * .8,
-                              child: AnimatedBuilder(
-                                animation: state,
-                                builder: (_, _) => Column(
-                                  children: [
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: IconButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dialogContext),
-                                        icon: const Icon(Icons.close),
-                                      ),
-                                    ),
-                                    Expanded(child: WorkTasks(state: state)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
+                        await openTask(context, state, task);
                       } catch (e) {
                         if (context.mounted) {
                           notifyOffice(context, friendlyError(e));
@@ -530,16 +482,70 @@ class WorkTaskLibrary extends StatelessWidget {
       ),
     ],
   );
+
+  static Future<void> openTask(
+    BuildContext context,
+    OfficeState state,
+    Json task,
+  ) => showDialog<void>(
+    context: context,
+    builder: (dialogContext) => Dialog(
+      insetPadding: const EdgeInsets.all(18),
+      backgroundColor: Colors.white,
+      child: SizedBox(
+        width: 730,
+        height: MediaQuery.sizeOf(dialogContext).height * .8,
+        child: AnimatedBuilder(
+          animation: state,
+          builder: (_, _) {
+            final current =
+                state.allTasks
+                    .where((t) => t['id'] == task['id'])
+                    .firstOrNull ??
+                task;
+            return Column(
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    tooltip: '关闭任务',
+                    icon: const Icon(Icons.close),
+                  ),
+                ),
+                Expanded(
+                  child: WorkTasks(
+                    state: state,
+                    tasks: [current],
+                    people: officeRoomPeople(state, str(task['room_id'])),
+                    showCreate: false,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    ),
+  );
 }
 
 class WorkTasks extends StatelessWidget {
-  const WorkTasks({super.key, required this.state});
+  const WorkTasks({
+    super.key,
+    required this.state,
+    this.tasks,
+    this.people,
+    this.showCreate = true,
+  });
   final OfficeState state;
+  final List<Json>? tasks, people;
+  final bool showCreate;
   @override
   Widget build(BuildContext context) {
-    final tasks = maps(state.detail?['tasks']);
-    final people = maps(state.detail?['members']);
-    if (state.detail == null) {
+    final tasks = this.tasks ?? maps(state.detail?['tasks']);
+    final people = this.people ?? maps(state.detail?['members']);
+    if (state.detail == null && this.tasks == null) {
       return const EmptyOffice(
         title: '明确下一步，共同推进',
         subtitle: '选择一个工作会话，查看和分配工作任务。',
@@ -571,11 +577,12 @@ class WorkTasks extends StatelessWidget {
                   ],
                 ),
               ),
-              FilledButton.icon(
-                onPressed: () => OfficeDialogs.task(context, state),
-                icon: const Icon(Icons.add, size: 17),
-                label: const Text('新建'),
-              ),
+              if (showCreate)
+                FilledButton.icon(
+                  onPressed: () => OfficeDialogs.task(context, state),
+                  icon: const Icon(Icons.add, size: 17),
+                  label: const Text('新建'),
+                ),
             ],
           ),
         ),

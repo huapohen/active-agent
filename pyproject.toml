@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "active-agent"
-version = "0.4.0"
+version = "0.5.0"
 description = "Native office collaboration for people and agents through shared conversations, tasks and documents"
 readme = "README.md"
 license = {text = "MIT"}

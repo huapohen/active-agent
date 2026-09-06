@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../office_state.dart' hide Json;
+import 'business_widgets.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
 
@@ -15,10 +16,12 @@ class OfficeCalendar extends StatefulWidget {
   final OfficeState state;
   final Future<void> Function(String id) onMeeting;
   @override
-  State<OfficeCalendar> createState() => _OfficeCalendarState();
+  State<OfficeCalendar> createState() => OfficeCalendarState();
 }
 
-class _OfficeCalendarState extends State<OfficeCalendar> {
+class OfficeCalendarState extends State<OfficeCalendar> {
+  Future<void> createEvent() => _edit();
+  Future<void> openEvent(Json event) => _detail(event);
   DateTime _selected = DateTime.now();
   OfficeState get s => widget.state;
   DateTime _day(DateTime date) => DateTime(date.year, date.month, date.day);
@@ -54,19 +57,11 @@ class _OfficeCalendarState extends State<OfficeCalendar> {
   }
 
   Future<void> _edit([Json? event, DateTime? initial]) async {
-    if (event?['room_id'] != null && event!['room_id'] != s.selectedRoomId) {
-      try {
-        await s.selectRoom(str(event['room_id']));
-      } catch (e) {
-        if (mounted) notifyOffice(context, friendlyError(e));
-        return;
-      }
-    }
-    if (!mounted) return;
-    if (s.selectedRoomId == null) {
-      notifyOffice(context, '请先选择一个工作会话，日程将与会话成员共享。');
-      return;
-    }
+    final roomId =
+        event?['room_id'] as String? ??
+        s.selectedRoomId ??
+        await chooseOfficeRoom(context, s);
+    if (roomId == null || !mounted) return;
     final title = TextEditingController(text: str(event?['title'])),
         note = TextEditingController(text: str(event?['description'])),
         location = TextEditingController(text: str(event?['location']));
@@ -78,7 +73,7 @@ class _OfficeCalendarState extends State<OfficeCalendar> {
     final attendees = (event?['attendee_ids'] as List? ?? [s.me?['id']])
         .map((p) => p.toString())
         .toSet();
-    final people = maps(s.detail?['members']);
+    final people = officeRoomPeople(s, roomId);
     String? error;
     var busy = false;
     await showDialog<void>(
@@ -107,7 +102,7 @@ class _OfficeCalendarState extends State<OfficeCalendar> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '会话：${str((s.detail?['room'] as Map?)?['name'])}',
+                    '会话：${officeRoomName(s, roomId)}',
                     style: const TextStyle(fontSize: 11, color: mutedColor),
                   ),
                   const SizedBox(height: 15),
@@ -220,6 +215,7 @@ class _OfficeCalendarState extends State<OfficeCalendar> {
                       try {
                         if (event == null) {
                           await s.createCalendarEvent(
+                            roomId: roomId,
                             title: title.text.trim(),
                             startsAt: start.toUtc().toIso8601String(),
                             endsAt: end.toUtc().toIso8601String(),

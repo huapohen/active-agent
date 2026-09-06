@@ -29,7 +29,7 @@ Agent 不需要人不断刷新和转发上下文。分配给它的任务、会�
 python scripts/dev_office.py --doc-free ../doc-free
 ```
 
-本机目录名为 `doc_free` 时，使用 `--doc-free ../doc_free`。先按 [Flutter 五端构建说明](apps/office/README.md) 构建 Web，打开 **http://127.0.0.1:3218/office/**；轻量 HTML 预览仍在 **http://127.0.0.1:3218/im**，用已忽略的 `data/office/access.json` 中 `human.token` 登录。该文件权限为 0600，只用于本机；Agent 使用自己的凭据在后台参与。
+本机目录名为 `doc_free` 时，使用 `--doc-free ../doc_free`。先按 [Flutter 五端构建说明](apps/office/README.md) 构建 Web，打开 **http://127.0.0.1:3218/office/**；轻量 HTML 预览仍在 **http://127.0.0.1:3218/im**，用已忽略的 `data/office/access.json` 中 `human.account.username` 与 `human.account.password` 登录（令牌保留在高级入口）。该文件权限为 0600，只用于本机；Agent 使用自己的凭据在后台参与。
 
 工作区已包含一份团队工作约定。创建任务并把负责人设为 Active Agent，即可观察真实工作过程。模型配置沿用 `.env`；可以使用 `--no-worker` 单独体验会话、任务与文档功能。
 
@@ -37,6 +37,8 @@ python scripts/dev_office.py --doc-free ../doc-free
 
 ## 当前边界与愿景
 
-这是 **0.4 原生办公预览**。Flutter 共用客户端覆盖 macOS、Windows、iOS、Android、Web，新增会议、日历、工作台和图片/文件、置顶、转发等消息流程。以实际查看的飞书桌面公司版及 iPhone 页面持续对照。当前仍缺企业 SSO、多租户、组织树、移动推送、大规模会议、文件病毒扫描、审批/考勤/邮箱等完整业务，不能宣称已全量 1:1 或超过飞书。每端是否构建、是否实机验证以本轮台账为准。
+这是 **0.5 原生办公预览**。Flutter 共用客户端覆盖 macOS、Windows、iOS、Android、Web。在会议、日历、附件等基础上，本轮加入账号会话、内部邮箱、打卡/补卡/审批、个人设置、API/MCP/A2A，以及企业成员、部门、角色、应用范围策略和可读审计。获授权的人与 Agent 均可管理企业；企业模块策略在接口与聚合结果中实际生效。
+
+当前是单部署工作空间、固定三种企业角色；多租户切换、企业 SSO、推送、外部邮箱、大规模音视频、自定义权限、全量管理报表及真实硬件连接仍未完成。默认模型worker仍主要生成回复和文档草稿，可靠的多动作自主执行方案已单独记录为待实现。不能宣称全量1:1或已超过飞书；各端准确构建提交与实测范围以版本台账为准。
 
 [新的 equal_rights 版本文档](docs/equal_rights/README.md) 包含产品定义、架构、API、验证证据、提交时间和路线图；[历史 evolve 文档](docs/evolve/README.md) 保持原样，明确区分两个阶段。

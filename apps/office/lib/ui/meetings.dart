@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../office_state.dart' hide Json;
+import 'business_widgets.dart';
 import '../meeting_controller.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
@@ -17,10 +18,12 @@ class OfficeMeetings extends StatefulWidget {
   final MeetingMediaController media;
   final VoidCallback onCalendar;
   @override
-  State<OfficeMeetings> createState() => _OfficeMeetingsState();
+  State<OfficeMeetings> createState() => OfficeMeetingsState();
 }
 
-class _OfficeMeetingsState extends State<OfficeMeetings> {
+class OfficeMeetingsState extends State<OfficeMeetings> {
+  Future<void> createMeeting() => _create();
+  Future<void> joinMeeting() => _joinPreview();
   bool _history = false, _busy = false;
   String _query = '';
   OfficeState get s => widget.state;
@@ -150,10 +153,9 @@ class _OfficeMeetingsState extends State<OfficeMeetings> {
   }
 
   Future<void> _create({bool scheduled = false}) async {
-    if (s.selectedRoomId == null) {
-      notifyOffice(context, '请先选择一个工作会话，会议将与会话成员共享。');
-      return;
-    }
+    final roomId = s.selectedRoomId ?? await chooseOfficeRoom(context, s);
+    if (roomId == null || !mounted) return;
+    final documents = officeRoomDocuments(s, roomId);
     final title = TextEditingController(
       text: scheduled ? '' : '${str(s.me?['name'])} 的会议',
     );
@@ -186,7 +188,7 @@ class _OfficeMeetingsState extends State<OfficeMeetings> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '会话：${str((s.detail?['room'] as Map?)?['name'])}',
+                    '会话：${officeRoomName(s, roomId)}',
                     style: const TextStyle(fontSize: 11, color: mutedColor),
                   ),
                   if (scheduled) ...[
@@ -241,13 +243,13 @@ class _OfficeMeetingsState extends State<OfficeMeetings> {
                     ),
                   ],
                   const SizedBox(height: 16),
-                  if (maps(s.detail?['documents']).isNotEmpty) ...[
+                  if (documents.isNotEmpty) ...[
                     DropdownButtonFormField<String>(
                       initialValue: '',
                       decoration: const InputDecoration(labelText: '关联会议文档'),
                       items: [
                         const DropdownMenuItem(value: '', child: Text('暂不关联')),
-                        ...maps(s.detail?['documents']).map(
+                        ...documents.map(
                           (doc) => DropdownMenuItem(
                             value: str(doc['id']),
                             child: Text(
@@ -305,6 +307,7 @@ class _OfficeMeetingsState extends State<OfficeMeetings> {
                       });
                       try {
                         final result = await s.createMeeting(
+                          roomId: roomId,
                           title: title.text.trim(),
                           startsAt: scheduled
                               ? starts.toUtc().toIso8601String()
@@ -661,26 +664,22 @@ class MeetingRoom extends StatelessWidget {
         str(media.activeMeeting?['id']),
       );
       final meeting = Map<String, dynamic>.from(details['meeting']);
-      if (state.selectedRoomId != meeting['room_id']) {
-        await state.selectRoom(str(meeting['room_id']));
-      }
+      final roomId = str(meeting['room_id']);
       if (!context.mounted) return;
-      var documents = maps(state.detail?['documents']);
+      var documents = officeRoomDocuments(state, roomId);
       final reference =
           details['notes_document_current'] ?? meeting['notes_document'];
       if (reference is Map) {
-        final document = documents
-            .where((d) => d['id'] == reference['id'])
-            .firstOrNull;
-        if (document != null) {
-          await OfficeDialogs.document(context, state, document);
-          return;
-        }
+        await OfficeDialogs.document(context, state, {
+          'id': reference['id'],
+          'room_id': roomId,
+        });
+        return;
       }
       if (documents.isEmpty) {
-        await OfficeDialogs.document(context, state);
+        await OfficeDialogs.document(context, state, {'room_id': roomId});
         if (!context.mounted) return;
-        documents = maps(state.detail?['documents']);
+        documents = officeRoomDocuments(state, roomId);
         if (documents.isEmpty) return;
       }
       final selected = await showDialog<Json>(

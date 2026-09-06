@@ -6,9 +6,12 @@ class OfficeLogin extends StatefulWidget {
   const OfficeLogin({
     super.key,
     required this.onConnect,
+    required this.onLogin,
     required this.endpoint,
   });
   final Future<void> Function(String endpoint, String token) onConnect;
+  final Future<void> Function(String endpoint, String username, String password)
+  onLogin;
   final String endpoint;
   @override
   State<OfficeLogin> createState() => _OfficeLoginState();
@@ -19,6 +22,9 @@ class _OfficeLoginState extends State<OfficeLogin> {
     text: widget.endpoint,
   );
   final _token = TextEditingController();
+  final _username = TextEditingController();
+  final _password = TextEditingController();
+  bool _advanced = false;
   final _form = GlobalKey<FormState>();
   bool _busy = false;
   String? _error;
@@ -26,6 +32,8 @@ class _OfficeLoginState extends State<OfficeLogin> {
   void dispose() {
     _endpoint.dispose();
     _token.dispose();
+    _username.dispose();
+    _password.dispose();
     super.dispose();
   }
 
@@ -36,8 +44,19 @@ class _OfficeLoginState extends State<OfficeLogin> {
       _error = null;
     });
     try {
-      await widget.onConnect(_endpoint.text.trim(), _token.text.trim());
-      if (mounted) _token.clear();
+      if (_advanced) {
+        await widget.onConnect(_endpoint.text.trim(), _token.text.trim());
+      } else {
+        await widget.onLogin(
+          _endpoint.text.trim(),
+          _username.text.trim(),
+          _password.text,
+        );
+      }
+      if (mounted) {
+        _token.clear();
+        _password.clear();
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -130,24 +149,70 @@ class _OfficeLoginState extends State<OfficeLogin> {
                                   : '请输入完整工作空间地址',
                             ),
                             const SizedBox(height: 20),
-                            const Text(
-                              '个人访问令牌',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              controller: _token,
-                              obscureText: true,
-                              autocorrect: false,
-                              enableSuggestions: false,
-                              decoration: const InputDecoration(
-                                hintText: '使用自己的工作身份进入',
-                              ),
-                              validator: (v) => v?.trim().isNotEmpty == true
+                            SegmentedButton<bool>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: false,
+                                  label: Text('账号登录'),
+                                ),
+                                ButtonSegment(
+                                  value: true,
+                                  label: Text('高级：访问令牌'),
+                                ),
+                              ],
+                              selected: {_advanced},
+                              showSelectedIcon: false,
+                              onSelectionChanged: _busy
                                   ? null
-                                  : '请输入个人访问令牌',
-                              onFieldSubmitted: (_) => _connect(),
+                                  : (value) => setState(() {
+                                      _advanced = value.single;
+                                      _error = null;
+                                    }),
                             ),
+                            const SizedBox(height: 22),
+                            if (!_advanced) ...[
+                              TextFormField(
+                                controller: _username,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                autofillHints: const [AutofillHints.username],
+                                decoration: const InputDecoration(
+                                  labelText: '账号',
+                                  hintText: '输入你的工作账号',
+                                ),
+                                validator: (v) => v?.trim().isNotEmpty == true
+                                    ? null
+                                    : '请输入账号',
+                              ),
+                              const SizedBox(height: 18),
+                              TextFormField(
+                                controller: _password,
+                                obscureText: true,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                autofillHints: const [AutofillHints.password],
+                                decoration: const InputDecoration(
+                                  labelText: '密码',
+                                ),
+                                validator: (v) =>
+                                    v?.isNotEmpty == true ? null : '请输入密码',
+                                onFieldSubmitted: (_) => _connect(),
+                              ),
+                            ] else
+                              TextFormField(
+                                controller: _token,
+                                obscureText: true,
+                                autocorrect: false,
+                                enableSuggestions: false,
+                                decoration: const InputDecoration(
+                                  labelText: '个人访问令牌',
+                                  hintText: '使用自己的工作身份进入',
+                                ),
+                                validator: (v) => v?.trim().isNotEmpty == true
+                                    ? null
+                                    : '请输入个人访问令牌',
+                                onFieldSubmitted: (_) => _connect(),
+                              ),
                             if (_error != null)
                               Padding(
                                 padding: const EdgeInsets.only(top: 13),
@@ -177,7 +242,7 @@ class _OfficeLoginState extends State<OfficeLogin> {
                             ),
                             const SizedBox(height: 21),
                             const Text(
-                              '请向工作空间管理员获取个人令牌。\n个人与 Agent 使用独立身份，令牌仅用于当前会话。',
+                              '使用管理员分配的账号进入。人和 Agent 均可登录。\n也可通过高级入口，使用个人访问令牌。',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: mutedColor,

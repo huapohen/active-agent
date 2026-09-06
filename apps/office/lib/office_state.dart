@@ -10,7 +10,8 @@ typedef Json = Map<String, dynamic>;
 class OfficeException implements Exception {
   final int status;
   final String message;
-  OfficeException(this.status, this.message);
+  final String? code, pluginId;
+  OfficeException(this.status, this.message, {this.code, this.pluginId});
   @override
   String toString() => message;
 }
@@ -22,15 +23,28 @@ class OfficeState extends ChangeNotifier {
   final http.Client _client;
   String endpoint = '';
   String _token = '';
+  String? _loginSessionId;
   Json? me;
   List<Json> rooms = [],
       principals = [],
       agents = [],
       catalog = [],
       searchResults = [];
-  List<Json> allDocuments = [], allTasks = [];
+  List<Json> allDocuments = [], allTasks = [], libraryRooms = [];
   List<Json> meetings = [], calendarEvents = [], apps = [];
   List<String> appFavorites = [];
+  Json settings = {}, accountInfo = {}, currentAttendance = {};
+  List<Json> contacts = [], plugins = [], capabilities = [];
+  List<Json> attendanceRecords = [],
+      approvalTemplates = [],
+      approvalRequests = [],
+      mailFolders = [],
+      mailItems = [],
+      accountSessions = [];
+  final Set<String> unavailableModules = {};
+  bool moduleAvailable(String id) => !unavailableModules.contains(id);
+  String mailFolder = 'inbox';
+  String _mailQuery = '';
   Json? detail;
   String? selectedRoomId;
   bool loading = false, connected = false;
@@ -61,6 +75,7 @@ class OfficeState extends ChangeNotifier {
     bool binary = false,
   }) async {
     if (_token.isEmpty) throw OfficeException(401, '请先登录工作身份');
+    final generation = _generation;
     final request = http.Request(method, Uri.parse('$endpoint/api/im$path'));
     request.followRedirects = false;
     request.headers.addAll({
@@ -75,17 +90,56 @@ class OfficeState extends ChangeNotifier {
       ).timeout(const Duration(seconds: 35));
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final status = response.statusCode;
+        String? known, code, pluginId;
+        try {
+          final body = jsonDecode(response.body);
+          if (body is Map) {
+            final nested = body['error'];
+            final value =
+                body['code'] ?? (nested is Map ? nested['code'] : null);
+            code = value is String ? value : null;
+            pluginId = body['plugin_id'] is String ? body['plugin_id'] : null;
+          }
+          known = const {
+            'app_policy_denied': '企业管理员已限制此应用，请查看企业应用范围',
+            'enterprise_admin_required': '当前身份没有企业管理权限',
+            'enterprise_owner_required': '此操作需要企业所有者权限',
+            'last_enterprise_owner': '必须保留至少一位有效企业所有者',
+            'already_checked_in': '今天已经打过上班卡',
+            'already_checked_out': '今天已经打过下班卡',
+            'check_in_required': '请先打上班卡',
+            'attendance_conflict': '考勤记录已变化，请核对后重新申请补卡',
+            'meeting_ended': '会议已结束',
+            'meeting_full': '这场会议已达到人数上限',
+            'session_expired': '会议连接已失效，请重新加入',
+            'attachment_unavailable': '文件已被删除或其消息已撤回',
+            'already_sent': '这封邮件已经发送',
+            'incomplete_mail': '请选择收件人并填写主题',
+            'invalid_credentials': '账号或密码不正确',
+          }[code];
+        } catch (_) {
+          /* Only known stable codes are displayed. */
+        }
+        if (status == 403 &&
+            code == 'app_policy_denied' &&
+            pluginId != null &&
+            generation == _generation) {
+          _denyModule(pluginId);
+        }
         throw OfficeException(
           status,
-          status == 401
-              ? '身份凭据已失效，请重新登录'
-              : status == 403
-              ? '你没有当前会话的操作权限'
-              : status == 409
-              ? '共同版本已变化。你的草稿仍在，请读取最新版本后合并'
-              : status == 503
-              ? '服务暂不可用，操作尚未确认，请稍后重试'
-              : '操作未完成（$status），请检查输入后重试',
+          known ??
+              (status == 401
+                  ? '身份凭据已失效，请重新登录'
+                  : status == 403
+                  ? '你没有当前会话的操作权限'
+                  : status == 409
+                  ? '共同版本已变化。你的草稿仍在，请读取最新版本后合并'
+                  : status == 503
+                  ? '服务暂不可用，操作尚未确认，请稍后重试'
+                  : '操作未完成（$status），请检查输入后重试'),
+          code: code,
+          pluginId: pluginId,
         );
       }
       if (binary) return response.bodyBytes;
@@ -104,6 +158,70 @@ class OfficeState extends ChangeNotifier {
     }
   }
 
+  void _denyModule(String id) {
+    unavailableModules.add(id);
+    searchResults = [];
+    switch (id) {
+      case 'im':
+        rooms = [];
+        principals = [];
+        agents = [];
+        catalog = [];
+        contacts = [];
+        detail = null;
+        selectedRoomId = null;
+        _selection++;
+      case 'docs':
+        allDocuments = [];
+        detail?['documents'] = [];
+      case 'tasks':
+        allTasks = [];
+        detail?['tasks'] = [];
+      case 'meetings':
+        meetings = [];
+      case 'calendar':
+        calendarEvents = [];
+      case 'attendance':
+        attendanceRecords = [];
+        currentAttendance = {};
+      case 'approvals':
+        approvalTemplates = [];
+        approvalRequests = [];
+      case 'mail':
+        mailItems = [];
+        mailFolders = [];
+      case 'workbench':
+        apps = [];
+        appFavorites = [];
+    }
+    if (['docs', 'tasks', 'meetings', 'calendar'].contains(id)) {
+      detail?['runs'] = [];
+    }
+    _notify();
+  }
+
+  /// Policy-denied background modules must not prevent identity/settings access.
+  /// Other permission errors, expired sessions and transport failures still surface.
+  Future<dynamic> _backgroundRequest(
+    String path, {
+    String? plugin,
+    String method = 'GET',
+    Json? data,
+  }) async {
+    final generation = _generation;
+    try {
+      final result = await _request(path, method: method, data: data);
+      if (generation == _generation && plugin != null) {
+        unavailableModules.remove(plugin);
+      }
+      return result;
+    } on OfficeException catch (e) {
+      if (e.status != 403 || e.code != 'app_policy_denied') rethrow;
+      if (generation == _generation && plugin != null) _denyModule(plugin);
+      return <String, dynamic>{};
+    }
+  }
+
   Future<void> connect(String server, String token) async {
     var address = server.trim().replaceAll(RegExp(r'/+$'), '');
     final uri = Uri.tryParse(address);
@@ -116,6 +234,7 @@ class OfficeState extends ChangeNotifier {
       throw OfficeException(422, '请输入完整的 HTTP 或 HTTPS 办公服务地址');
     }
     if (token.trim().isEmpty) throw OfficeException(422, '请输入自己的身份令牌');
+    disconnect();
     _generation++;
     final generation = _generation;
     endpoint = address;
@@ -128,6 +247,7 @@ class OfficeState extends ChangeNotifier {
       if (generation != _generation) return;
       me = Json.from(identity['principal']);
       await refresh();
+      await refreshBusiness();
       if (generation != _generation) return;
       connected = true;
       if (rooms.isNotEmpty) await selectRoom(rooms.first['id'] as String);
@@ -149,6 +269,16 @@ class OfficeState extends ChangeNotifier {
   }
 
   void disconnect() {
+    if (_loginSessionId != null && _token.isNotEmpty) {
+      unawaited(
+        _request(
+          '/auth/logout',
+          method: 'POST',
+          data: {},
+        ).catchError((Object _) => <String, dynamic>{}),
+      );
+    }
+    _loginSessionId = null;
     _generation++;
     _selection++;
     _search++;
@@ -164,10 +294,26 @@ class OfficeState extends ChangeNotifier {
     searchResults = [];
     allDocuments = [];
     allTasks = [];
+    libraryRooms = [];
     meetings = [];
     calendarEvents = [];
     apps = [];
     appFavorites = [];
+    settings = {};
+    accountInfo = {};
+    currentAttendance = {};
+    attendanceRecords = [];
+    approvalTemplates = [];
+    approvalRequests = [];
+    mailFolders = [];
+    mailItems = [];
+    accountSessions = [];
+    contacts = [];
+    plugins = [];
+    capabilities = [];
+    _mailQuery = '';
+    mailFolder = 'inbox';
+    unavailableModules.clear();
     detail = null;
     selectedRoomId = null;
     _cursor = 0;
@@ -179,14 +325,14 @@ class OfficeState extends ChangeNotifier {
   Future<void> refresh() async {
     final generation = _generation;
     final results = await Future.wait([
-      _request('/rooms'),
-      _request('/principals'),
-      _request('/agents'),
-      _request('/agent-store'),
+      _backgroundRequest('/rooms', plugin: 'im'),
+      _backgroundRequest('/principals', plugin: 'im'),
+      _backgroundRequest('/agents', plugin: 'im'),
+      _backgroundRequest('/agent-store', plugin: 'im'),
       _request('/library'),
-      _request('/meetings'),
-      _request('/calendar'),
-      _request('/workbench'),
+      _backgroundRequest('/meetings', plugin: 'meetings'),
+      _backgroundRequest('/calendar', plugin: 'calendar'),
+      _backgroundRequest('/workbench', plugin: 'workbench'),
     ]);
     if (generation != _generation) return;
     rooms = _list(results[0]['rooms']);
@@ -195,6 +341,7 @@ class OfficeState extends ChangeNotifier {
     catalog = _list(results[3]['agents']);
     allDocuments = _list(results[4]['documents']);
     allTasks = _list(results[4]['tasks']);
+    libraryRooms = _list(results[4]['rooms']);
     meetings = _list(results[5]['meetings']);
     calendarEvents = _list(results[6]['events']);
     apps = _list(results[7]['apps']);
@@ -212,10 +359,14 @@ class OfficeState extends ChangeNotifier {
   Future<void> selectRoom(String id) async {
     final selection = ++_selection, generation = _generation;
     selectedRoomId = id;
+    _selectAttendance();
     detail = null;
     error = '';
     _notify();
-    final result = await _request('/rooms/${Uri.encodeComponent(id)}');
+    final result = await _backgroundRequest(
+      '/rooms/${Uri.encodeComponent(id)}',
+      plugin: 'im',
+    );
     if (selection != _selection || generation != _generation) return;
     detail = Json.from(result);
     _notify();
@@ -225,7 +376,10 @@ class OfficeState extends ChangeNotifier {
   Future<void> _loadCurrent() async {
     final id = selectedRoomId, selection = _selection, generation = _generation;
     if (id == null) return;
-    final result = await _request('/rooms/${Uri.encodeComponent(id)}');
+    final result = await _backgroundRequest(
+      '/rooms/${Uri.encodeComponent(id)}',
+      plugin: 'im',
+    );
     if (selection != _selection ||
         generation != _generation ||
         selectedRoomId != id) {
@@ -307,7 +461,12 @@ class OfficeState extends ChangeNotifier {
   Future<void> _poll(int generation) async {
     while (!_disposed && generation == _generation && _token.isNotEmpty) {
       try {
-        await _request('/presence', method: 'POST', data: {'status': 'online'});
+        await _backgroundRequest(
+          '/presence',
+          plugin: 'im',
+          method: 'POST',
+          data: {'status': 'online'},
+        );
         final eventPage = await _request('/events?after=$_cursor&wait=20');
         if (generation != _generation) return;
         _cursor = (eventPage['cursor'] as num).toInt();
@@ -318,6 +477,7 @@ class OfficeState extends ChangeNotifier {
           await refresh();
           await _loadCurrent();
         }
+        await refreshBusiness();
         _notify();
       } catch (e) {
         if (generation != _generation || _disposed) return;
@@ -343,6 +503,7 @@ class OfficeState extends ChangeNotifier {
     // make the UI resend that successful operation as a new intent.
     try {
       await refresh();
+      await refreshBusiness();
       await _loadCurrent();
     } catch (e) {
       connected = false;
@@ -393,9 +554,8 @@ class OfficeState extends ChangeNotifier {
       _notify();
       return;
     }
-    final result = await _request(
-      '/search?q=${Uri.encodeQueryComponent(query.trim())}',
-    );
+    final encoded = Uri.encodeQueryComponent(query.trim());
+    final result = await _request('/search?q=$encoded');
     if (generation == _generation && search == _search) {
       searchResults = _list(result['results']);
       _notify();
@@ -478,9 +638,10 @@ class OfficeState extends ChangeNotifier {
     String title, {
     String description = '',
     String? assigneeId,
+    String? roomId,
   }) async {
     await _request(
-      _room('/tasks'),
+      _businessRoom(roomId, '/tasks'),
       method: 'POST',
       data: {
         'title': title,
@@ -495,9 +656,13 @@ class OfficeState extends ChangeNotifier {
     Json task, {
     String? status,
     String? assigneeId,
+    String? roomId,
   }) async {
     await _request(
-      _room('/tasks/${task['id']}'),
+      _businessRoom(
+        roomId ?? task['room_id'],
+        '/tasks/${Uri.encodeComponent(task['id'])}',
+      ),
       method: 'PATCH',
       data: {
         'base_revision': task['revision'],
@@ -513,9 +678,13 @@ class OfficeState extends ChangeNotifier {
     required String title,
     required String content,
     int? baseRevision,
+    String? roomId,
   }) async {
     final result = await _request(
-      _room('/documents${id == null ? '' : '/$id'}'),
+      _businessRoom(
+        roomId,
+        '/documents${id == null ? '' : '/${Uri.encodeComponent(id)}'}',
+      ),
       method: id == null ? 'POST' : 'PUT',
       data: {
         'title': title,
@@ -526,6 +695,18 @@ class OfficeState extends ChangeNotifier {
     await _updated();
     return Json.from(result['document']);
   }
+
+  String _businessRoom(String? roomId, String suffix) {
+    if (roomId == null) return _room(suffix);
+    return '/rooms/${Uri.encodeComponent(roomId)}$suffix';
+  }
+
+  Future<Json> getDocument(String id, {required String roomId}) async =>
+      Json.from(
+        (await _request(
+          _businessRoom(roomId, '/documents/${Uri.encodeComponent(id)}'),
+        ))['document'],
+      );
 
   Future<Json> getRun(String id) async =>
       Json.from((await _request(_room('/turns/$id')))['turn']);
@@ -571,6 +752,320 @@ class OfficeState extends ChangeNotifier {
       data: {'principal_id': principalId},
     );
     await _updated();
+  }
+
+  Future<void> loginWithPassword(
+    String server,
+    String username,
+    String password,
+  ) async {
+    final address = server.trim().replaceAll(RegExp(r'/+$'), '');
+    final uri = Uri.tryParse(address);
+    if (uri == null ||
+        !['http', 'https'].contains(uri.scheme) ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw OfficeException(422, '请输入完整的办公服务地址');
+    }
+    final request =
+        http.Request('POST', Uri.parse('$address/api/im/auth/login'))
+          ..followRedirects = false
+          ..headers['content-type'] = 'application/json'
+          ..body = jsonEncode({'username': username, 'password': password});
+    final response = await http.Response.fromStream(
+      await _client.send(request).timeout(const Duration(seconds: 35)),
+    );
+    if (response.statusCode != 200) {
+      throw OfficeException(
+        response.statusCode,
+        response.statusCode == 429 ? '尝试次数过多，请稍后重试' : '登录未完成，请检查账号、密码和服务地址',
+      );
+    }
+    final result = Json.from(jsonDecode(response.body));
+    await connect(address, result['token'] as String);
+    _loginSessionId = result['session_id'] as String?;
+  }
+
+  void _selectAttendance() {
+    currentAttendance =
+        attendanceRecords
+            .where(
+              (r) =>
+                  r['room_id'] == selectedRoomId &&
+                  r['principal_id'] == me?['id'],
+            )
+            .firstOrNull ??
+        {};
+  }
+
+  Future<void> refreshBusiness() async {
+    final generation = _generation;
+    final results = await Future.wait([
+      _backgroundRequest(
+        '/attendance?timezone=Asia%2FShanghai',
+        plugin: 'attendance',
+      ),
+      _backgroundRequest('/approval-templates', plugin: 'approvals'),
+      _backgroundRequest('/approvals?inbox=all', plugin: 'approvals'),
+      _backgroundRequest('/mail/folders', plugin: 'mail'),
+      _request('/settings'),
+      _request('/auth/account'),
+      _backgroundRequest('/contacts', plugin: 'im'),
+    ]);
+    if (generation != _generation) return;
+    attendanceRecords = _list(results[0]['records']);
+    _selectAttendance();
+    approvalTemplates = _list(results[1]['templates']);
+    approvalRequests = _list(results[2]['requests']);
+    mailFolders = _list(results[3]['folders']);
+    settings = Json.from(results[4]['settings'] ?? {});
+    accountInfo = Json.from(results[5]['account'] ?? {});
+    contacts = _list(results[6]['contacts']);
+    await loadMail(mailFolder, query: _mailQuery);
+    await loadPlugins();
+    _notify();
+  }
+
+  Future<void> loadPlugins() async {
+    final generation = _generation;
+    final results = await Future.wait([
+      _request('/plugins'),
+      _request('/capabilities'),
+    ]);
+    if (generation != _generation) return;
+    plugins = _list(results[0]['plugins']);
+    capabilities = _list(results[1]['capabilities']);
+    for (final plugin in plugins) {
+      final id = plugin['id'];
+      if (id is! String || plugin['enterprise_allowed'] is! bool) continue;
+      if (plugin['enterprise_allowed'] == false) {
+        _denyModule(id);
+      } else {
+        unavailableModules.remove(id);
+      }
+    }
+    if (!moduleAvailable('docs') || !moduleAvailable('calendar')) {
+      _denyModule('meetings');
+    }
+    _notify();
+  }
+
+  Future<void> configurePlugin(
+    Json plugin, {
+    bool? enabled,
+    Json? config,
+  }) async {
+    await _request(
+      '/plugins/${plugin['id']}',
+      method: 'PATCH',
+      data: {
+        'base_revision': plugin['revision'],
+        'enabled': ?enabled,
+        'config': ?config,
+      },
+    );
+    await loadPlugins();
+  }
+
+  Future<void> addContact(String principalId) async {
+    await _request(
+      '/contacts',
+      method: 'POST',
+      data: {'principal_id': principalId},
+    );
+    await _updated();
+  }
+
+  Future<void> getAccount() async {
+    accountInfo = Json.from((await _request('/auth/account'))['account'] ?? {});
+    _notify();
+  }
+
+  Future<void> setAccount(
+    String username,
+    String password, {
+    String? currentPassword,
+  }) async {
+    await _request(
+      '/auth/account',
+      method: 'POST',
+      data: {
+        'username': username,
+        'password': password,
+        'current_password': ?currentPassword,
+      },
+    );
+    // Password changes revoke browser sessions; reconnect with the new account.
+    await loginWithPassword(endpoint, username, password);
+  }
+
+  Future<void> loadAccountSessions() async {
+    accountSessions = _list((await _request('/auth/sessions'))['sessions']);
+    _notify();
+  }
+
+  Future<void> revokeSession(String id) async {
+    await _request(
+      '/auth/sessions/${Uri.encodeComponent(id)}',
+      method: 'DELETE',
+      data: {},
+    );
+    if (id == _loginSessionId) {
+      disconnect();
+      return;
+    }
+    await loadAccountSessions();
+  }
+
+  Future<void> loadAttendance({String? date}) async {
+    final result = await _request(
+      '/attendance?timezone=Asia%2FShanghai${date == null ? '' : '&date=${Uri.encodeQueryComponent(date)}'}',
+    );
+    attendanceRecords = _list(result['records']);
+    _selectAttendance();
+    _notify();
+  }
+
+  Future<Json> checkIn({String locationNote = '', String? roomId}) =>
+      _createOfficeItem(_businessRoom(roomId, '/attendance'), {
+        'action': 'check_in',
+        'timezone': 'Asia/Shanghai',
+        'location_note': locationNote,
+      }, 'record');
+  Future<Json> checkOut({String locationNote = '', String? roomId}) =>
+      _createOfficeItem(_businessRoom(roomId, '/attendance'), {
+        'action': 'check_out',
+        'timezone': 'Asia/Shanghai',
+        'location_note': locationNote,
+      }, 'record');
+  Future<Json> createAttendanceCorrection({
+    required String date,
+    required String checkInAt,
+    String? checkOutAt,
+    required String reason,
+    required String approverId,
+    String? roomId,
+  }) => _createOfficeItem(_businessRoom(roomId, '/attendance/corrections'), {
+    'date': date,
+    'timezone': 'Asia/Shanghai',
+    'check_in_at': checkInAt,
+    'check_out_at': ?checkOutAt,
+    'reason': reason,
+    'approver_id': approverId,
+  }, 'request');
+  Future<Json> createApproval({
+    required String templateId,
+    required String title,
+    String description = '',
+    required String approverId,
+    Json fields = const {},
+    String? roomId,
+  }) => _createOfficeItem(_businessRoom(roomId, '/approvals'), {
+    'template_id': templateId,
+    'title': title,
+    'description': description,
+    'approver_id': approverId,
+    'payload': fields,
+  }, 'request');
+  Future<Json> getApproval(String id) async => Json.from(
+    (await _request('/approvals/${Uri.encodeComponent(id)}'))['request'],
+  );
+  Future<void> decideApproval(
+    Json request,
+    String decision, {
+    String comment = '',
+  }) async {
+    await _createOfficeItem('/approvals/${request['id']}/decision', {
+      'base_revision': request['revision'],
+      'decision': decision,
+      'comment': comment,
+    }, 'request');
+  }
+
+  Future<void> withdrawApproval(Json request) async {
+    await _createOfficeItem('/approvals/${request['id']}/cancel', {
+      'base_revision': request['revision'],
+    }, 'request');
+  }
+
+  Future<void> loadMail(String folder, {String query = ''}) async {
+    final generation = _generation;
+    mailFolder = folder;
+    _mailQuery = query;
+    final result = await _backgroundRequest(
+      '/mail?folder=${Uri.encodeQueryComponent(folder)}&q=${Uri.encodeQueryComponent(query)}',
+      plugin: 'mail',
+    );
+    if (generation != _generation || mailFolder != folder) return;
+    mailItems = _list(result['items']);
+    _notify();
+  }
+
+  Future<Json> getMail(String id) async =>
+      Json.from((await _request('/mail/${Uri.encodeComponent(id)}'))['item']);
+  Future<Json> saveMailDraft({
+    String? id,
+    int? baseRevision,
+    List<String> toIds = const [],
+    List<String> ccIds = const [],
+    List<String> bccIds = const [],
+    String subject = '',
+    String body = '',
+  }) async {
+    final payload = {
+      'to_ids': toIds,
+      'cc_ids': ccIds,
+      'bcc_ids': bccIds,
+      'subject': subject,
+      'body': body,
+    };
+    if (id == null) return _createOfficeItem('/mail/drafts', payload, 'draft');
+    final result = await _request(
+      '/mail/${Uri.encodeComponent(id)}',
+      method: 'PATCH',
+      data: {...payload, 'base_revision': baseRevision},
+    );
+    await _updated();
+    return Json.from(result['draft']);
+  }
+
+  Future<Json> sendMailDraft(Json draft) => _createOfficeItem(
+    '/mail/${draft['message_id'] ?? draft['id']}/send',
+    {'base_revision': draft['draft_revision'] ?? draft['revision']},
+    'item',
+  );
+  Future<void> moveMail(Json item, String folder) async {
+    final discarding = item['status'] == 'draft' && folder == 'trash';
+    await _request(
+      '/mail/${item['id']}',
+      method: discarding ? 'DELETE' : 'PATCH',
+      data: {
+        'base_revision': item['revision'],
+        if (!discarding) 'folder': folder,
+      },
+    );
+    await _updated();
+  }
+
+  Future<void> markMailRead(Json item, bool read) async {
+    await _request(
+      '/mail/${item['id']}',
+      method: 'PATCH',
+      data: {'base_revision': item['revision'], 'read': read},
+    );
+    await _updated();
+  }
+
+  Future<void> saveSettings(Json changes) async {
+    final result = await _request(
+      '/settings',
+      method: 'PATCH',
+      data: {...changes, 'base_revision': settings['revision'] ?? 1},
+    );
+    settings = Json.from(result['settings']);
+    _notify();
   }
 
   Future<void> pinMessage(Json message, bool pinned) async {
@@ -630,12 +1125,15 @@ class OfficeState extends ChangeNotifier {
     Json? data,
   }) async => Json.from(await _request(path, method: method, data: data));
 
+  Future<String> officeTextRequest(String path) async =>
+      await _request(path, text: true) as String;
+
   Future<void> refreshOffice() async {
     final generation = _generation;
     final results = await Future.wait([
-      _request('/meetings'),
-      _request('/calendar'),
-      _request('/workbench'),
+      _backgroundRequest('/meetings', plugin: 'meetings'),
+      _backgroundRequest('/calendar', plugin: 'calendar'),
+      _backgroundRequest('/workbench', plugin: 'workbench'),
     ]);
     if (generation != _generation) return;
     meetings = _list(results[0]['meetings']);
@@ -663,7 +1161,8 @@ class OfficeState extends ChangeNotifier {
     String? startsAt,
     int durationMinutes = 30,
     String? documentId,
-  }) => _createOfficeItem(_room('/meetings'), {
+    String? roomId,
+  }) => _createOfficeItem(_businessRoom(roomId, '/meetings'), {
     'title': title,
     'starts_at': ?startsAt,
     'duration_minutes': durationMinutes,
@@ -697,7 +1196,8 @@ class OfficeState extends ChangeNotifier {
     String description = '',
     String location = '',
     List<String> attendeeIds = const [],
-  }) => _createOfficeItem(_room('/calendar'), {
+    String? roomId,
+  }) => _createOfficeItem(_businessRoom(roomId, '/calendar'), {
     'title': title,
     'starts_at': startsAt,
     'ends_at': endsAt,

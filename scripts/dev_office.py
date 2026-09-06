@@ -67,6 +67,34 @@ def provision(base_url, admin_token, path):
     return access
 
 
+def provision_local_accounts(base_url, admin_token, path):
+    """Provision development sign-in once; never reset an existing account."""
+    access = json.loads(path.read_text())
+    admin = IMClient(base_url, admin_token)
+    for label in ["human", "agent", "peer"]:
+        identity = access[label]
+        current = IMClient(base_url, identity["token"]).request("GET", "/auth/account").get("account")
+        if current:
+            # A user may have changed their password; do not overwrite it.
+            continue
+        username = label + "." + identity["principal"]["id"][-8:]
+        password = secrets.token_urlsafe(24)
+        admin.request("POST", "/admin/accounts", {
+            "principal_id": identity["principal"]["id"], "username": username, "password": password})
+        identity["account"] = {"username": username, "password": password}
+        save_private(path, access)
+    return access
+
+
+def provision_local_enterprise(base_url, admin_token, access):
+    """Make the local developer the initial owner; never restore a changed role."""
+    identity = access["human"]
+    view = IMClient(base_url, identity["token"]).request("GET", "/enterprise")
+    if not view["enterprise"]["initialized"]:
+        IMClient(base_url, admin_token).request("POST", "/admin/enterprise/bootstrap", {
+            "principal_id": identity["principal"]["id"], "name": "同席 · 本机开发工作空间"})
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     default_repo = ROOT.parent / "doc_free"
@@ -127,6 +155,8 @@ def main():
         else:
             raise RuntimeError("Office server did not become ready")
         access = provision(base_url, admin_token, data / "access.json")
+        access = provision_local_accounts(base_url, admin_token, data / "access.json")
+        provision_local_enterprise(base_url, admin_token, access)
         if not args.no_worker:
             worker_environment = {**os.environ, "AA_DOC_FREE_URL": base_url,
                 "AA_IM_TOKEN": access["agent"]["token"], "AA_IM_ADMIN_TOKEN": admin_token}
@@ -136,7 +166,7 @@ def main():
                 cwd=ROOT, env=worker_environment))
         print("Office: %s/office/ (Flutter); %s/im (HTML preview)" % (base_url, base_url), flush=True)
         print("Individual local access: data/office/access.json (private, mode 0600).", flush=True)
-        print("Use human.token to sign in; agent runs independently. Ctrl-C stops services.", flush=True)
+        print("Sign in with human.account from the private access file; individual tokens remain available for native clients. Ctrl-C stops services.", flush=True)
         while all(p.poll() is None for p in processes):
             time.sleep(1)
         raise RuntimeError("An office service exited; all companion services stopped")

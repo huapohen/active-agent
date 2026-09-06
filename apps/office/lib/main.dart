@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/foundation.dart';
 
 import 'office_state.dart';
@@ -46,6 +47,23 @@ class _ActiveOfficeAppState extends State<ActiveOfficeApp> {
       title: '同席 · Active Office',
       debugShowCheckedModeBanner: false,
       theme: officeTheme(),
+      locale: const Locale('zh', 'CN'),
+      supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      builder: (context, child) => AnimatedBuilder(
+        animation: state,
+        builder: (context, _) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(
+              (state.settings['text_scale'] as num? ?? 1).toDouble().clamp(
+                .85,
+                1.3,
+              ),
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        ),
+      ),
       home: AnimatedBuilder(
         animation: state,
         builder: (context, _) => state.me == null
@@ -54,6 +72,7 @@ class _ActiveOfficeAppState extends State<ActiveOfficeApp> {
                     ? initialEndpoint
                     : state.endpoint,
                 onConnect: state.connect,
+                onLogin: state.loginWithPassword,
               )
             : OfficeShell(state: state),
       ),

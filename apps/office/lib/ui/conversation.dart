@@ -6,6 +6,8 @@ import 'package:file_picker/file_picker.dart';
 
 import '../office_state.dart' hide Json;
 import 'attachments.dart';
+import 'agent_collaboration.dart';
+import 'mentions.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
 import 'work_collections.dart';
@@ -16,10 +18,12 @@ class OfficeConversation extends StatefulWidget {
     required this.state,
     this.onBack,
     this.mobile = false,
+    this.onAgentStore,
   });
   final OfficeState state;
   final VoidCallback? onBack;
   final bool mobile;
+  final VoidCallback? onAgentStore;
   @override
   State<OfficeConversation> createState() => _OfficeConversationState();
 }
@@ -31,10 +35,20 @@ class _OfficeConversationState extends State<OfficeConversation> {
   final _scroll = ScrollController();
   String? _key, _hover;
   String _query = '';
-  bool _searchOpen = false, _sending = false, _loadingHistory = false;
+  bool _searchOpen = false,
+      _sending = false,
+      _loadingHistory = false,
+      _mentionOpen = false;
   int _tab = 0, _messageCount = 0;
   Json? _reply;
   List<String> _mentions = [];
+  bool get _everyoneMentioned {
+    final members = maps(s.detail?['members']);
+    return (s.detail?['room'] as Map?)?['kind'] != 'direct' &&
+        members.isNotEmpty &&
+        _mentions.toSet().containsAll(members.map(personId));
+  }
+
   List<PendingOfficeAttachment> _attachments = [];
   String? _error;
   OfficeState get s => widget.state;
@@ -256,47 +270,49 @@ class _OfficeConversationState extends State<OfficeConversation> {
         .firstOrNull?['name'],
     '工作成员',
   );
-  Future<void> _mention() async {
+  Future<void> _mention({int? atPosition}) async {
+    if (_mentionOpen) return;
+    _mentionOpen = true;
+    final roomId = s.selectedRoomId;
     final people = maps(s.detail?['members']);
-    final id = await showDialog<String>(
+    final ids = await showDialog<List<String>>(
       context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('提及工作成员', style: TextStyle(fontSize: 18)),
-        children: people
-            .map(
-              (p) => SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, personId(p)),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Row(
-                    children: [
-                      PersonAvatar(
-                        name: str(p['name']),
-                        agent: p['kind'] == 'agent',
-                        size: 30,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          str(p['name']),
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                      IdentityBadge(agent: p['kind'] == 'agent'),
-                    ],
-                  ),
-                ),
-              ),
-            )
-            .toList(),
+      builder: (context) => OfficeMentionPicker(
+        people: people,
+        selected: _mentions,
+        mobile: widget.mobile,
+        group: (s.detail?['room'] as Map?)?['kind'] != 'direct',
       ),
     );
-    if (id != null && mounted) {
+    _mentionOpen = false;
+    if (ids != null && mounted && s.selectedRoomId == roomId) {
       setState(() {
-        if (!_mentions.contains(id)) _mentions.add(id);
+        _mentions = ids;
+        if (atPosition != null &&
+            atPosition < _input.text.length &&
+            _input.text[atPosition] == '@') {
+          _input.value = TextEditingValue(
+            text: _input.text.replaceRange(atPosition, atPosition + 1, ''),
+            selection: TextSelection.collapsed(offset: atPosition),
+          );
+        }
       });
       _saveDraft();
       _focus.requestFocus();
+    }
+  }
+
+  void _inputChanged(String value) {
+    _saveDraft();
+    final end = _input.selection.baseOffset;
+    if (!_mentionOpen &&
+        end > 0 &&
+        end <= value.length &&
+        value[end - 1] == '@' &&
+        (end == 1 || RegExp(r'\s').hasMatch(value[end - 2])) &&
+        !(_input.value.composing.isValid &&
+            !_input.value.composing.isCollapsed)) {
+      _mention(atPosition: end - 1);
     }
   }
 
@@ -547,7 +563,17 @@ class _OfficeConversationState extends State<OfficeConversation> {
             ),
           ),
         ),
-        if (_tab == 1)
+        if ((_tab == 1 && !s.moduleAvailable('docs')) ||
+            (_tab == 2 && !s.moduleAvailable('tasks')) ||
+            (_tab == 3 && !s.moduleAvailable('workbench')))
+          const Expanded(
+            child: EmptyOffice(
+              title: '企业策略限制了此应用',
+              subtitle: '请联系企业管理员调整你的应用可用范围。',
+              icon: Icons.lock_outline,
+            ),
+          )
+        else if (_tab == 1)
           Expanded(child: WorkDocuments(state: s, heading: false))
         else if (_tab == 2)
           Expanded(child: WorkTasks(state: s))
@@ -702,6 +728,8 @@ class _OfficeConversationState extends State<OfficeConversation> {
                               'kind': 'human',
                             };
                       final own = m['author_id'] == personId(s.me ?? {});
+                      final alignRight =
+                          own && s.settings['message_alignment'] != 'left';
                       final retracted = m['retracted_at'] != null;
                       if (retracted) {
                         return Padding(
@@ -789,11 +817,11 @@ class _OfficeConversationState extends State<OfficeConversation> {
                               padding: const EdgeInsets.only(bottom: 18),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: own
+                                mainAxisAlignment: alignRight
                                     ? MainAxisAlignment.end
                                     : MainAxisAlignment.start,
                                 children: [
-                                  if (!own) ...[
+                                  if (!alignRight) ...[
                                     PersonAvatar(
                                       name: str(author['name']),
                                       agent: author['kind'] == 'agent',
@@ -810,7 +838,7 @@ class _OfficeConversationState extends State<OfficeConversation> {
                                             : 600,
                                       ),
                                       child: Column(
-                                        crossAxisAlignment: own
+                                        crossAxisAlignment: alignRight
                                             ? CrossAxisAlignment.end
                                             : CrossAxisAlignment.start,
                                         children: [
@@ -1044,7 +1072,7 @@ class _OfficeConversationState extends State<OfficeConversation> {
                                       ),
                                     ),
                                   ),
-                                  if (own) ...[
+                                  if (alignRight) ...[
                                     const SizedBox(width: 10),
                                     PersonAvatar(
                                       name: str(author['name']),
@@ -1201,18 +1229,24 @@ class _OfficeConversationState extends State<OfficeConversation> {
             alignment: Alignment.centerLeft,
             child: Wrap(
               spacing: 5,
-              children: _mentions
+              children: (_everyoneMentioned ? ['__everyone__'] : _mentions)
                   .map(
                     (id) => InputChip(
                       label: Text(
-                        '@${_name(id)}',
+                        id == '__everyone__' ? '@所有人' : '@${_name(id)}',
                         style: const TextStyle(
                           fontSize: 10,
                           color: accentColor,
                         ),
                       ),
                       onDeleted: () {
-                        setState(() => _mentions.remove(id));
+                        setState(() {
+                          if (id == '__everyone__') {
+                            _mentions.clear();
+                          } else {
+                            _mentions.remove(id);
+                          }
+                        });
                         _saveDraft();
                       },
                       deleteIcon: const Icon(Icons.close, size: 13),
@@ -1229,6 +1263,9 @@ class _OfficeConversationState extends State<OfficeConversation> {
             if (event is KeyDownEvent &&
                 event.logicalKey == LogicalKeyboardKey.enter &&
                 !HardwareKeyboard.instance.isShiftPressed &&
+                (s.settings['send_shortcut'] != 'mod_enter' ||
+                    HardwareKeyboard.instance.isControlPressed ||
+                    HardwareKeyboard.instance.isMetaPressed) &&
                 !(_input.value.composing.isValid &&
                     !_input.value.composing.isCollapsed)) {
               _send();
@@ -1251,7 +1288,7 @@ class _OfficeConversationState extends State<OfficeConversation> {
               focusedBorder: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(vertical: 3),
             ),
-            onChanged: (_) => _saveDraft(),
+            onChanged: _inputChanged,
           ),
         ),
         if (_error != null)
@@ -1264,51 +1301,83 @@ class _OfficeConversationState extends State<OfficeConversation> {
           ),
         Row(
           children: [
-            IconButton(
-              onPressed: _attachments.length >= 8 ? null : _pickAttachments,
-              tooltip: '选择图片或文件',
-              icon: const Icon(Icons.attach_file, size: 19),
-            ),
-            PopupMenuButton<String>(
-              tooltip: '插入表情',
-              icon: const Icon(
-                Icons.sentiment_satisfied_alt_outlined,
-                size: 19,
-                color: mutedColor,
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: _attachments.length >= 8
+                          ? null
+                          : _pickAttachments,
+                      tooltip: '选择图片或文件',
+                      icon: const Icon(Icons.attach_file, size: 19),
+                    ),
+                    PopupMenuButton<String>(
+                      tooltip: '插入表情',
+                      icon: const Icon(
+                        Icons.sentiment_satisfied_alt_outlined,
+                        size: 19,
+                        color: mutedColor,
+                      ),
+                      padding: const EdgeInsets.all(5),
+                      onSelected: _insert,
+                      itemBuilder: (_) => ['😀', '👍', '🎉', '❤️', '✅', '🙏']
+                          .map((e) => PopupMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                    ),
+                    IconButton(
+                      onPressed: _mention,
+                      tooltip: '提及成员',
+                      icon: const Icon(Icons.alternate_email, size: 19),
+                    ),
+                    IconButton(
+                      tooltip: 'Agent 协作',
+                      onPressed: () => showAgentCollaboration(
+                        context,
+                        s,
+                        onMention: (ids) {
+                          setState(
+                            () => _mentions = {..._mentions, ...ids}.toList(),
+                          );
+                          _saveDraft();
+                          _focus.requestFocus();
+                        },
+                        onRecords: () => setState(() => _tab = 3),
+                        onStore: widget.onAgentStore,
+                      ),
+                      icon: const Icon(
+                        Icons.auto_awesome_outlined,
+                        size: 19,
+                        color: accentColor,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: s.moduleAvailable('docs')
+                          ? () => OfficeDialogs.document(context, s)
+                          : null,
+                      tooltip: '新建共同文档',
+                      icon: const Icon(Icons.description_outlined, size: 18),
+                    ),
+                    IconButton(
+                      onPressed: s.moduleAvailable('tasks')
+                          ? () => OfficeDialogs.task(context, s)
+                          : null,
+                      tooltip: '创建任务',
+                      icon: const Icon(Icons.add_task_outlined, size: 18),
+                    ),
+                  ],
+                ),
               ),
-              padding: const EdgeInsets.all(5),
-              onSelected: _insert,
-              itemBuilder: (_) => [
-                '😀',
-                '👍',
-                '🎉',
-                '❤️',
-                '✅',
-                '🙏',
-              ].map((e) => PopupMenuItem(value: e, child: Text(e))).toList(),
             ),
-            IconButton(
-              onPressed: _mention,
-              tooltip: '提及成员',
-              icon: const Icon(Icons.alternate_email, size: 19),
-            ),
-            IconButton(
-              onPressed: () => OfficeDialogs.document(context, s),
-              tooltip: '新建共同文档',
-              icon: const Icon(Icons.description_outlined, size: 18),
-            ),
-            IconButton(
-              onPressed: () => OfficeDialogs.task(context, s),
-              tooltip: '创建任务',
-              icon: const Icon(Icons.add_task_outlined, size: 18),
-            ),
-            const Spacer(),
             if (!widget.mobile && MediaQuery.sizeOf(context).width >= 1100)
-              const Padding(
-                padding: EdgeInsets.only(right: 13),
+              Padding(
+                padding: const EdgeInsets.only(right: 13),
                 child: Text(
-                  'Enter 发送 · Shift + Enter 换行',
-                  style: TextStyle(fontSize: 9, color: Color(0xffb4b9c2)),
+                  s.settings['send_shortcut'] == 'mod_enter'
+                      ? 'Ctrl / ⌘ + Enter 发送'
+                      : 'Enter 发送 · Shift + Enter 换行',
+                  style: const TextStyle(fontSize: 9, color: Color(0xffb4b9c2)),
                 ),
               ),
             FilledButton(

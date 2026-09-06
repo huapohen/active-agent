@@ -7,6 +7,8 @@ import 'package:active_office/office_state.dart';
 
 class Service {
   final String kind;
+  final Set<String> deniedModules = {};
+  bool ordinaryMailForbidden = false;
   bool loseFirstSend = false;
   int sends = 0;
   final List<Json> bodies = [];
@@ -21,6 +23,24 @@ class Service {
       return json({}, 401);
     }
     final path = request.url.path.replaceFirst('/api/im', '');
+    final module = path.startsWith('/mail')
+        ? 'mail'
+        : [
+            '/rooms',
+            '/principals',
+            '/agents',
+            '/agent-store',
+            '/contacts',
+            '/presence',
+          ].contains(path)
+        ? 'im'
+        : null;
+    if (deniedModules.contains(module)) {
+      return json({'code': 'app_policy_denied', 'plugin_id': module}, 403);
+    }
+    if (ordinaryMailForbidden && module == 'mail') {
+      return json({'code': 'forbidden'}, 403);
+    }
     if (path == '/presence') {
       return json({
         'presence': {'status': 'online'},
@@ -53,6 +73,20 @@ class Service {
     if (path == '/meetings') return json({'meetings': []});
     if (path == '/calendar') return json({'events': []});
     if (path == '/workbench') return json({'apps': [], 'favorites': []});
+    if (path == '/contacts') return json({'contacts': []});
+    if (path == '/plugins') return json({'plugins': []});
+    if (path == '/capabilities') return json({'capabilities': []});
+    if (path == '/attendance') return json({'records': []});
+    if (path == '/approval-templates') return json({'templates': []});
+    if (path == '/approvals') return json({'requests': []});
+    if (path == '/settings') {
+      return json({
+        'settings': {'revision': 1},
+      });
+    }
+    if (path == '/auth/account') return json({'account': null});
+    if (path == '/mail/folders') return json({'folders': []});
+    if (path == '/mail' || path == '/mail/search') return json({'items': []});
     if (path == '/library') return json({'documents': [], 'tasks': []});
     if (path == '/rooms/room-1') {
       return json({
@@ -144,6 +178,37 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 130));
     },
   );
+  test('enterprise app restrictions preserve sign-in and recovery while clearing restricted data', () async {
+    final service = Service('agent')..deniedModules.addAll(['im', 'mail']);
+    final office = OfficeState(client: MockClient(service.call));
+    await office.connect('http://localhost', 'private-test-identity');
+    expect(office.me?['kind'], 'agent');
+    expect(office.connected, true);
+    expect(office.rooms, isEmpty);
+    expect(office.mailItems, isEmpty);
+    expect(office.settings['revision'], 1);
+    expect(office.unavailableModules, containsAll(['im', 'mail']));
+    service.deniedModules.clear();
+    await office.refresh();
+    await office.refreshBusiness();
+    expect(office.rooms.single['id'], 'room-1');
+    expect(office.moduleAvailable('im'), true);
+    expect(office.moduleAvailable('mail'), true);
+    office.disconnect();
+    office.dispose();
+    await Future<void>.delayed(const Duration(milliseconds: 130));
+  });
+  test('ordinary authorization failures are not mistaken for app policy preferences', () async {
+    final service = Service('human')..ordinaryMailForbidden = true;
+    final office = OfficeState(client: MockClient(service.call));
+    await expectLater(
+      office.connect('http://localhost', 'private-test-identity'),
+      throwsA(isA<OfficeException>().having((e) => e.status, 'status', 403)),
+    );
+    expect(office.me, isNull);
+    expect(office.moduleAvailable('mail'), true);
+    office.dispose();
+  });
   test(
     'credentials in service URL are rejected before any network call',
     () async {
