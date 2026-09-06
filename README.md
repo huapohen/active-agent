@@ -2,54 +2,53 @@
 
 # Active Agent
 
-**Give your agent a document to live in.**
+**An office where people and agents work from the same visible context.**
 
-Proactive agents that work alongside people in visible, collaborative documents.
+Native conversations, shared tasks, living documents, and standing agent participation.
 
-[![Verify](https://github.com/huapohen/active-agent/actions/workflows/ci.yml/badge.svg?branch=evolve)](https://github.com/huapohen/active-agent/actions/workflows/ci.yml)
+[![Verify](https://github.com/huapohen/active-agent/actions/workflows/ci.yml/badge.svg?branch=equal_rights)](https://github.com/huapohen/active-agent/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-5d8061.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-47725c.svg)](pyproject.toml)
 
-[中文介绍](README.zh-CN.md) · [Start locally](#start-locally) · [Architecture](docs/evolve/2026-09-06/02-architecture.md) · [Roadmap](docs/evolve/2026-09-06/05-roadmap.md) · [Doc Free](https://github.com/huapohen/doc-free/tree/evolve)
+[中文](README.zh-CN.md) · [Start locally](#start-locally) · [Version documents](docs/equal_rights/README.md) · [Doc Free](https://github.com/huapohen/doc-free/tree/equal_rights)
 
 </div>
 
-![A live document, a shared objective, and an evidence-backed proposal](docs/assets/workspace.png)
+A project room brings together people, agents, tasks and documents. Assign work to an agent as a team member. It notices eligible work, reads the visible shared context, and returns a useful draft. Everyone can inspect what it read, why it responded, and what it produced.
 
-A person writes a goal. An agent notices meaningful document changes, waits until editing settles, and brings back a concrete proposal. Everyone sees the same source, evidence, proposed change and outcome.
+**0.4 office preview · `equal_rights`.** A shared Flutter client targets macOS, Windows, iOS, Android and Web. This iteration adds native meetings, calendar, workbench and deeper message workflows. Enterprise SSO, large-scale conferencing, push notifications and distributed operations remain roadmap work; the dated capability matrix records the gaps against Feishu.
 
-The shared document is the collaboration surface. Goals and decisions remain readable and exportable after the worker restarts—or its local checkpoint database disappears.
-
-## The loop
+## The office workflow
 
 ```mermaid
 flowchart LR
-    H[People edit a living document] --> O[Observe and wait for quiet]
-    O --> A[Agent evaluates the shared goal]
-    A --> P[Visible proposal with source evidence]
-    P --> R[Review in the document workspace]
-    R -->|accept after version check| H
-    R -->|reject or conflict| D[Visible outcome]
+    R[Project conversation] --> T[Task with human or agent owner]
+    D[Shared versioned documents] --> C[Visible work context]
+    T --> C
+    C --> A[Standing agent participation]
+    A --> O[Reply and document draft]
+    O --> V[Team review]
+    V --> D
 ```
 
-- **Proactive by default.** The worker observes continuously. No repeated prompts or manual refresh to start another round.
-- **Document-native context.** Source documents, mission contracts, proposals and observations are ordinary Doc Free documents.
-- **Real collaboration.** [Doc Free](https://github.com/huapohen/doc-free) supplies Tiptap + Yjs + Hocuspocus. People edit the same live document the agent reads.
-- **Reviewable changes.** Exact source quotes, before/after text, actor, revision and resolution are visible before acceptance.
-- **Respect concurrent work.** Source or mission changes invalidate stale results. Acceptance compares the live CRDT state inside its write transaction.
-- **Recoverable work.** Deterministic run identities suppress duplicate publications. A CRDT commit receipt recovers interrupted acceptance.
-- **Bring your model.** Responses streaming and Chat Completions adapters; configurable model and reasoning effort. No model key is bundled.
-- **Open interfaces.** REST and seven `active_doc_*` MCP tools use the same document workflow.
-
-**Status: 0.2 evolution preview.** This is a working, tested local collaboration loop. It is not yet a multi-tenant service, a complete rich-document platform or a distributed agent fleet. See the [precise boundaries](docs/evolve/2026-09-06/04-validation-and-limits.md). IM is outside this release.
+- **Independent identities.** People and agents hold individual credentials. The server binds authorship; room membership and ownership determine capabilities.
+- **Native work conversations.** Project rooms, mentions, replies, durable messages, reconnect cursors, message search and room export.
+- **Office apps.** Schedule meetings, respond to calendar invitations, organize favorite workbench apps, and link meeting notes to canonical shared documents. WebRTC supports small rooms with capture disabled until explicitly enabled.
+- **Files and message actions.** Scoped attachment uploads and downloads, image previews, pins, forwarded copies, revision-checked edits and recall.
+- **A shared task board.** Either kind of member can create, assign and update tasks. Concurrent updates require the current revision.
+- **Documents as the shared carrier.** Room documents use Doc Free canonical storage and version checks. Exact model inputs, omissions, decisions and deliverables remain inspectable and exportable as Markdown.
+- **Standing participation.** Agents respond to assigned work and meaningful room events. Active, mentions-only and paused modes control participation. Explicit agent handoffs have causal depth and response budgets.
+- **Visible work records.** The server saves the exact context before inference. Fenced leases and stable completion receipts prevent stale or duplicate publication. Interrupted inference may be retried; inference is not claimed to be exactly once.
+- **Concrete office deliverables.** Agents can draft specifications, plans, summaries and decision memos. Members review a draft and save it as a shared document. The standard worker does not mark a task done on the strength of a model claim.
+- **Preserved document workspace.** The earlier Yjs/Tiptap collaboration and evidence-backed proposal review remain at `/workbench` under the separate workspace administrator credential.
 
 ## Start locally
 
-Requirements: Python 3.9+, Node.js 20+ and npm. The document worker uses the Python standard library.
+Requirements: Python 3.9+, Node.js 20+, npm. The agent runtime uses the Python standard library.
 
 ```bash
-git clone --branch evolve https://github.com/huapohen/active-agent.git
-git clone --branch evolve https://github.com/huapohen/doc-free.git
+git clone --branch equal_rights https://github.com/huapohen/active-agent.git
+git clone --branch equal_rights https://github.com/huapohen/doc-free.git
 cd doc-free
 npm ci
 cd ../active-agent
@@ -58,17 +57,26 @@ cp .env.example .env
 active-agent configure-model-key
 ```
 
-Set your provider's endpoint, model and API style in the ignored `.env`. The credential prompt keeps the model key out of shell history. Use `AA_MODEL_API_STYLE=responses` for Responses-only providers; the default reasoning effort in the example is `medium`. Supported models depend on your provider.
+Set the endpoint, model and API style for your provider in the ignored `.env`. Responses-only gateways require `AA_MODEL_API_STYLE=responses`. The example selects `gpt-6-astra` with `medium` reasoning; model availability depends on your provider. No model key is bundled.
 
 ```bash
-python scripts/dev_workspace.py --doc-free ../doc-free
+python scripts/dev_office.py --doc-free ../doc-free
 ```
 
-Open **http://127.0.0.1:3217/workbench**. Enter a display name and `AA_DOC_FREE_TOKEN` from your local `.env`; the launcher creates that workspace token if needed. Click **体验一次协作** to create an example source and a standing goal. Wait for a proposal, review its evidence, and accept or reject it.
+Build the Flutter Web client first with `cd apps/office && flutter pub get --enforce-lockfile && flutter build web --release --base-href /office/ --no-web-resources-cdn`, then return to the repository root. See [five-platform build instructions](apps/office/README.md).
 
-The launcher starts Doc Free, the CRDT service and the document worker together. Development data stays under `active-agent/data/workspace/`, separate from any existing Doc Free data. Ctrl-C stops these processes. Nothing is deployed by this command.
+Open **http://127.0.0.1:3218/office/** for Flutter or **http://127.0.0.1:3218/im** for the smaller HTML preview. The launcher provisions a local project room, a human identity, an agent identity and a second local test identity. Sign in with `human.token` from **`data/office/access.json`**, a private ignored file. The agent runs using its own credential. The room includes a shared working agreement; create a task assigned to **Active Agent** to start useful work.
 
-Without a model key, the system creates a visible blocked observation instead of fabricating an AI result. Configure a model and restart to continue. The [Chinese walkthrough](docs/evolve/2026-09-06/03-quickstart-and-protocol.md) covers manual startup, MCP and conflict handling.
+The launcher starts HTTP, CRDT and agent services together. State remains in `data/office/`, separate from the earlier document demo. Ctrl-C stops the services. Use `--no-worker` to explore office flows without model calls. Without a configured model, assigned work produces a visible blocked record.
+
+For an existing server, provision an agent via the administrator API, add it to a room, set its independent `AA_IM_TOKEN`, and run:
+
+```bash
+active-agent im       # continuous participation
+active-agent im-tick  # one bounded work cycle
+```
+
+The native IM token does not authenticate the legacy workspace or CRDT administrator interfaces. Native room document editing currently uses revision-checked Markdown saves. The earlier full CRDT editor remains a separate administrator workspace. See the [integration and limits documentation](docs/equal_rights/README.md).
 
 ## Verify
 
@@ -80,25 +88,24 @@ npm test
 npm run build
 ```
 
-The Doc Free tests launch real isolated HTTP and CRDT servers. They check duplicate delivery, version conflicts, acceptance/rejection, direct CRDT changes, event replay, process restart and interrupted commit recovery. Python tests exercise debounce, leases, retry limits, lost-checkpoint recovery, evidence validation and incomplete model streams.
+Tests cover individual authentication, membership isolation, durable replay, duplicate delivery, document/task conflicts, work leases, crash recovery, prompt/result validation and incomplete model streams. Dated evidence records the actual model and browser runs separately from deterministic tests.
 
 ## Project map
 
 | Component | Responsibility |
 |---|---|
-| `active_agent/documents.py` | Observation, quiet windows, model evaluation and recoverable scheduling |
-| `active_agent/llm.py` | Responses / Chat adapters; finalized JSON only |
-| `scripts/dev_workspace.py` | One-command isolated local workspace |
-| Doc Free `workspace.js` | Visible mission contracts, proposals and review protocol |
-| Doc Free `collab-server.js` | Canonical CRDT reads, compare-and-replace, commit receipts |
-| Doc Free `workbench.*` | Document workspace and shared editing |
+| `active_agent/im.py` | Native participant client, standing office worker, validated drafts |
+| `active_agent/documents.py` | Earlier document observation and proposal workflow |
+| `active_agent/llm.py` | Responses / Chat adapters, finalized JSON output |
+| `scripts/dev_office.py` | Isolated office launcher and private identity provisioning |
+| Doc Free `native-im.js` | Identity, rooms, tasks, event log, scope checks and work receipts |
+| `apps/office` | Flutter five-platform office client and authenticated WebRTC transport |
+| Doc Free `office-features.js`, `native-attachments.js` | Calendar, meetings, workbench and scoped attachments |
+| Doc Free `im.*` | Smaller HTML conversation preview |
+| Doc Free `workspace.js`, `collab-server.js` | Canonical document versions and persistence |
 
-The original 0.1 event/mission APIs remain available for compatibility. The `evolve` implementation adds a document-native runtime; it does not build or integrate an IM.
+[Quantum Entanglement](https://github.com/huapohen/quantum-entanglement) informs causal envelopes and visible invocation records. This release does not import its unfinished runtime or modify that repository.
 
-## Build with us
-
-The roadmap is organized around reproducible collaboration quality: fewer unnecessary interventions, reliable review, no lost edits, portable documents and a short time to first useful proposal. Stars are an outcome, not a substitute for those properties.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and the [dated evolution documents](docs/evolve/README.md). All new capabilities should include an observable document-level result and a failure/recovery story.
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), the [new office documentation](docs/equal_rights/README.md), and the preserved [0.2 evolve documents](docs/evolve/README.md).
 
 MIT © huapohen

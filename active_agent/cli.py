@@ -28,6 +28,12 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     sub.add_parser("configure-model-key", help="securely prompt for and save the model key")
     sub.add_parser("documents", help="continuously collaborate on Doc Free mission documents")
     sub.add_parser("documents-tick", help="observe/evaluate document missions once")
+    sub.add_parser("im", help="participate as an independent member in the native office IM")
+    sub.add_parser("im-tick", help="claim and complete eligible native IM work once")
+    sub.add_parser("im-fleet", help="run installed agent-store colleagues with independent identities")
+    sub.add_parser("im-tools", help="discover every native office capability through MCP")
+    im_call = sub.add_parser("im-call", help="invoke a native office tool; read its JSON arguments from stdin")
+    im_call.add_argument("tool")
     args = parser.parse_args(argv)
 
     if args.command == "configure-model-key":
@@ -37,6 +43,35 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
 
     settings = Settings.from_env()
     db_path = Path(args.db) if args.db else settings.db_path
+    if args.command == "im-fleet":
+        from .im_fleet import OfficeFleet
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+        try:
+            OfficeFleet(settings).run()
+        except KeyboardInterrupt:
+            pass
+        return
+    if args.command in {"im-tools", "im-call"}:
+        import sys
+        from .im import IMClient
+        params = {} if args.command == "im-tools" else {"name": args.tool, "arguments": json.load(sys.stdin)}
+        output = IMClient(settings.doc_free_url, settings.im_token).request("POST", "/mcp", {
+            "jsonrpc": "2.0", "id": 1, "method": "tools/list" if args.command == "im-tools" else "tools/call", "params": params})
+        print(json.dumps(output, ensure_ascii=False, indent=2))
+        return
+    if args.command in {"im", "im-tick"}:
+        from .im import IMAgent
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+        im_agent = IMAgent(settings)
+        if args.command == "im-tick":
+            print(json.dumps(im_agent.cycle(), ensure_ascii=False, indent=2))
+        else:
+            print("Active Agent is participating in the office IM. Ctrl-C to stop.", flush=True)
+            try:
+                im_agent.run()
+            except KeyboardInterrupt:
+                pass
+        return
     if args.command in {"documents", "documents-tick"}:
         from dataclasses import replace
         from .documents import DocumentAgent

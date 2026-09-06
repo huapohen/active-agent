@@ -48,6 +48,9 @@ class Settings:
     model_timeout: int = 90
     doc_free_url: str = "http://127.0.0.1:3210"
     doc_free_token: str = ""
+    im_token: str = ""
+    im_admin_token: str = ""
+    im_wait_seconds: int = 20
     document_poll_seconds: int = 2
     tick_seconds: int = 30
     min_silence_seconds: int = 300
@@ -68,6 +71,9 @@ class Settings:
             model_timeout=max(5, min(300, int(os.getenv("AA_MODEL_TIMEOUT", "90")))),
             doc_free_url=os.getenv("AA_DOC_FREE_URL", "http://127.0.0.1:3210").rstrip("/"),
             doc_free_token=os.getenv("AA_DOC_FREE_TOKEN", ""),
+            im_token=os.getenv("AA_IM_TOKEN", ""),
+            im_admin_token=os.getenv("AA_IM_ADMIN_TOKEN", ""),
+            im_wait_seconds=max(1, min(25, int(os.getenv("AA_IM_WAIT_SECONDS", "20")))),
             document_poll_seconds=max(1, int(os.getenv("AA_DOCUMENT_POLL_SECONDS", "2"))),
             tick_seconds=max(5, int(os.getenv("AA_TICK_SECONDS", "30"))),
             min_silence_seconds=max(0, int(os.getenv("AA_MIN_SILENCE_SECONDS", "300"))),

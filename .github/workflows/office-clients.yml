@@ -1,0 +1,121 @@
+name: Office clients
+
+on:
+  push:
+    branches: [equal_rights]
+    paths: ['apps/office/**', 'scripts/build_office_webrtc.py', '.github/workflows/office-clients.yml']
+  pull_request:
+    paths: ['apps/office/**', 'scripts/build_office_webrtc.py', '.github/workflows/office-clients.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: office-clients-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: web
+            os: ubuntu-latest
+          - target: android
+            os: ubuntu-latest
+          - target: macos
+            os: macos-15
+          - target: ios-unsigned
+            os: macos-15
+          - target: windows
+            os: windows-latest
+    defaults:
+      run:
+        working-directory: apps/office
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        if: matrix.target == 'android'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Analyze and test shared client
+        run: |
+          flutter analyze --fatal-infos
+          flutter test
+      - name: Build web for the Doc Free mount
+        if: matrix.target == 'web'
+        run: |
+          flutter build web --release --base-href /office/ --no-web-resources-cdn
+          tar -czf active-office-web.tar.gz -C build/web .
+      - name: Build Android preview APK
+        if: matrix.target == 'android'
+        run: |
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk active-office-android-preview.apk
+      - name: Build macOS app
+        if: matrix.target == 'macos'
+        run: |
+          flutter build macos --release
+          ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Active Office.app" active-office-macos.zip
+      - name: Build unsigned iOS app
+        if: matrix.target == 'ios-unsigned'
+        run: |
+          flutter build ios --release --no-codesign
+          ditto -c -k --keepParent build/ios/iphoneos/Runner.app active-office-ios-unsigned.zip
+      - name: Build Windows app
+        if: matrix.target == 'windows'
+        shell: pwsh
+        run: |
+          python ../../scripts/build_office_webrtc.py
+          flutter build windows --release
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath active-office-windows.zip
+      - name: Record build provenance and artifact integrity
+        env:
+          OFFICE_TARGET: ${{ matrix.target }}
+        run: |
+          python - <<'PY'
+          from datetime import datetime, timezone
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          artifacts = []
+          for path in sorted(Path('.').glob('active-office-*')):
+              if not path.is_file():
+                  continue
+              digest = hashlib.sha256()
+              with path.open('rb') as source:
+                  for chunk in iter(lambda: source.read(1024 * 1024), b''):
+                      digest.update(chunk)
+              artifacts.append({'file': path.name, 'bytes': path.stat().st_size,
+                                'sha256': digest.hexdigest()})
+          manifest = {'commit': os.environ['GITHUB_SHA'],
+                      'built_at_utc': datetime.now(timezone.utc).isoformat(),
+                      'target': os.environ['OFFICE_TARGET'],
+                      'flutter': '3.47.2',
+                      'description': 'Development preview; see apps/office/README.md for signing requirements.',
+                      'artifacts': artifacts}
+          Path('active-office-build-manifest.json').write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: active-office-${{ matrix.target }}-${{ github.sha }}
+          path: apps/office/active-office-*
+          if-no-files-found: error
+          retention-days: 14
