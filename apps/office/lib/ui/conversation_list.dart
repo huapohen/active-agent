@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 
+import 'office_emoji.dart' show officeEmojiLabel;
 import 'office_theme.dart';
+
+String _conversationEmojiSummary(String content) =>
+    content.replaceAllMapped(RegExp(r':(feishu:[A-Za-z0-9_-]+):'), (match) {
+      final token = match.group(0)!;
+      final label = officeEmojiLabel(token);
+      return label == token ? token : '[$label]';
+    });
 
 bool officeRoomFolded(Json room) =>
     room['folded'] == true || (room['preferences'] as Map?)?['folded'] == true;
@@ -211,7 +219,10 @@ class OfficeConversationRow extends StatelessWidget {
                             ),
                           Expanded(
                             child: Text(
-                              summary,
+                              _conversationEmojiSummary(summary),
+                              key: ValueKey(
+                                'conversation-summary-${room['id']}',
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(

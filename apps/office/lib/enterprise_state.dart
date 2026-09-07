@@ -6,7 +6,8 @@ import 'office_state.dart';
 /// Role capabilities are server responses; UI identity kind grants no authority.
 class EnterpriseState extends ChangeNotifier {
   EnterpriseState(this.office)
-    : _identity = '${office.endpoint}:${office.me?['id']}';
+    : _identity =
+          '${office.identityGeneration}:${office.endpoint}:${office.me?['id']}';
   final OfficeState office;
   final String _identity;
   bool _disposed = false, loading = false, loaded = false;
@@ -26,7 +27,9 @@ class EnterpriseState extends ChangeNotifier {
   String? memberDepartment, memberOrganization;
   int _memberRequest = 0, _auditRequest = 0, _appsRequest = 0;
   bool get current =>
-      !_disposed && _identity == '${office.endpoint}:${office.me?['id']}';
+      !_disposed &&
+      _identity ==
+          '${office.identityGeneration}:${office.endpoint}:${office.me?['id']}';
   bool can(String capability) => capabilities[capability] == true;
   bool canEditMember(Json member) =>
       can('manage_members') &&

@@ -1,5 +1,6 @@
 import 'package:active_office/office_state.dart';
 import 'package:active_office/ui/message_edit_dialog.dart';
+import 'package:active_office/ui/office_rich_text.dart';
 import 'package:active_office/ui/office_theme.dart' show officeTheme;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,6 +24,9 @@ class MessageEditFixture extends OfficeState {
       'messages': [message],
     };
   }
+  int generation = 0;
+  @override
+  int get identityGeneration => generation;
   late Json message;
   void changed() => notifyListeners();
 }
@@ -64,6 +68,182 @@ Future<void> launch(
 }
 
 void main() {
+  for (final preview in [false, true]) {
+    testWidgets(
+      'withdrawn source clears the nested format ${preview ? 'preview' : 'editor'} and rejects stale completion',
+      (tester) async {
+        final state = MessageEditFixture();
+        state.message['rich_text'] = {
+          'version': 1,
+          'spans': [
+            {
+              'start': 0,
+              'end': 4,
+              'styles': ['bold'],
+            },
+          ],
+        };
+        dynamic result;
+        await launch(tester, state, result: (value) => result = value);
+        await tester.tap(find.text('文字格式'));
+        await tester.pumpAndSettle();
+        final controller =
+            tester
+                    .widget<TextField>(
+                      find.byKey(const ValueKey('rich-editor-content')),
+                    )
+                    .controller!
+                as OfficeRichTextEditingController;
+        final staleSave = tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey('rich-editor-save')),
+            )
+            .onPressed!;
+        if (preview) {
+          await tester.tap(find.text('预览'));
+          await tester.pumpAndSettle();
+        }
+        state.detail = {
+          'room': {'id': 'source-room'},
+          'messages': [
+            {
+              ...state.message,
+              'retracted_at': '2026-09-07T02:00:00Z',
+              'content': '',
+            },
+          ],
+        };
+        state.changed();
+        await tester.pumpAndSettle();
+        expect(controller.text, isEmpty);
+        expect(controller.richText, isNull);
+        expect(find.text('旧身份私有正文'), findsNothing);
+        expect(find.text('来源消息已变化，请关闭文字排版'), findsOneWidget);
+        expect(
+          tester
+              .widget<FilledButton>(
+                find.byKey(const ValueKey('rich-editor-save')),
+              )
+              .onPressed,
+          isNull,
+        );
+        staleSave();
+        await tester.pumpAndSettle();
+        expect(find.byType(OfficeRichTextEditor), findsOneWidget);
+        expect(result, isNull);
+        await tester.tap(find.byTooltip('取消排版'));
+        await tester.pumpAndSettle();
+        expect(find.text('这条消息已撤回'), findsOneWidget);
+        expect(
+          tester
+              .widget<FilledButton>(find.widgetWithText(FilledButton, '保存'))
+              .onPressed,
+          isNull,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('a real merged card can clear its optional styled comment', (
+    tester,
+  ) async {
+    final state = MessageEditFixture();
+    state.message.addAll({
+      'kind': 'forward_bundle',
+      'forward_bundle': {'id': 'bundle-test', 'message_count': 2},
+      'rich_text': {
+        'version': 1,
+        'spans': [
+          {
+            'start': 0,
+            'end': 4,
+            'styles': ['bold'],
+          },
+        ],
+      },
+    });
+    dynamic result;
+    await launch(tester, state, result: (value) => result = value);
+    await tester.enterText(find.byType(TextField), '');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    expect(result, isA<OfficeRichTextValue>());
+    expect(result.content, isEmpty);
+    expect(result.richText, isNull);
+    expect(state.message['revision'], 4);
+    expect(state.message['forward_bundle']['id'], 'bundle-test');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('styled message editing keeps ranges and rebases inserted text', (
+    tester,
+  ) async {
+    final state = MessageEditFixture();
+    state.message['rich_text'] = {
+      'version': 1,
+      'spans': [
+        {
+          'start': 0,
+          'end': 4,
+          'styles': ['bold', 'underline'],
+        },
+      ],
+    };
+    dynamic result;
+    await launch(tester, state, result: (value) => result = value);
+    await tester.enterText(
+      find.byType(TextField),
+      "新增 ${state.message['content']}",
+    );
+    await tester.tap(find.widgetWithText(FilledButton, '保存'));
+    await tester.pumpAndSettle();
+    expect(result.content, "新增 ${state.message['content']}");
+    expect(result.richText, {
+      'version': 1,
+      'spans': [
+        {
+          'start': 3,
+          'end': 7,
+          'styles': ['bold', 'underline'],
+        },
+      ],
+    });
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
+    'same principal relogin clears styled editor without submitting',
+    (tester) async {
+      final state = MessageEditFixture();
+      state.message['rich_text'] = {
+        'version': 1,
+        'spans': [
+          {
+            'start': 0,
+            'end': 4,
+            'styles': ['bold'],
+          },
+        ],
+      };
+      dynamic result;
+      await launch(tester, state, result: (value) => result = value);
+      state.generation++;
+      state.changed();
+      await tester.pumpAndSettle();
+      expect(find.text('旧身份私有正文'), findsNothing);
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, '保存'))
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(result, isNull);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final retract in [false, true]) {
     for (final change in ['principal', 'endpoint', 'connection']) {
       testWidgets(
@@ -161,7 +341,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
-      expect(result, '  Agent 的编辑正文  ');
+      expect(result.content, '  Agent 的编辑正文  ');
       expect(state.message['revision'], 4);
       expect(tester.takeException(), isNull);
     },
@@ -186,7 +366,7 @@ void main() {
       await tester.enterText(find.byType(TextField), '');
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
-      expect(result, '');
+      expect(result.content, '');
       expect(tester.takeException(), isNull);
     },
   );

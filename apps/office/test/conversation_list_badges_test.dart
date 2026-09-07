@@ -39,6 +39,7 @@ Future<void> mountBadge(
   Json room, {
   String? identity = 'me',
   double width = 320,
+  bool preview = true,
 }) async {
   tester.view.physicalSize = Size(width, 260);
   tester.view.devicePixelRatio = 1;
@@ -54,6 +55,7 @@ Future<void> mountBadge(
           alignment: Alignment.topCenter,
           child: OfficeConversationRow(
             room: room,
+            preview: preview,
             currentPrincipalId: identity,
             onOpen: () {},
             menu: const Icon(Icons.more_horiz),
@@ -71,6 +73,51 @@ Finder readCheck() =>
     find.byKey(const ValueKey('conversation-read-badge-room'));
 
 void main() {
+  for (final width in [290.0, 390.0]) {
+    testWidgets(
+      'width $width preview replaces known emoji while keeping one-line receipts and unknown tokens',
+      (tester) async {
+        final room = conversation(receipt: confirmedReceipt);
+        await mountBadge(tester, room, width: width);
+        final before = tester.getSize(find.byType(OfficeConversationRow));
+        room['last_message']['content'] =
+            '已完成 :feishu:SMILE: :feishu:OK: :feishu:FutureUnknown:';
+        await mountBadge(tester, room, width: width);
+        final summary = tester.widget<Text>(
+          find.byKey(const ValueKey('conversation-summary-badge-room')),
+        );
+        expect(summary.data, '已完成 [微笑] [OK] :feishu:FutureUnknown:');
+        expect(summary.maxLines, 1);
+        expect(summary.overflow, TextOverflow.ellipsis);
+        expect(
+          tester.getSize(find.byType(OfficeConversationRow)).height,
+          before.height,
+        );
+        expect(readCheck(), findsOneWidget);
+        expect(unreadBadge(), findsOneWidget);
+        expect(find.textContaining(':feishu:SMILE:'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'hidden previews and retracted messages never expose emoji source text',
+    (tester) async {
+      final room = conversation();
+      room['last_message']['content'] = '私有内容 :feishu:SMILE:';
+      await mountBadge(tester, room, preview: false);
+      expect(find.text('消息预览已隐藏'), findsOneWidget);
+      expect(find.textContaining('私有内容'), findsNothing);
+      expect(find.textContaining('[微笑]'), findsNothing);
+      room['last_message']['retracted_at'] = '2026-09-06T16:00:00Z';
+      await mountBadge(tester, room);
+      expect(find.text('一条消息已撤回'), findsOneWidget);
+      expect(find.textContaining('私有内容'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final mode in ['normal', 'muted', 'folded']) {
     testWidgets(
       '$mode unread appears once on the avatar top right with the appropriate notification color',

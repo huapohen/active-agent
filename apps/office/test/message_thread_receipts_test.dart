@@ -143,9 +143,11 @@ class MessagePanelFixture extends OfficeState {
     String? replyTo,
     String? clientId,
     List<String> attachmentIds = const [],
+    Json? richText,
   }) async {
     sends.add({
       'content': content,
+      'rich_text': ?richText,
       'source_room_id': sourceRoomId,
       'reply_to': replyTo,
       'mentions': mentions,

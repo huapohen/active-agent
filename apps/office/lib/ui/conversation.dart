@@ -2,10 +2,14 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../office_state.dart' hide Json;
+import '../office_screenshot.dart';
+import 'office_rich_text.dart';
+import 'composer_expanded_editor.dart';
 import 'attachments.dart';
 import 'conversation_details.dart';
 import 'room_details.dart';
@@ -15,6 +19,7 @@ import 'message_personal.dart';
 import 'message_links.dart';
 import 'message_highlights.dart';
 import 'message_urgency.dart';
+import 'message_forward_bundle.dart';
 import 'message_hover_tools.dart';
 import 'message_thread.dart';
 import 'message_receipts.dart';
@@ -76,6 +81,7 @@ class _OfficeConversationState extends State<OfficeConversation>
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     s.addListener(_draftScopeChanged);
+    _input.addListener(_rebaseComposerRichText);
     _scroll.addListener(_scrolled);
   }
 
@@ -232,13 +238,18 @@ class _OfficeConversationState extends State<OfficeConversation>
   }
 
   static final Map<String, Json> _drafts = {};
-  final _input = TextEditingController();
+  final _input = OfficeRichTextEditingController();
+  Json? _richText;
+  String _expandedTitle = "";
+  void _rebaseComposerRichText() => _richText = _input.richText;
   final _focus = FocusNode();
   final _scroll = ScrollController();
   String? _key, _draftIdentity, _draftRoomId;
   bool _sending = false, _loadingHistory = false, _mentionOpen = false;
   int _tab = 0, _messageCount = 0;
-  bool _moreTools = false;
+  bool _mobileFormatting = false;
+  bool _moreTools = false, _savingSendMode = false, _screenshotBusy = false;
+  final _screenshot = OfficeScreenshotService();
   Json? _reply;
   List<String> _mentions = [];
   bool _mentionAll = false;
@@ -271,6 +282,7 @@ class _OfficeConversationState extends State<OfficeConversation>
     WidgetsBinding.instance.removeObserver(this);
     if (_visibleRoom != null) unawaited(_setVisible(_visibleRoom!, false));
     _saveDraft();
+    _input.removeListener(_rebaseComposerRichText);
     _input.dispose();
     _focus.dispose();
     _scroll.dispose();
@@ -283,6 +295,8 @@ class _OfficeConversationState extends State<OfficeConversation>
     _drafts[_key!] = {
       ...?_drafts[_key!],
       'content': _input.text,
+      'rich_text': _richText,
+      'expanded_title': _expandedTitle,
       'reply': _reply,
       'mentions': [..._mentions],
       'mention_all': _mentionAll,
@@ -306,7 +320,15 @@ class _OfficeConversationState extends State<OfficeConversation>
     _sendOperation++;
     _sending = false;
     final draft = _drafts[next] ?? {};
-    _input.text = str(draft['content']);
+    _expandedTitle = str(draft['expanded_title']);
+    _input.setRichValue(
+      OfficeRichTextValue(
+        content: str(draft['content']),
+        richText: draft['rich_text'] is Map
+            ? Json.from(draft['rich_text'] as Map)
+            : null,
+      ),
+    );
     _reply = draft['reply'] is Map
         ? Map<String, dynamic>.from(draft['reply'])
         : null;
@@ -320,6 +342,7 @@ class _OfficeConversationState extends State<OfficeConversation>
     _error = null;
     _messageCount = 0;
     _moreTools = false;
+    _mobileFormatting = false;
     _selectedMessages.clear();
     _selectingMessages = false;
     _selectionBusy = false;
@@ -344,7 +367,9 @@ class _OfficeConversationState extends State<OfficeConversation>
       setState(() => _error = '请等待附件上传完成，或重试失败的附件。');
       return;
     }
-    final text = _input.text.trim(), key = _key!;
+    final preparedText = officeTrimRichText(_input.text, _richText);
+    final text = preparedText.content, key = _key!;
+    final richText = preparedText.richText;
     final mentions = [..._mentions];
     final mentionAll = !_direct && _mentionAll;
     final identity = _identity, sourceRoomId = _draftRoomId;
@@ -355,6 +380,7 @@ class _OfficeConversationState extends State<OfficeConversation>
         .toList();
     final signature = jsonEncode({
       'content': text,
+      'rich_text': ?richText,
       'mentions': mentions,
       'mention_all': mentionAll,
       'reply': reply,
@@ -369,7 +395,9 @@ class _OfficeConversationState extends State<OfficeConversation>
     });
     final clientId =
         (old['signature'] == signature ||
-                (!mentionAll && old['signature'] == legacySignature)) &&
+                (!mentionAll &&
+                    richText == null &&
+                    old['signature'] == legacySignature)) &&
             str(old['client_id']).isNotEmpty
         ? str(old['client_id'])
         : OfficeState.newClientId();
@@ -386,6 +414,7 @@ class _OfficeConversationState extends State<OfficeConversation>
     try {
       await s.send(
         text,
+        richText: richText,
         mentions: mentions,
         mentionAll: mentionAll,
         sourceRoomId: sourceRoomId,
@@ -399,6 +428,14 @@ class _OfficeConversationState extends State<OfficeConversation>
       if (stored != null &&
           jsonEncode({
                 'content': str(stored['content']).trim(),
+                if (officeTrimRichText(
+                      str(stored['content']),
+                      stored['rich_text'] is Map
+                          ? Json.from(stored['rich_text'] as Map)
+                          : null,
+                    ).richText
+                    case final Json storedRich)
+                  'rich_text': storedRich,
                 'mentions': (stored['mentions'] as List? ?? []),
                 'mention_all': stored['mention_all'] == true,
                 'reply': str((stored['reply'] as Map?)?['id']),
@@ -413,6 +450,9 @@ class _OfficeConversationState extends State<OfficeConversation>
       if (_key == key &&
           jsonEncode({
                 'content': _input.text.trim(),
+                if (officeTrimRichText(_input.text, _richText).richText
+                    case final Json currentRich)
+                  'rich_text': currentRich,
                 'mentions': _mentions,
                 'mention_all': _mentionAll,
                 'reply': str(_reply?['id']),
@@ -422,6 +462,7 @@ class _OfficeConversationState extends State<OfficeConversation>
               }) ==
               signature) {
         _input.clear();
+        _expandedTitle = '';
         _mentions = [];
         _mentionAll = false;
         _reply = null;
@@ -453,7 +494,7 @@ class _OfficeConversationState extends State<OfficeConversation>
     }
   });
   Future<void> _pickAttachments() async {
-    final roomId = s.selectedRoomId, draftKey = _key;
+    final roomId = s.selectedRoomId, draftKey = _key, identity = _identity;
     if (roomId == null || _attachments.length >= 8) {
       notifyOffice(context, '每条消息最多添加 8 个附件。');
       return;
@@ -461,15 +502,30 @@ class _OfficeConversationState extends State<OfficeConversation>
     try {
       final files = await FilePicker.pickFiles(type: FileType.any);
       for (final file in files.take(8 - _attachments.length)) {
-        if (!mounted || s.selectedRoomId != roomId || _key != draftKey) return;
+        if (!mounted ||
+            _identity != identity ||
+            s.selectedRoomId != roomId ||
+            _key != draftKey) {
+          return;
+        }
         final fileSize = await file.length();
-        if (!mounted || s.selectedRoomId != roomId || _key != draftKey) return;
+        if (!mounted ||
+            _identity != identity ||
+            s.selectedRoomId != roomId ||
+            _key != draftKey) {
+          return;
+        }
         if (fileSize > 12 * 1024 * 1024 || fileSize == 0) {
           notifyOffice(context, '附件需为 1 字节至 12 MB：${file.name}');
           continue;
         }
         final bytes = await file.readAsBytes();
-        if (!mounted || s.selectedRoomId != roomId || _key != draftKey) return;
+        if (!mounted ||
+            _identity != identity ||
+            s.selectedRoomId != roomId ||
+            _key != draftKey) {
+          return;
+        }
         final pending = PendingOfficeAttachment(
           filename: file.name,
           bytes: bytes,
@@ -808,9 +864,21 @@ class _OfficeConversationState extends State<OfficeConversation>
         _saveDraft();
         _focus.requestFocus();
       } else if (action == 'copy') {
-        await Clipboard.setData(ClipboardData(text: str(message['content'])));
+        final text = message['kind'] == 'forward_bundle' && sourceRoomId != null
+            ? await officeForwardBundleCopyText(s, sourceRoomId, message)
+            : str(message['content']);
+        if (!mounted || !sameIdentity() || s.selectedRoomId != sourceRoomId) {
+          return;
+        }
+        await Clipboard.setData(ClipboardData(text: text));
         if (mounted && sameIdentity()) notifyOffice(context, '消息已复制');
       } else if (action == 'select') {
+        final text = message['kind'] == 'forward_bundle' && sourceRoomId != null
+            ? await officeForwardBundleCopyText(s, sourceRoomId, message)
+            : str(message['content']);
+        if (!mounted || !sameIdentity() || s.selectedRoomId != sourceRoomId) {
+          return;
+        }
         await _showPanel(
           () => showDialog<void>(
             context: context,
@@ -819,15 +887,34 @@ class _OfficeConversationState extends State<OfficeConversation>
               content: SizedBox(
                 width: 520,
                 child: SingleChildScrollView(
-                  child: OfficeEmojiText(content: str(message['content'])),
+                  child: OfficeEmojiText(content: text),
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: () async {
-                    await Clipboard.setData(
-                      ClipboardData(text: str(message['content'])),
-                    );
+                    try {
+                      if (!sameIdentity() || s.selectedRoomId != sourceRoomId) {
+                        return;
+                      }
+                      final currentText =
+                          message['kind'] == 'forward_bundle' &&
+                              sourceRoomId != null
+                          ? await officeForwardBundleCopyText(
+                              s,
+                              sourceRoomId,
+                              message,
+                            )
+                          : text;
+                      if (!sameIdentity() || s.selectedRoomId != sourceRoomId) {
+                        return;
+                      }
+                      await Clipboard.setData(ClipboardData(text: currentText));
+                    } catch (error) {
+                      if (context.mounted && sameIdentity()) {
+                        notifyOffice(context, friendlyError(error));
+                      }
+                    }
                   },
                   child: const Text('复制全文'),
                 ),
@@ -845,9 +932,16 @@ class _OfficeConversationState extends State<OfficeConversation>
         );
         if (result != null &&
             sameIdentity() &&
-            (result.trim().isNotEmpty ||
-                (message['attachment_ids'] as List? ?? []).isNotEmpty)) {
-          await s.editMessage(message, result, sourceRoomId: sourceRoomId);
+            (result.content.trim().isNotEmpty ||
+                (message['attachment_ids'] as List? ?? []).isNotEmpty ||
+                (message['kind'] == 'forward_bundle' &&
+                    message['forward_bundle'] is Map))) {
+          await s.editMessage(
+            message,
+            result.content,
+            sourceRoomId: sourceRoomId,
+            richText: result.richText,
+          );
         }
       } else if (action == 'retract') {
         final confirmed = await _showPanel(
@@ -1006,6 +1100,10 @@ class _OfficeConversationState extends State<OfficeConversation>
               child: Row(
                 children: [
                   for (final action in [
+                    if ((s.detail?['native_features']
+                            as Map?)?['message_forward_bundles'] ==
+                        true)
+                      ('merge_forward', '合并转发', Icons.forum_outlined),
                     ('forward', '逐条转发', Icons.forward_outlined),
                     ('copy_link', '复制消息链接', Icons.link),
                     ('task', '添加任务', Icons.task_alt),
@@ -1054,7 +1152,14 @@ class _OfficeConversationState extends State<OfficeConversation>
         mounted && identity == _identity && s.selectedRoomId == roomId;
     setState(() => _selectionBusy = true);
     try {
-      if (action == 'task' || action == 'export') {
+      if (action == 'merge_forward') {
+        final result = await _showPanel(
+          () => showOfficeMergedForward(context, s, roomId, messages),
+        );
+        if (result == null || !mounted || !current()) return;
+        setState(() => _selectedMessages.clear());
+        notifyOffice(context, '聊天记录已合并转发');
+      } else if (action == 'task' || action == 'export') {
         final result = await _showPanel(
           () => action == 'task'
               ? showOfficeMessageTask(context, s, roomId, messages)
@@ -1081,18 +1186,19 @@ class _OfficeConversationState extends State<OfficeConversation>
           }
           fresh.add(value);
         }
+        final texts = <String>[];
+        for (final message in fresh) {
+          if (!current()) return;
+          texts.add(
+            action == 'copy_link'
+                ? officeMessageLink(s.endpoint, roomId, str(message['id']))
+                : message['kind'] == 'forward_bundle'
+                ? await officeForwardBundleCopyText(s, roomId, message)
+                : str(message['content']),
+          );
+        }
         if (!current()) return;
-        await Clipboard.setData(
-          ClipboardData(
-            text: fresh
-                .map(
-                  (m) => action == 'copy_link'
-                      ? officeMessageLink(s.endpoint, roomId, str(m['id']))
-                      : str(m['content']),
-                )
-                .join('\n\n'),
-          ),
-        );
+        await Clipboard.setData(ClipboardData(text: texts.join('\n\n')));
         if (mounted && current()) {
           notifyOffice(
             context,
@@ -1845,10 +1951,24 @@ class _OfficeConversationState extends State<OfficeConversation>
                                                                   ),
                                                                 ),
                                                               ),
+                                                            if (m['kind'] ==
+                                                                    'forward_bundle' &&
+                                                                m['forward_bundle']
+                                                                    is Map)
+                                                              OfficeForwardBundleCard(
+                                                                key: ValueKey(
+                                                                  'forward-bundle-${m['id']}',
+                                                                ),
+                                                                state: s,
+                                                                roomId: str(
+                                                                  room['id'],
+                                                                ),
+                                                                message: m,
+                                                              ),
                                                             if (str(
                                                               m['content'],
                                                             ).isNotEmpty)
-                                                              AgentMessageContent(
+                                                              _ConversationMessageBody(
                                                                 key: ValueKey(
                                                                   'message-content-${m['id']}',
                                                                 ),
@@ -2180,392 +2300,970 @@ class _OfficeConversationState extends State<OfficeConversation>
     );
   }
 
-  Widget _composer() => Container(
-    margin: EdgeInsets.fromLTRB(
-      widget.mobile ? 11 : 22,
-      0,
-      widget.mobile ? 11 : 22,
-      widget.mobile ? 10 : 20,
-    ),
-    padding: const EdgeInsets.fromLTRB(12, 9, 12, 7),
-    decoration: BoxDecoration(
-      border: Border.all(color: const Color(0xffdce0e6)),
-      borderRadius: BorderRadius.circular(9),
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (_attachments.isNotEmpty)
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 105),
-            child: SingleChildScrollView(
-              child: Column(
-                children: _attachments
-                    .map(
-                      (item) => Container(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.fromLTRB(8, 5, 4, 5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xfff2f5fb),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.insert_drive_file_outlined,
-                              size: 18,
-                              color: Color(0xff7a95bf),
+  Widget _composer() => RepaintBoundary(
+    key: const ValueKey('conversation-composer-capture'),
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(
+        widget.mobile ? 11 : 22,
+        0,
+        widget.mobile ? 11 : 22,
+        widget.mobile ? 10 : 20,
+      ),
+      child: Container(
+        key: const ValueKey('conversation-composer-frame'),
+        padding: widget.mobile
+            ? EdgeInsets.zero
+            : const EdgeInsets.fromLTRB(12, 10.5, 11.5, 8.5),
+        decoration: widget.mobile
+            ? null
+            : BoxDecoration(
+                border: Border.all(
+                  color: widget.mobile
+                      ? const Color(0xffdce0e6)
+                      : const Color(0xffdfdfe0),
+                ),
+                borderRadius: BorderRadius.circular(widget.mobile ? 9 : 8),
+              ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_attachments.isNotEmpty)
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 105),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: _attachments
+                        .map(
+                          (item) => Container(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.fromLTRB(8, 5, 4, 5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xfff2f5fb),
+                              borderRadius: BorderRadius.circular(5),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.filename,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 10),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.insert_drive_file_outlined,
+                                  size: 18,
+                                  color: Color(0xff7a95bf),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.filename,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 10),
+                                      ),
+                                      Text(
+                                        item.uploading
+                                            ? '正在上传…'
+                                            : item.error != null
+                                            ? item.error!
+                                            : '已准备 · ${fileSizeText(item.bytes.length)}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: item.error != null
+                                              ? Colors.redAccent
+                                              : mutedColor,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    item.uploading
-                                        ? '正在上传…'
-                                        : item.error != null
-                                        ? item.error!
-                                        : '已准备 · ${fileSizeText(item.bytes.length)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      color: item.error != null
-                                          ? Colors.redAccent
-                                          : mutedColor,
+                                ),
+                                if (item.uploading)
+                                  const SizedBox(
+                                    width: 15,
+                                    height: 15,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            if (item.uploading)
-                              const SizedBox(
-                                width: 15,
-                                height: 15,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                if (item.error != null)
+                                  TextButton(
+                                    onPressed: () => _upload(item),
+                                    child: const Text(
+                                      '重试',
+                                      style: TextStyle(fontSize: 10),
+                                    ),
+                                  ),
+                                IconButton(
+                                  onPressed: item.uploading
+                                      ? null
+                                      : () => _removeAttachment(item),
+                                  tooltip: '移除附件',
+                                  icon: const Icon(Icons.close, size: 14),
                                 ),
-                              ),
-                            if (item.error != null)
-                              TextButton(
-                                onPressed: () => _upload(item),
-                                child: const Text(
-                                  '重试',
-                                  style: TextStyle(fontSize: 10),
-                                ),
-                              ),
-                            IconButton(
-                              onPressed: item.uploading
-                                  ? null
-                                  : () => _removeAttachment(item),
-                              tooltip: '移除附件',
-                              icon: const Icon(Icons.close, size: 14),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ),
-        if (_reply != null)
-          Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.fromLTRB(9, 3, 3, 3),
-            decoration: BoxDecoration(
-              color: const Color(0xfff4f6fa),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '回复 ${officeDisplayName(Json.from(_reply!['author'] as Map? ?? {}))}：${(_reply!['retracted_at'] != null ? '这条消息已撤回' : str(_reply!['content']))}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 10, color: mutedColor),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
-                IconButton(
-                  onPressed: () {
-                    setState(() => _reply = null);
-                    _saveDraft();
-                  },
-                  icon: const Icon(Icons.close, size: 14),
-                  constraints: const BoxConstraints.tightFor(
-                    width: 23,
-                    height: 23,
-                  ),
-                  padding: EdgeInsets.zero,
-                ),
-              ],
-            ),
-          ),
-        if (_mentionAll || _mentions.isNotEmpty)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Wrap(
-              spacing: 5,
-              children: [
-                if (_mentionAll)
-                  InputChip(
-                    key: const ValueKey('composer-mention-all'),
-                    label: const Text(
-                      '@所有人',
-                      style: TextStyle(fontSize: 10, color: accentColor),
-                    ),
-                    onDeleted: () {
-                      setState(() => _mentionAll = false);
-                      _saveDraft();
-                    },
-                    deleteIcon: const Icon(Icons.close, size: 13),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: selectedColor,
-                    side: BorderSide.none,
-                  ),
-                for (final id in _mentions)
-                  InputChip(
-                    key: ValueKey('composer-mention-$id'),
-                    label: Text(
-                      '@${_name(id)}',
-                      style: const TextStyle(fontSize: 10, color: accentColor),
-                    ),
-                    onDeleted: () {
-                      setState(() => _mentions.remove(id));
-                      _saveDraft();
-                    },
-                    deleteIcon: const Icon(Icons.close, size: 13),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: selectedColor,
-                    side: BorderSide.none,
-                  ),
-              ],
-            ),
-          ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Focus(
-                onKeyEvent: (_, event) {
-                  if (event is KeyDownEvent &&
-                      event.logicalKey == LogicalKeyboardKey.enter &&
-                      !HardwareKeyboard.instance.isShiftPressed &&
-                      (s.settings['send_shortcut'] != 'mod_enter' ||
-                          HardwareKeyboard.instance.isControlPressed ||
-                          HardwareKeyboard.instance.isMetaPressed) &&
-                      !(_input.value.composing.isValid &&
-                          !_input.value.composing.isCollapsed)) {
-                    _send();
-                    return KeyEventResult.handled;
-                  }
-                  return KeyEventResult.ignored;
-                },
-                child: TextField(
-                  controller: _input,
-                  focusNode: _focus,
-                  minLines: widget.mobile ? 1 : 3,
-                  maxLines: 7,
-                  maxLength: 12000,
-                  style: const TextStyle(fontSize: 13, height: 1.7),
-                  decoration: const InputDecoration(
-                    hintText: '发送消息，或 @ 工作伙伴共同推进',
-                    filled: false,
-                    counterText: '',
-                    border: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 3),
-                  ),
-                  onChanged: _inputChanged,
-                  onTap: () {
-                    if (_moreTools) setState(() => _moreTools = false);
-                  },
-                ),
               ),
-            ),
-            if (widget.mobile)
-              IconButton(
-                tooltip: '展开消息编辑器',
-                onPressed: _expandComposer,
-                icon: const Icon(Icons.open_in_full, size: 16),
-              ),
-          ],
-        ),
-        if (_error != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              _error!,
-              style: const TextStyle(fontSize: 10, color: Colors.redAccent),
-            ),
-          ),
-        Row(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
+            if (_reply != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.fromLTRB(9, 3, 3, 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xfff4f6fa),
+                  borderRadius: BorderRadius.circular(4),
+                ),
                 child: Row(
                   children: [
-                    IconButton(
-                      onPressed: _attachments.length >= 8
-                          ? null
-                          : _pickAttachments,
-                      tooltip: '选择图片或文件',
-                      icon: const Icon(Icons.attach_file, size: 19),
-                    ),
-                    IconButton(
-                      tooltip: '插入表情',
-                      icon: const Icon(
-                        Icons.sentiment_satisfied_alt_outlined,
-                        size: 19,
-                        color: mutedColor,
+                    Expanded(
+                      child: Text(
+                        '回复 ${officeDisplayName(Json.from(_reply!['author'] as Map? ?? {}))}：${(_reply!['retracted_at'] != null ? '这条消息已撤回' : str(_reply!['content']))}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 10, color: mutedColor),
                       ),
-                      onPressed: () async {
-                        final identity = _identity, roomId = s.selectedRoomId;
-                        final emoji = await _showPanel(
-                          () => showOfficeEmojiPicker(context, s),
-                        );
-                        if (emoji != null &&
-                            mounted &&
-                            identity == _identity &&
-                            roomId == s.selectedRoomId) {
-                          _insert(officeEmojiText(emoji));
-                        }
-                      },
                     ),
                     IconButton(
-                      onPressed: _mention,
-                      tooltip: '提及成员',
-                      icon: const Icon(Icons.alternate_email, size: 19),
-                    ),
-                    IconButton(
-                      tooltip: 'Agent 协作',
                       onPressed: () {
-                        final identity = _identity, roomId = s.selectedRoomId;
-                        bool currentScope() =>
-                            mounted &&
-                            identity == _identity &&
-                            roomId == s.selectedRoomId;
-                        showAgentCollaboration(
-                          context,
-                          s,
-                          onMention: (ids) {
-                            if (!currentScope()) return;
-                            setState(
-                              () => _mentions = {..._mentions, ...ids}.toList(),
-                            );
-                            _saveDraft();
-                            _focus.requestFocus();
-                          },
-                          onRecords: () {
-                            if (currentScope()) setState(() => _tab = 3);
-                          },
-                          onStore: widget.onAgentStore,
-                        );
+                        setState(() => _reply = null);
+                        _saveDraft();
                       },
-                      icon: const Icon(
-                        Icons.auto_awesome_outlined,
-                        size: 19,
-                        color: accentColor,
+                      icon: const Icon(Icons.close, size: 14),
+                      constraints: const BoxConstraints.tightFor(
+                        width: 23,
+                        height: 23,
                       ),
+                      padding: EdgeInsets.zero,
                     ),
-                    if (!widget.mobile)
-                      IconButton(
-                        onPressed: s.moduleAvailable('docs')
-                            ? () => OfficeDialogs.document(context, s)
-                            : null,
-                        tooltip: '新建共同文档',
-                        icon: const Icon(Icons.description_outlined, size: 18),
-                      ),
-                    if (!widget.mobile)
-                      IconButton(
-                        onPressed: s.moduleAvailable('tasks')
-                            ? () => OfficeDialogs.task(context, s)
-                            : null,
-                        tooltip: '创建任务',
-                        icon: const Icon(Icons.add_task_outlined, size: 18),
-                      ),
-                    if (widget.mobile)
-                      IconButton(
-                        tooltip: _moreTools ? '收起更多工具' : '更多工作工具',
-                        onPressed: () {
-                          _focus.unfocus();
-                          setState(() => _moreTools = !_moreTools);
-                        },
-                        icon: Icon(
-                          _moreTools ? Icons.close : Icons.add_circle_outline,
-                          size: 21,
-                          color: _moreTools ? accentColor : mutedColor,
+                  ],
+                ),
+              ),
+            if (_mentionAll || _mentions.isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 5,
+                  children: [
+                    if (_mentionAll)
+                      InputChip(
+                        key: const ValueKey('composer-mention-all'),
+                        label: const Text(
+                          '@所有人',
+                          style: TextStyle(fontSize: 10, color: accentColor),
                         ),
+                        onDeleted: () {
+                          setState(() => _mentionAll = false);
+                          _saveDraft();
+                        },
+                        deleteIcon: const Icon(Icons.close, size: 13),
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor: selectedColor,
+                        side: BorderSide.none,
+                      ),
+                    for (final id in _mentions)
+                      InputChip(
+                        key: ValueKey('composer-mention-$id'),
+                        label: Text(
+                          '@${_name(id)}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: accentColor,
+                          ),
+                        ),
+                        onDeleted: () {
+                          setState(() => _mentions.remove(id));
+                          _saveDraft();
+                        },
+                        deleteIcon: const Icon(Icons.close, size: 13),
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor: selectedColor,
+                        side: BorderSide.none,
                       ),
                   ],
                 ),
               ),
-            ),
-            if (!widget.mobile && MediaQuery.sizeOf(context).width >= 1100)
-              Padding(
-                padding: const EdgeInsets.only(right: 13),
-                child: Text(
-                  s.settings['send_shortcut'] == 'mod_enter'
-                      ? 'Ctrl / ⌘ + Enter 发送'
-                      : 'Enter 发送 · Shift + Enter 换行',
-                  style: const TextStyle(fontSize: 9, color: Color(0xffb4b9c2)),
-                ),
-              ),
-            FilledButton(
-              onPressed: _sending ? null : _send,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 15,
-                  vertical: 10,
-                ),
-                minimumSize: const Size(0, 33),
-              ),
+            Container(
+              key: const ValueKey('composer-input-surface'),
+              padding: widget.mobile
+                  ? const EdgeInsets.only(left: 10)
+                  : EdgeInsets.zero,
+              decoration: widget.mobile
+                  ? BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                    )
+                  : null,
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _sending ? '发送中' : '发送',
-                    style: const TextStyle(fontSize: 12),
+                  Expanded(
+                    child: Focus(
+                      onKeyEvent: (_, event) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.enter &&
+                            !HardwareKeyboard.instance.isShiftPressed &&
+                            (s.settings['send_shortcut'] != 'mod_enter' ||
+                                HardwareKeyboard.instance.isControlPressed ||
+                                HardwareKeyboard.instance.isMetaPressed) &&
+                            !(_input.value.composing.isValid &&
+                                !_input.value.composing.isCollapsed)) {
+                          _send();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: TextField(
+                        key: const ValueKey('composer-input'),
+                        controller: _input,
+                        focusNode: _focus,
+                        minLines: 1,
+                        maxLines: 7,
+                        maxLength: 12000,
+                        style: const TextStyle(fontSize: 13, height: 1.7),
+                        decoration: InputDecoration(
+                          hintText:
+                              '发送给 ${str(_selectedRoom?['name'], '当前会话')}',
+                          hintStyle: widget.mobile
+                              ? null
+                              : const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w300,
+                                  color: Color(0xff929494),
+                                ),
+                          isDense: true,
+                          constraints: BoxConstraints(
+                            minHeight: widget.mobile ? 40 : 31,
+                          ),
+                          filled: false,
+                          counterText: '',
+                          border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.fromLTRB(
+                            0,
+                            widget.mobile ? 3 : 5,
+                            0,
+                            3,
+                          ),
+                        ),
+                        onChanged: _inputChanged,
+                        onTap: () {
+                          if (_moreTools) setState(() => _moreTools = false);
+                        },
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 9),
-                  const Icon(Icons.send_rounded, size: 13),
+                  if (widget.mobile)
+                    IconButton(
+                      tooltip: '展开消息编辑器',
+                      onPressed: _expandComposer,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 32,
+                        height: 40,
+                      ),
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(32, 40),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      padding: EdgeInsets.zero,
+                      icon: Transform.flip(
+                        flipX: true,
+                        child: const Icon(
+                          CupertinoIcons.arrow_up_left_arrow_down_right,
+                          size: 16,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
+            if (_error != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _error!,
+                  style: const TextStyle(fontSize: 10, color: Colors.redAccent),
+                ),
+              ),
+            if (!widget.mobile)
+              _desktopComposerTools()
+            else
+              _mobileComposerTools(),
+            if (widget.mobile && _moreTools) _mobileTools(),
           ],
         ),
-        if (widget.mobile && _moreTools) _mobileTools(),
-      ],
+      ),
     ),
   );
 
+  void _formatInline(String style) {
+    try {
+      setState(
+        () => _input.richText = officeToggleRichTextStyle(
+          _input.text,
+          _richText,
+          _input.selection,
+          style,
+        ),
+      );
+      _saveDraft();
+      _focus.requestFocus();
+    } catch (error) {
+      notifyOffice(context, friendlyError(error));
+    }
+  }
+
+  void _insertComposerList(bool numbered) {
+    final selection = _input.selection;
+    if (!selection.isValid) return;
+    final start =
+        _input.text.lastIndexOf(
+          '\n',
+          selection.start > 0 ? selection.start - 1 : 0,
+        ) +
+        1;
+    final prefix = numbered ? '1. ' : '• ';
+    _input.value = TextEditingValue(
+      text: _input.text.replaceRange(start, start, prefix),
+      selection: TextSelection.collapsed(offset: selection.end + prefix.length),
+    );
+    _saveDraft();
+    _focus.requestFocus();
+    setState(() {});
+  }
+
+  Widget _mobileComposerTools() => ValueListenableBuilder<TextEditingValue>(
+    valueListenable: _input,
+    builder: (_, value, _) => Container(
+      key: const ValueKey('mobile-composer-tools'),
+      height: 44,
+      margin: const EdgeInsets.only(top: 2),
+      color: const Color(0xfff5f6f7),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (_mobileFormatting) ...[
+            _composerIcon(
+              'composer-format-close',
+              '收起文字格式',
+              Icons.keyboard_arrow_down,
+              () => setState(() => _mobileFormatting = false),
+            ),
+            for (final action in [
+              ('bold', '加粗', Icons.format_bold),
+              ('strikethrough', '删除线', Icons.format_strikethrough),
+              ('italic', '斜体', Icons.format_italic),
+              ('underline', '下划线', Icons.format_underlined),
+            ])
+              _composerIcon(
+                'composer-inline-${action.$1}',
+                action.$2,
+                action.$3,
+                value.selection.isValid && !value.selection.isCollapsed
+                    ? () => _formatInline(action.$1)
+                    : null,
+              ),
+            _composerIcon(
+              'composer-list-numbered',
+              '编号列表',
+              Icons.format_list_numbered,
+              value.selection.isValid ? () => _insertComposerList(true) : null,
+            ),
+            _composerIcon(
+              'composer-list-bullet',
+              '项目列表',
+              Icons.format_list_bulleted,
+              value.selection.isValid ? () => _insertComposerList(false) : null,
+            ),
+          ] else ...[
+            _composerIcon(
+              'composer-emoji',
+              '插入表情',
+              Icons.sentiment_satisfied_alt_outlined,
+              _chooseComposerEmoji,
+            ),
+            _composerIcon(
+              'composer-mention',
+              '提及成员',
+              Icons.alternate_email,
+              _mention,
+            ),
+            _composerIcon('composer-voice', '语音消息（尚未接入）', Icons.mic_none, null),
+            _composerIcon(
+              'composer-images',
+              '选择图片或文件',
+              Icons.image_outlined,
+              _attachments.length < 8 ? _pickAttachments : null,
+            ),
+            SizedBox(
+              width: 30,
+              height: 30,
+              child: Tooltip(
+                message: '文字排版',
+                child: TextButton(
+                  key: const ValueKey('composer-format'),
+                  onPressed: () => setState(() {
+                    _mobileFormatting = true;
+                    _moreTools = false;
+                  }),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(30, 30),
+                    foregroundColor: const Color(0xff6b7378),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Aa',
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w400),
+                  ),
+                ),
+              ),
+            ),
+            _composerIcon(
+              'composer-agent',
+              'Agent 协作',
+              Icons.auto_awesome_outlined,
+              _openComposerAgent,
+              color: accentColor,
+            ),
+            _composerIcon(
+              'composer-more',
+              _moreTools ? '收起更多工具' : '更多工作工具',
+              _moreTools ? Icons.close : Icons.add_circle_outline,
+              () {
+                _focus.unfocus();
+                setState(() => _moreTools = !_moreTools);
+              },
+            ),
+          ],
+          if (value.text.trim().isNotEmpty || _attachments.isNotEmpty)
+            _composerIcon(
+              'composer-send',
+              _sending ? '发送中' : '发送',
+              Icons.send_rounded,
+              _canSendDraft ? _send : null,
+              color: accentColor,
+            ),
+        ],
+      ),
+    ),
+  );
+
+  bool get _canSendDraft =>
+      !_sending &&
+      s.connected &&
+      s.me != null &&
+      (_input.text.trim().isNotEmpty || _attachments.isNotEmpty) &&
+      !_attachments.any((item) => item.uploading || item.record == null);
+
+  Future<void> _chooseComposerEmoji() async {
+    final identity = _identity, roomId = s.selectedRoomId;
+    final emoji = await _showPanel(() => showOfficeEmojiPicker(context, s));
+    if (emoji != null &&
+        mounted &&
+        identity == _identity &&
+        roomId == s.selectedRoomId) {
+      _insert(officeEmojiText(emoji));
+    }
+  }
+
+  Future<List<String>?> _openComposerAgent({
+    Future<bool> Function()? beforeNavigate,
+    bool applyMentions = true,
+  }) async {
+    final identity = _identity, roomId = s.selectedRoomId;
+    final mentioned = <String>{};
+    Future<void>? navigation;
+    bool currentScope() =>
+        mounted && identity == _identity && roomId == s.selectedRoomId;
+    Future<void> navigate(VoidCallback action) async {
+      if (!currentScope()) return;
+      if (beforeNavigate != null && !await beforeNavigate()) return;
+      if (currentScope()) action();
+    }
+
+    await _showPanel(
+      () => showAgentCollaboration(
+        context,
+        s,
+        onMention: (ids) {
+          if (!currentScope()) return;
+          mentioned.addAll(ids.where((id) => id.isNotEmpty));
+          if (applyMentions) {
+            setState(() => _mentions = {..._mentions, ...mentioned}.toList());
+            _saveDraft();
+            _focus.requestFocus();
+          }
+        },
+        onRecords: () {
+          navigation = navigate(() => setState(() => _tab = 3));
+        },
+        onStore: widget.onAgentStore == null
+            ? null
+            : () => navigation = navigate(widget.onAgentStore!),
+      ),
+    );
+    await navigation;
+    return currentScope() && mentioned.isNotEmpty ? mentioned.toList() : null;
+  }
+
+  Future<void> _formatComposer() async {
+    final identity = _identity, roomId = s.selectedRoomId, draftKey = _key;
+    final result = await _showPanel(
+      () => showOfficeRichTextEditor(
+        context,
+        content: _input.text,
+        richText: _richText,
+        state: s,
+      ),
+    );
+    if (result == null ||
+        !mounted ||
+        identity != _identity ||
+        roomId != s.selectedRoomId ||
+        draftKey != _key) {
+      return;
+    }
+    setState(() {
+      _input.setRichValue(result);
+    });
+    _saveDraft();
+    _focus.requestFocus();
+  }
+
+  Future<void> _captureComposerScreenshot({bool hideWindow = false}) async {
+    if (_screenshotBusy ||
+        !_screenshot.supported ||
+        _attachments.length >= 8 ||
+        s.selectedRoomId == null) {
+      return;
+    }
+    final identity = _identity, roomId = s.selectedRoomId!, draftKey = _key;
+    setState(() => _screenshotBusy = true);
+    try {
+      final capability = await _screenshot.capability();
+      if (!mounted ||
+          identity != _identity ||
+          roomId != s.selectedRoomId ||
+          draftKey != _key) {
+        return;
+      }
+      if (capability.requiresPermission) {
+        final granted = await _showPanel(() => _screenshot.requestPermission());
+        if (!mounted ||
+            identity != _identity ||
+            roomId != s.selectedRoomId ||
+            draftKey != _key) {
+          return;
+        }
+        if (granted != true) {
+          throw const OfficeScreenshotException(
+            'permission_required',
+            '请在系统设置中允许人机录制屏幕，再重新打开客户端后截图。',
+          );
+        }
+      } else if (!capability.available) {
+        throw OfficeScreenshotException('unavailable', capability.reason);
+      }
+      final shot = await _showPanel(
+        () => _screenshot.capture(hideWindow: hideWindow),
+      );
+      if (!mounted ||
+          identity != _identity ||
+          roomId != s.selectedRoomId ||
+          draftKey != _key ||
+          shot == null) {
+        return;
+      }
+      if (shot.bytes.isEmpty || shot.bytes.length > 12 * 1024 * 1024) {
+        setState(() => _error = '截图需为 1 字节至 12 MB，请缩小截取区域。');
+        return;
+      }
+      final pending = PendingOfficeAttachment(
+        filename: shot.filename,
+        bytes: shot.bytes,
+        mimeType: shot.mimeType,
+        roomId: roomId,
+      );
+      setState(() => _attachments.add(pending));
+      _saveDraft();
+      await _upload(pending);
+    } catch (error) {
+      if (mounted &&
+          identity == _identity &&
+          roomId == s.selectedRoomId &&
+          draftKey == _key) {
+        setState(
+          () => _error = error is OfficeScreenshotException
+              ? error.message
+              : friendlyError(error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _screenshotBusy = false);
+    }
+  }
+
+  Widget _composerIcon(
+    String key,
+    String tooltip,
+    IconData icon,
+    VoidCallback? onPressed, {
+    Color? color,
+    double width = 30,
+    Widget? iconWidget,
+  }) => SizedBox(
+    width: width,
+    height: 30,
+    child: IconButton(
+      key: ValueKey(key),
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: iconWidget ?? Icon(icon, size: widget.mobile ? 27 : 19),
+      style: IconButton.styleFrom(
+        foregroundColor: color ?? const Color(0xff6b7378),
+        disabledForegroundColor: const Color(0xffc3c7c8),
+        padding: EdgeInsets.zero,
+        minimumSize: Size(width, 30),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    ),
+  );
+
+  Widget _desktopComposerTools() {
+    final identity = _identity, roomId = s.selectedRoomId;
+    bool sameScope() =>
+        mounted && identity == _identity && roomId == s.selectedRoomId;
+    return SizedBox(
+      key: const ValueKey('desktop-composer-tools'),
+      height: 30,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Flexible(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: Tooltip(
+                      message: '文字排版',
+                      child: TextButton(
+                        key: const ValueKey('composer-format'),
+                        onPressed: _formatComposer,
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(30, 30),
+                          foregroundColor: const Color(0xff6b7378),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'Aa',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  _composerIcon(
+                    'composer-emoji',
+                    '插入表情',
+                    Icons.sentiment_satisfied_alt_outlined,
+                    _chooseComposerEmoji,
+                  ),
+                  _composerIcon(
+                    'composer-mention',
+                    '提及成员',
+                    Icons.alternate_email,
+                    _mention,
+                  ),
+                  _composerIcon(
+                    'composer-screenshot',
+                    _screenshot.supported ? '截图' : '截图（当前平台尚未接入）',
+                    Icons.content_cut,
+                    _screenshot.supported &&
+                            !_screenshotBusy &&
+                            _attachments.length < 8
+                        ? () => _captureComposerScreenshot()
+                        : null,
+                    width: 25,
+                  ),
+                  SizedBox(
+                    width: 13,
+                    height: 30,
+                    child: PopupMenuButton<String>(
+                      key: const ValueKey('composer-screenshot-menu'),
+                      tooltip: '截图选项',
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.expand_more,
+                        size: 14,
+                        color: Color(0xff6b7378),
+                      ),
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'capture',
+                          enabled:
+                              _screenshot.supported &&
+                              !_screenshotBusy &&
+                              _attachments.length < 8,
+                          child: const Text('截取屏幕'),
+                        ),
+                        PopupMenuItem(
+                          value: 'hide',
+                          enabled:
+                              _screenshot.supported &&
+                              !_screenshotBusy &&
+                              _attachments.length < 8,
+                          child: const Text('截图时隐藏人机窗口'),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'upload',
+                          enabled: _attachments.length < 8,
+                          child: const Text('选择已截取的图片'),
+                        ),
+                      ],
+                      onSelected: (value) {
+                        if (!sameScope()) return;
+                        if (value == 'upload') {
+                          _pickAttachments();
+                        } else {
+                          _captureComposerScreenshot(
+                            hideWindow: value == 'hide',
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  _composerIcon(
+                    'composer-agent',
+                    'Agent 协作',
+                    Icons.auto_awesome_outlined,
+                    _openComposerAgent,
+                    color: accentColor,
+                  ),
+                  SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: PopupMenuButton<String>(
+                      key: const ValueKey('composer-more'),
+                      tooltip: '更多工作工具',
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(
+                        Icons.add_circle_outline,
+                        size: 20,
+                        color: Color(0xff6b7378),
+                      ),
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'file',
+                          enabled: _attachments.length < 8,
+                          child: const _ComposerMenuItem(
+                            Icons.attach_file,
+                            '文件与图片',
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'document',
+                          enabled: s.moduleAvailable('docs'),
+                          child: const _ComposerMenuItem(
+                            Icons.description_outlined,
+                            '新建共同文档',
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'task',
+                          enabled: s.moduleAvailable('tasks'),
+                          child: const _ComposerMenuItem(
+                            Icons.add_task_outlined,
+                            '创建任务',
+                          ),
+                        ),
+                        if (widget.onCreateCalendar != null)
+                          PopupMenuItem(
+                            value: 'calendar',
+                            enabled: s.moduleAvailable('calendar'),
+                            child: const _ComposerMenuItem(
+                              Icons.calendar_month_outlined,
+                              '创建日程',
+                            ),
+                          ),
+                        if (widget.onCreateMeeting != null)
+                          PopupMenuItem(
+                            value: 'meeting',
+                            enabled: s.moduleAvailable('meetings'),
+                            child: const _ComposerMenuItem(
+                              Icons.videocam_outlined,
+                              '发起会议',
+                            ),
+                          ),
+                        PopupMenuItem(
+                          value: 'records',
+                          enabled: s.moduleAvailable('workbench'),
+                          child: const _ComposerMenuItem(Icons.history, '工作记录'),
+                        ),
+                      ],
+                      onSelected: (value) {
+                        if (!sameScope()) return;
+                        switch (value) {
+                          case 'file':
+                            _pickAttachments();
+                          case 'document':
+                            _showPanel(
+                              () => OfficeDialogs.document(context, s),
+                            );
+                          case 'task':
+                            _showPanel(() => OfficeDialogs.task(context, s));
+                          case 'calendar':
+                            widget.onCreateCalendar?.call();
+                          case 'meeting':
+                            widget.onCreateMeeting?.call();
+                          case 'records':
+                            setState(() => _tab = 3);
+                        }
+                      },
+                    ),
+                  ),
+                  _composerIcon(
+                    'composer-expand',
+                    '展开消息编辑器',
+                    Icons.open_in_full,
+                    _expandComposer,
+                    iconWidget: Transform.flip(
+                      flipX: true,
+                      child: const Icon(
+                        CupertinoIcons.arrow_up_left_arrow_down_right,
+                        size: 19,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _input,
+            builder: (_, _, _) => _composerIcon(
+              'composer-send',
+              _sending ? '发送中' : '发送',
+              Icons.send_rounded,
+              _canSendDraft ? _send : null,
+              color: accentColor,
+              width: 32,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 16,
+            margin: const EdgeInsets.symmetric(horizontal: 1),
+            color: const Color(0xffdedfe0),
+          ),
+          SizedBox(
+            width: 18,
+            height: 30,
+            child: PopupMenuButton<String>(
+              key: const ValueKey('composer-send-options'),
+              tooltip: '发送方式',
+              enabled: !_savingSendMode,
+              padding: EdgeInsets.zero,
+              icon: const Icon(
+                Icons.expand_more,
+                size: 14,
+                color: Color(0xffa9aeb0),
+              ),
+              itemBuilder: (_) => [
+                for (final mode in ['enter', 'mod_enter'])
+                  CheckedPopupMenuItem(
+                    value: mode,
+                    checked: str(s.settings['send_shortcut'], 'enter') == mode,
+                    child: Text(
+                      mode == 'enter'
+                          ? 'Enter 发送，Shift + Enter 换行'
+                          : 'Ctrl / ⌘ + Enter 发送',
+                    ),
+                  ),
+              ],
+              onSelected: (value) async {
+                if (!sameScope() ||
+                    _savingSendMode ||
+                    value == str(s.settings['send_shortcut'], 'enter')) {
+                  return;
+                }
+                final revision = (s.settings['revision'] as num?)?.toInt() ?? 1;
+                setState(() => _savingSendMode = true);
+                try {
+                  await s.saveSettings({
+                    'send_shortcut': value,
+                  }, baseRevision: revision);
+                } catch (error) {
+                  if (sameScope()) {
+                    setState(() => _error = friendlyError(error));
+                  }
+                } finally {
+                  if (mounted) setState(() => _savingSendMode = false);
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _expandComposer() async {
     final identity = _identity, roomId = s.selectedRoomId, draftKey = _key;
-    final result = await showDialog<String>(
-      context: context,
-      builder: (_) => _ExpandedMessageEditor(text: _input.text),
-    );
-    if (result != null &&
+    final openedMentions = _mentions.toSet();
+    bool currentScope() =>
         mounted &&
         identity == _identity &&
         roomId == s.selectedRoomId &&
-        draftKey == _key) {
-      _input.value = TextEditingValue(
-        text: result,
-        selection: TextSelection.collapsed(offset: result.length),
-      );
-      _saveDraft();
-      setState(() {});
-    }
+        draftKey == _key;
+    final result = await _showPanel(
+      () => showOfficeExpandedComposer(
+        context,
+        state: s,
+        value: OfficeRichTextValue(content: _input.text, richText: _richText),
+        title: _expandedTitle,
+        mentions: [..._mentions],
+        mentionAll: _mentionAll,
+        mobile: widget.mobile,
+        onPickAttachments: () async {
+          if (currentScope()) await _pickAttachments();
+        },
+        attachmentNames: () => currentScope()
+            ? _attachments.map((attachment) => attachment.filename).toList()
+            : [],
+        onAgent: (saveAndClose) => currentScope()
+            ? _openComposerAgent(
+                beforeNavigate: saveAndClose,
+                applyMentions: false,
+              )
+            : Future.value(null),
+      ),
+    );
+    if (result == null || !currentScope()) return;
+    setState(() {
+      _input.setRichValue(result.value);
+      _expandedTitle = result.title;
+      _mentions = {
+        ...result.mentions,
+        ..._mentions.where((id) => !openedMentions.contains(id)),
+      }.toList();
+      _mentionAll = !_direct && result.mentionAll;
+    });
+    _saveDraft();
+    if (result.sendRequested) await _send();
   }
 
   Widget _mobileTools() {
@@ -2651,53 +3349,52 @@ class _OfficeConversationState extends State<OfficeConversation>
   }
 }
 
-class _ExpandedMessageEditor extends StatefulWidget {
-  const _ExpandedMessageEditor({required this.text});
-  final String text;
+class _ComposerMenuItem extends StatelessWidget {
+  const _ComposerMenuItem(this.icon, this.label);
+  final IconData icon;
+  final String label;
   @override
-  State<_ExpandedMessageEditor> createState() => _ExpandedMessageEditorState();
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 18, color: mutedColor),
+      const SizedBox(width: 10),
+      Text(label),
+    ],
+  );
 }
 
-class _ExpandedMessageEditorState extends State<_ExpandedMessageEditor> {
-  late final _controller = TextEditingController(text: widget.text);
+class _ConversationMessageBody extends StatelessWidget {
+  const _ConversationMessageBody({
+    super.key,
+    required this.message,
+    required this.runs,
+    required this.onRecords,
+    this.onAction,
+    this.onOpenMessageMenu,
+    this.selectable = true,
+  });
+  final Json message;
+  final List<Json> runs;
+  final void Function(String) onRecords;
+  final ValueChanged<String>? onAction;
+  final ValueChanged<Offset>? onOpenMessageMenu;
+  final bool selectable;
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Dialog.fullscreen(
-    child: Scaffold(
-      appBar: AppBar(
-        title: const Text('编辑消息'),
-        leading: IconButton(
-          tooltip: '返回会话草稿',
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, _controller.text),
-            child: const Text('完成'),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: TextField(
-          controller: _controller,
-          autofocus: true,
-          expands: true,
-          maxLines: null,
-          minLines: null,
-          maxLength: 12000,
-          decoration: const InputDecoration(
-            hintText: '写下完整的消息，完成后回到会话继续发送',
-            border: InputBorder.none,
-          ),
-        ),
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => message['rich_text'] is Map
+      ? OfficeRichText(
+          content: str(message['content']),
+          richText: Json.from(message['rich_text'] as Map),
+          selectable: selectable,
+          style: const TextStyle(fontSize: 13, height: 1.7),
+          onAction: onAction,
+          onOpenMessageMenu: onOpenMessageMenu,
+        )
+      : AgentMessageContent(
+          message: message,
+          runs: runs,
+          onRecords: onRecords,
+          onAction: onAction,
+          onOpenMessageMenu: onOpenMessageMenu,
+          selectable: selectable,
+        );
 }

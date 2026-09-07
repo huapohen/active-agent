@@ -235,10 +235,12 @@ class EnterpriseMemberDetails extends StatefulWidget {
     super.key,
     required this.controller,
     required this.memberId,
+    this.memberIds = const [],
     required this.onEdit,
   });
   final EnterpriseState controller;
   final String memberId;
+  final List<String> memberIds;
   final Future<void> Function(Json) onEdit;
   @override
   State<EnterpriseMemberDetails> createState() =>
@@ -250,22 +252,75 @@ class _EnterpriseMemberDetailsState extends State<EnterpriseMemberDetails> {
   bool _loading = true;
   String? _error;
   int _request = 0;
+  int _tab = 0;
+  late String _memberId;
+  late final List<String> _memberIds;
+  bool _editing = false, _closed = false;
   EnterpriseState get e => widget.controller;
   @override
   void initState() {
     super.initState();
+    _memberId = widget.memberId;
+    _memberIds = {widget.memberId, ...widget.memberIds}.toList();
+    if (widget.memberIds.contains(widget.memberId)) {
+      _memberIds
+        ..clear()
+        ..addAll(widget.memberIds.toSet());
+    }
     _load();
   }
 
+  bool get _current =>
+      mounted && !_closed && e.current && e.can('access_admin');
+  bool get _routeCurrent => ModalRoute.of(context)?.isCurrent != false;
+  void _close() {
+    if (!mounted || _closed || !_routeCurrent) return;
+    _closed = true;
+    _request++;
+    Navigator.pop(context);
+  }
+
+  void _step(int delta) {
+    if (!_current || !_routeCurrent || _editing || _loading) return;
+    final next = _memberIds.indexOf(_memberId) + delta;
+    if (next < 0 || next >= _memberIds.length) return;
+    setState(() {
+      _memberId = _memberIds[next];
+      _member = null;
+    });
+    _load();
+  }
+
+  Future<void> _edit(Json member) async {
+    if (!_current ||
+        !_routeCurrent ||
+        _editing ||
+        _loading ||
+        !e.canEditMember(member)) {
+      return;
+    }
+    setState(() => _editing = true);
+    try {
+      await widget.onEdit(member);
+      if (_current) await _load();
+    } finally {
+      if (mounted) setState(() => _editing = false);
+    }
+  }
+
   Future<void> _load() async {
+    if (!_current) return;
     final request = ++_request;
+    final memberId = _memberId;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final member = await e.readMember(widget.memberId);
-      if (mounted && request == _request) setState(() => _member = member);
+      final member = await e.readMember(memberId);
+      if (_current && request == _request && memberId == _memberId) {
+        setState(() => _member = member);
+      }
     } catch (error) {
       if (mounted && request == _request) {
         setState(() {
@@ -282,7 +337,9 @@ class _EnterpriseMemberDetailsState extends State<EnterpriseMemberDetails> {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: Listenable.merge([e, e.office]),
     builder: (context, _) {
-      final available = e.current && e.can('access_admin'), member = _member;
+      final available = _current, member = _member;
+      final mobile = MediaQuery.sizeOf(context).width < 600;
+      final index = _memberIds.indexOf(_memberId);
       Widget field(String title, String value) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Column(
@@ -312,6 +369,22 @@ class _EnterpriseMemberDetailsState extends State<EnterpriseMemberDetails> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
+                for (final step in [-1, 1])
+                  IconButton(
+                    tooltip: step < 0 ? '上一个成员' : '下一个成员',
+                    onPressed:
+                        available &&
+                            !_loading &&
+                            !_editing &&
+                            index + step >= 0 &&
+                            index + step < _memberIds.length
+                        ? () => _step(step)
+                        : null,
+                    icon: Icon(
+                      step < 0 ? Icons.chevron_left : Icons.chevron_right,
+                      size: 19,
+                    ),
+                  ),
                 if (available)
                   IconButton(
                     tooltip: '刷新成员详情',
@@ -320,7 +393,7 @@ class _EnterpriseMemberDetailsState extends State<EnterpriseMemberDetails> {
                   ),
                 IconButton(
                   tooltip: '关闭成员详情',
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _close,
                   icon: const Icon(Icons.close, size: 20),
                 ),
               ],
@@ -360,55 +433,130 @@ class _EnterpriseMemberDetailsState extends State<EnterpriseMemberDetails> {
                             ],
                           ),
                           const SizedBox(height: 14),
-                          field('管理角色', enterpriseRole(member['role'])),
-                          field('账号状态', enterpriseStatus(member['status'])),
-                          field(
-                            '所属部门',
-                            enterpriseDepartmentPath(
-                              e.departments,
-                              member['department_id'] as String?,
-                            ),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.verified_outlined,
+                                size: 15,
+                                color: member['status'] == 'active'
+                                    ? accentColor
+                                    : mutedColor,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                enterpriseStatus(member['status']),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: mutedColor,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (_memberIds.length > 1)
+                                Text(
+                                  '当前筛选页 ${index + 1}/${_memberIds.length}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: mutedColor,
+                                  ),
+                                ),
+                            ],
                           ),
-                          field(
-                            '任职组织',
-                            str(
-                              member['organization_name'],
-                              str(e.enterprise['name']),
-                            ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              for (final item in [(0, '基本信息'), (1, '工作信息')])
+                                Expanded(
+                                  child: InkWell(
+                                    key: ValueKey(
+                                      'member-detail-tab-${item.$1}',
+                                    ),
+                                    onTap: () => setState(() => _tab = item.$1),
+                                    child: Container(
+                                      alignment: Alignment.center,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            width: _tab == item.$1 ? 2 : 1,
+                                            color: _tab == item.$1
+                                                ? accentColor
+                                                : borderColor,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        item.$2,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: _tab == item.$1
+                                              ? accentColor
+                                              : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                          field('职业', str(member['profession'])),
-                          field('职位', str(member['job_title'])),
-                          if (str(member['source_organization_name'])
-                              .isNotEmpty)
+                          const SizedBox(height: 8),
+                          if (_tab == 0) ...[
+                            field('管理角色', enterpriseRole(member['role'])),
+                            field('账号状态', enterpriseStatus(member['status'])),
+                          ] else ...[
                             field(
-                              '来源组织',
-                              str(member['source_organization_name']),
-                            ),
-                          if (member['created_at'] != null)
-                            field(
-                              '加入时间',
-                              clockText(
-                                member['created_at'],
-                                date: true,
-                                context: context,
+                              '所属部门',
+                              enterpriseDepartmentPath(
+                                e.departments,
+                                member['department_id'] as String?,
                               ),
                             ),
-                          field(
-                            '成员编号',
-                            str(member['principal_id'], str(member['id'])),
-                          ),
-                          TextButton.icon(
-                            onPressed: () async {
-                              await Clipboard.setData(
-                                ClipboardData(text: widget.memberId),
-                              );
-                              if (context.mounted) {
-                                notifyOffice(context, '成员编号已复制');
-                              }
-                            },
-                            icon: const Icon(Icons.copy_outlined, size: 16),
-                            label: const Text('复制成员编号'),
-                          ),
+                            field(
+                              '任职组织',
+                              str(
+                                member['organization_name'],
+                                str(e.enterprise['name']),
+                              ),
+                            ),
+                            field('职业', str(member['profession'])),
+                            field('职位', str(member['job_title'])),
+                            if (str(member['source_organization_name'])
+                                .isNotEmpty)
+                              field(
+                                '来源组织',
+                                str(member['source_organization_name']),
+                              ),
+                            if (member['created_at'] != null)
+                              field(
+                                '加入时间',
+                                clockText(
+                                  member['created_at'],
+                                  date: true,
+                                  context: context,
+                                ),
+                              ),
+                          ],
+                          if (_tab == 0) ...[
+                            field(
+                              '成员编号',
+                              str(member['principal_id'], str(member['id'])),
+                            ),
+                            TextButton.icon(
+                              onPressed: () async {
+                                await Clipboard.setData(
+                                  ClipboardData(text: _memberId),
+                                );
+                                if (context.mounted) {
+                                  notifyOffice(context, '成员编号已复制');
+                                }
+                              },
+                              icon: const Icon(Icons.copy_outlined, size: 16),
+                              label: const Text('复制成员编号'),
+                            ),
+                          ],
                         ],
                       ],
                     ),
@@ -417,15 +565,10 @@ class _EnterpriseMemberDetailsState extends State<EnterpriseMemberDetails> {
           if (available && member != null && e.canEditMember(member))
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
-              child: SizedBox(
-                width: double.infinity,
+              child: Align(
+                alignment: Alignment.centerRight,
                 child: FilledButton.icon(
-                  onPressed: _loading
-                      ? null
-                      : () async {
-                          await widget.onEdit(member);
-                          if (mounted && e.current) await _load();
-                        },
+                  onPressed: _loading || _editing ? null : () => _edit(member),
                   icon: const Icon(Icons.edit_outlined, size: 18),
                   label: const Text('编辑成员资料'),
                 ),
@@ -433,12 +576,16 @@ class _EnterpriseMemberDetailsState extends State<EnterpriseMemberDetails> {
             ),
         ],
       );
-      return MediaQuery.sizeOf(context).width < 600
+      return mobile
           ? Dialog.fullscreen(child: SafeArea(child: body))
           : Dialog(
+              alignment: Alignment.centerRight,
+              insetPadding: EdgeInsets.zero,
+              shape: const RoundedRectangleBorder(),
               child: SizedBox(
-                width: 580,
-                height: MediaQuery.sizeOf(context).height * .86,
+                key: const ValueKey('enterprise-member-drawer'),
+                width: 480,
+                height: double.infinity,
                 child: body,
               ),
             );

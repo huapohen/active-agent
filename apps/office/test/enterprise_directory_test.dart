@@ -69,6 +69,9 @@ class DirectoryOffice extends EnterpriseTestOffice {
   Completer<Json>? pendingMembers, pendingDetail;
   final patches = <Json>[];
   bool wrongDetail = false;
+  int loginGeneration = 0;
+  @override
+  int get identityGeneration => loginGeneration;
   Json member(String id) => records.firstWhere((value) => value['id'] == id);
   Json project(Json member) => {
     ...member,
@@ -169,6 +172,10 @@ class DirectoryOffice extends EnterpriseTestOffice {
     return super.officeRequest(path, method: method, data: data);
   }
 }
+
+Finder memberButton(String label) => find.byWidgetPredicate(
+  (widget) => widget is IconButton && widget.tooltip == label,
+);
 
 Finder field(String label) => find.byWidgetPredicate(
   (w) => w is TextField && w.decoration?.labelText == label,
@@ -375,6 +382,8 @@ void main() {
           await tester.pumpAndSettle();
           expect(office.calls, contains('GET /enterprise/admin/members/$id'));
           expect(find.text('最新$targetKind成员'), findsOneWidget);
+          await tester.tap(find.byKey(const ValueKey('member-detail-tab-1')));
+          await tester.pumpAndSettle();
           expect(
             find.text(
               targetKind == 'agent' ? '协作总部 / 产品研发 / 体验设计' : '协作总部 / 产品研发',
@@ -497,6 +506,83 @@ void main() {
   );
 
   testWidgets(
+    'Member drawer navigates the captured page, keeps editing guarded, and closes once',
+    (tester) async {
+      final office = DirectoryOffice();
+      await mountDirectory(tester, office, const Size(1512, 844));
+      await tester.tap(find.text('张同学').first);
+      await tester.pumpAndSettle();
+      final drawer = find.byKey(const ValueKey('enterprise-member-drawer'));
+      expect(tester.getSize(drawer).width, 480);
+      expect(tester.getTopRight(drawer).dx, 1512);
+      expect(find.text('当前筛选页 3/4'), findsOneWidget);
+      final pending = Completer<Json>();
+      office.pendingDetail = pending;
+      final oldNext = tester
+          .widget<IconButton>(memberButton('下一个成员'))
+          .onPressed!;
+      oldNext();
+      oldNext();
+      await tester.pump();
+      expect(find.text('张同学').hitTestable(), findsNothing);
+      expect(
+        tester.widget<IconButton>(memberButton('下一个成员')).onPressed,
+        isNull,
+      );
+      pending.complete({
+        'member': office.project(office.member('member-agent')),
+      });
+      await tester.pumpAndSettle();
+      expect(find.text('研究 Agent').hitTestable(), findsOneWidget);
+      expect(find.text('当前筛选页 4/4'), findsOneWidget);
+      expect(
+        tester.widget<IconButton>(memberButton('下一个成员')).onPressed,
+        isNull,
+      );
+      await tester.tap(memberButton('上一个成员'));
+      await tester.pumpAndSettle();
+      expect(find.text('张同学').hitTestable(), findsOneWidget);
+      final close = tester
+          .widget<IconButton>(memberButton('关闭成员详情'))
+          .onPressed!;
+      close();
+      close();
+      await tester.pumpAndSettle();
+      expect(drawer, findsNothing);
+      expect(find.text('成员与组织'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Same-principal login replacement rejects late details and disables old drawer',
+    (tester) async {
+      final office = DirectoryOffice();
+      await mountDirectory(tester, office, const Size(390, 844));
+      final pending = Completer<Json>();
+      office.pendingDetail = pending;
+      await tester.ensureVisible(find.text('张同学').first);
+      await tester.tap(find.text('张同学').first);
+      await tester.pump();
+      office.loginGeneration++;
+      office.notifyListeners();
+      pending.complete({
+        'member': office.project(office.member('member-human')),
+      });
+      await tester.pumpAndSettle();
+      expect(find.text('当前身份或企业权限已变化，请重新打开企业管理。'), findsOneWidget);
+      expect(find.text('编辑成员资料'), findsNothing);
+      expect(find.text('复制成员编号'), findsNothing);
+      expect(
+        tester.widget<IconButton>(memberButton('下一个成员')).onPressed,
+        isNull,
+      );
+      expect(office.patches, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'Identity switch hides private detail and draft controls; admin cannot edit owner',
     (tester) async {
       final office = DirectoryOffice(role: 'admin', kind: 'agent');
@@ -505,7 +591,7 @@ void main() {
       await tester.tap(find.text('Agent 企业所有者'));
       await tester.pumpAndSettle();
       expect(find.text('编辑成员资料'), findsNothing);
-      await tester.tap(find.byTooltip('关闭成员详情'));
+      await tester.tap(memberButton('关闭成员详情'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('张同学'));
       await tester.tap(find.text('张同学'));

@@ -1119,6 +1119,7 @@ class OfficeState extends ChangeNotifier {
     String? replyTo,
     String? clientId,
     List<String> attachmentIds = const [],
+    Json? richText,
   }) async {
     final roomId = sourceRoomId ?? selectedRoomId;
     if (roomId == null || roomId.isEmpty) {
@@ -1139,6 +1140,7 @@ class OfficeState extends ChangeNotifier {
       mentionAll,
       replyTo,
       attachmentIds,
+      ?richText,
     ]);
     // A hot-reloaded pre-mention_all retry still represents the same false
     // intent. Move its pending key instead of duplicating an ambiguous send.
@@ -1154,7 +1156,9 @@ class OfficeState extends ChangeNotifier {
         _outbox.putIfAbsent(
           intent,
           () =>
-              (!mentionAll ? _outbox.remove(legacyIntent) : null) ??
+              (!mentionAll && richText == null
+                  ? _outbox.remove(legacyIntent)
+                  : null) ??
               newClientId(),
         );
     final result = await _request(
@@ -1163,6 +1167,7 @@ class OfficeState extends ChangeNotifier {
       data: {
         'client_id': key,
         'content': content,
+        'rich_text': ?richText,
         'mentions': mentions,
         'mention_all': mentionAll,
         'reply_to': ?replyTo,
@@ -1197,13 +1202,18 @@ class OfficeState extends ChangeNotifier {
     Json message,
     String content, {
     String? sourceRoomId,
+    Json? richText,
   }) async {
     await _request(
       sourceRoomId == null
           ? _room('/messages/${message['id']}')
           : '/rooms/${Uri.encodeComponent(sourceRoomId)}/messages/${message['id']}',
       method: 'PATCH',
-      data: {'content': content, 'base_revision': message['revision'] ?? 1},
+      data: {
+        'content': content,
+        'rich_text': richText,
+        'base_revision': message['revision'] ?? 1,
+      },
     );
     await _updated();
   }

@@ -428,17 +428,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('协作测试项目').last);
     await tester.pumpAndSettle();
-    final composer = find.byWidgetPredicate(
-      (w) => w is TextField && w.decoration?.hintText == '发送消息，或 @ 工作伙伴共同推进',
-    );
+    final composer = find.byKey(const ValueKey('composer-input'));
     await tester.enterText(composer, '准备工作');
     await tester.tap(find.byTooltip('展开消息编辑器'));
     await tester.pumpAndSettle();
-    final expanded = find.byWidgetPredicate(
-      (w) => w is TextField && w.decoration?.hintText == '写下完整的消息，完成后回到会话继续发送',
-    );
+    final expanded = find.byKey(const ValueKey('expanded-body'));
     await tester.enterText(expanded, '完整工作背景\n下一步一起完成');
-    await tester.tap(find.text('完成'));
+    await tester.tap(find.byKey(const ValueKey('expanded-collapse')));
     await tester.pumpAndSettle();
     expect(
       tester.takeException(),
@@ -584,6 +580,30 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     state.dispose();
   });
+  for (final tool in [('创建日程', '日程主题'), ('发起会议', '会议主题')]) {
+    testWidgets('Desktop composer opens real ${tool.$1} form', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1512, 982);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final state = LayoutOfficeState();
+      await tester.pumpWidget(ActiveOfficeApp(state: state));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('composer-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tool.$1));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TextField, tool.$2), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('消息').first);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('composer-input')), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      state.dispose();
+    });
+  }
   testWidgets('Denied apps lock inner tabs and composer actions', (
     tester,
   ) async {
@@ -595,26 +615,21 @@ void main() {
       ..unavailableModules.addAll(['docs', 'tasks']);
     await tester.pumpWidget(ActiveOfficeApp(state: state));
     await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<IconButton>(
-            find.byWidgetPredicate(
-              (w) => w is IconButton && w.tooltip == '新建共同文档',
-            ),
-          )
-          .onPressed,
-      isNull,
-    );
-    expect(
-      tester
-          .widget<IconButton>(
-            find.byWidgetPredicate(
-              (w) => w is IconButton && w.tooltip == '创建任务',
-            ),
-          )
-          .onPressed,
-      isNull,
-    );
+    await tester.tap(find.byKey(const ValueKey('composer-more')));
+    await tester.pumpAndSettle();
+    for (final label in ['新建共同文档', '创建任务']) {
+      final item = find.ancestor(
+        of: find.text(label),
+        matching: find.byType(PopupMenuItem<String>),
+      );
+      expect(tester.widget<PopupMenuItem<String>>(item).enabled, isFalse);
+      await tester.tap(find.text(label), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.text('目标与验收条件'), findsNothing);
+      expect(find.text('文档标题'), findsNothing);
+    }
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('云文档').last);
     await tester.pumpAndSettle();
     expect(find.text('企业策略限制了此应用'), findsOneWidget);
@@ -643,7 +658,12 @@ void main() {
         await tester.tap(find.text('协作测试项目').last);
         await tester.pumpAndSettle();
       }
-      final send = tester.getRect(find.text('发送').last);
+      await tester.enterText(
+        find.byKey(const ValueKey('composer-input')),
+        '布局检查草稿',
+      );
+      await tester.pumpAndSettle();
+      final send = tester.getRect(find.byKey(const ValueKey('composer-send')));
       expect(send.right, lessThanOrEqualTo(dimensions.width));
       expect(send.bottom, lessThanOrEqualTo(dimensions.height));
       expect(tester.takeException(), isNull);
@@ -752,7 +772,7 @@ void main() {
     ]) {
       expect(find.text(entry), findsWidgets);
     }
-    expect(find.text('发送'), findsOneWidget);
+    expect(find.byKey(const ValueKey('composer-send')), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
@@ -773,9 +793,7 @@ void main() {
         await tester.tap(find.text('协作测试项目').last);
         await tester.pumpAndSettle();
       }
-      final composer = find.byWidgetPredicate(
-        (w) => w is TextField && w.decoration?.hintText == '发送消息，或 @ 工作伙伴共同推进',
-      );
+      final composer = find.byKey(const ValueKey('composer-input'));
       await tester.enterText(composer, '');
       await tester.enterText(composer, '继续讨论 @');
       await tester.pumpAndSettle();

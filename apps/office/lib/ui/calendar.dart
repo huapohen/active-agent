@@ -76,7 +76,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     final people = officeRoomPeople(s, roomId);
     String? error;
     var busy = false;
-    await showDialog<void>(
+    final route = DialogRoute<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, change) => AlertDialog(
@@ -255,6 +255,8 @@ class OfficeCalendarState extends State<OfficeCalendar> {
         ),
       ),
     );
+    await Navigator.of(context, rootNavigator: true).push(route);
+    await route.completed;
     title.dispose();
     note.dispose();
     location.dispose();

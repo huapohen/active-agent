@@ -146,6 +146,9 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
     builder: (_) => EnterpriseMemberDetails(
       controller: e,
       memberId: str(member['principal_id'], str(member['id'])),
+      memberIds: e.members
+          .map((item) => str(item['principal_id'], str(item['id'])))
+          .toList(),
       onEdit: _editMember,
     ),
   );

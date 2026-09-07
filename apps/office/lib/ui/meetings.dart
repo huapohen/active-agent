@@ -163,7 +163,7 @@ class OfficeMeetingsState extends State<OfficeMeetings> {
     var duration = 30, busy = false;
     String? documentId;
     String? error;
-    final meeting = await showDialog<Json>(
+    final route = DialogRoute<Json>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, change) => AlertDialog(
@@ -343,6 +343,11 @@ class OfficeMeetingsState extends State<OfficeMeetings> {
         ),
       ),
     );
+    final meeting = await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(route);
+    await route.completed;
     title.dispose();
     if (meeting != null) {
       if (scheduled) {

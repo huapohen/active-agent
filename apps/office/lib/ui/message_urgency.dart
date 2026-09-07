@@ -20,14 +20,24 @@ Future<T?> _showUrgencyPanel<T>(BuildContext context, Widget panel) {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * .88,
-          child: panel,
-        ),
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+          final available = (constraints.maxHeight - keyboard).clamp(
+            0.0,
+            double.infinity,
+          );
+          return Padding(
+            padding: EdgeInsets.only(bottom: keyboard),
+            child: SizedBox(
+              height: (MediaQuery.sizeOf(context).height * .88).clamp(
+                0.0,
+                available,
+              ),
+              child: panel,
+            ),
+          );
+        },
       ),
     );
   }
@@ -319,6 +329,8 @@ class _OfficeMessageUrgencyComposerState
   String get sourceRoom => widget.roomId;
   late final String _messageId, _pendingKey;
   final _search = TextEditingController();
+  final _bodyScroll = ScrollController();
+  bool _moreBelow = false, _scrollCheckQueued = false;
   final _selected = <String>{};
   List<Json> _members = [];
   Json? _source, _pending, _created;
@@ -327,6 +339,7 @@ class _OfficeMessageUrgencyComposerState
   @override
   void initState() {
     super.initState();
+    _bodyScroll.addListener(_scheduleScrollStatus);
     _messageId = widget.messageId;
     _pendingKey = jsonEncode([
       identity.$1,
@@ -350,6 +363,7 @@ class _OfficeMessageUrgencyComposerState
     _source = _pending = _created = null;
     _error = _blocked = _unreadError = _unreadNotice = null;
     _busy = _ready = false;
+    _moreBelow = false;
   }
 
   @override
@@ -360,8 +374,23 @@ class _OfficeMessageUrgencyComposerState
 
   @override
   void dispose() {
+    _bodyScroll.dispose();
     _search.dispose();
     super.dispose();
+  }
+
+  void _scheduleScrollStatus() {
+    if (_scrollCheckQueued || !mounted) return;
+    _scrollCheckQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollCheckQueued = false;
+      if (!mounted) return;
+      final more =
+          current &&
+          _bodyScroll.hasClients &&
+          _bodyScroll.position.extentAfter > 12;
+      if (_moreBelow != more) setState(() => _moreBelow = more);
+    });
   }
 
   Future<(Json, List<Json>)> _readSource() async {
@@ -637,229 +666,320 @@ class _OfficeMessageUrgencyComposerState
                 Expanded(
                   child: !current
                       ? _expiredUrgency
-                      : ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: [
-                            if (!office.connected)
-                              const Text('当前离线，重新连接后才能发送加急。'),
-                            _urgencyError(_error),
-                            if (_busy)
-                              const Center(child: CircularProgressIndicator()),
-                            if (_created != null) ...[
-                              _urgencySource(_created!),
-                              const SizedBox(height: 12),
-                              Text(
-                                _requestStatus(_created!),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
+                      : ScrollConfiguration(
+                          behavior: ScrollConfiguration.of(context)
+                              .copyWith(scrollbars: false),
+                          child: Scrollbar(
+                            controller: _bodyScroll,
+                            thumbVisibility: true,
+                            child: NotificationListener<ScrollMetricsNotification>(
+                              onNotification: (_) {
+                                _scheduleScrollStatus();
+                                return false;
+                              },
+                              child: ListView(
+                                key: const ValueKey('urgency-scroll-body'),
+                                controller: _bodyScroll,
+                                keyboardDismissBehavior:
+                                    ScrollViewKeyboardDismissBehavior.onDrag,
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  12,
+                                  16,
+                                  16,
                                 ),
-                              ),
-                              Text(
-                                '${(_created!['counts'] as Map)['acknowledged']} 已确认 · ${(_created!['counts'] as Map)['pending']} 待确认',
-                              ),
-                              TextButton(
-                                onPressed: office.connected
-                                    ? () => showOfficeMessageUrgencyDetail(
-                                        context,
-                                        office,
-                                        sourceRoom,
-                                        str(_created!['id']),
-                                      )
-                                    : null,
-                                child: const Text('查看确认详情'),
-                              ),
-                            ] else ...[
-                              if (_source != null)
-                                Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: OfficeEmojiText(
-                                      content: str(_source!['content'], '附件消息'),
-                                      selectable: false,
+                                children: [
+                                  if (!office.connected)
+                                    const Text('当前离线，重新连接后才能发送加急。'),
+                                  _urgencyError(_error),
+                                  if (_busy)
+                                    const Center(
+                                      child: CircularProgressIndicator(),
                                     ),
-                                  ),
-                                ),
-                              if (_pending != null)
-                                const Text(
-                                  '正在确认上一次发送结果，接收人已锁定。重试会复用原加急请求。',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: mutedColor,
-                                  ),
-                                ),
-                              if (!_ready || _needsReview)
-                                TextButton(
-                                  onPressed: _busy || !office.connected
-                                      ? null
-                                      : _load,
-                                  child: const Text('重新核对来源与成员'),
-                                ),
-                              Text(
-                                '选择接收成员 · 已选 ${_selected.length} 人',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              TextField(
-                                key: const ValueKey('urgency-member-search'),
-                                controller: _search,
-                                enabled: edit,
-                                decoration: const InputDecoration(
-                                  hintText: '搜索群内人或 Agent',
-                                  prefixIcon: Icon(Icons.search),
-                                  isDense: true,
-                                ),
-                                onChanged: (_) => setState(() {}),
-                              ),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: TextButton.icon(
-                                  key: const ValueKey('urgency-select-unread'),
-                                  onPressed:
-                                      edit &&
-                                          office.connected &&
-                                          _ready &&
-                                          !_needsReview &&
-                                          _blocked == null
-                                      ? _selectUnread
-                                      : null,
-                                  icon: const Icon(Icons.done_all, size: 18),
-                                  label: Text(
-                                    _unreadError == null
-                                        ? '全选未读成员'
-                                        : '重试读取未读成员',
-                                  ),
-                                ),
-                              ),
-                              _urgencyError(_unreadError),
-                              if (_unreadNotice != null)
-                                Text(
-                                  _unreadNotice!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: mutedColor,
-                                  ),
-                                ),
-                              if (_ready && _members.isEmpty)
-                                const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: Text('当前会话没有其他可接收成员'),
-                                ),
-                              for (final member in shown)
-                                CheckboxListTile(
-                                  key: ValueKey(
-                                    'urgency-recipient-${personId(member)}',
-                                  ),
-                                  value: _selected.contains(personId(member)),
-                                  onChanged: !edit
-                                      ? null
-                                      : (checked) => setState(() {
-                                          final id = personId(member);
-                                          if (checked == true) {
-                                            if (_selected.length >= 100) {
-                                              _error = '一次最多加急 100 位成员';
-                                            } else {
-                                              _selected.add(id);
-                                            }
-                                          } else {
-                                            _selected.remove(id);
-                                          }
-                                        }),
-                                  contentPadding: EdgeInsets.zero,
-                                  controlAffinity:
-                                      ListTileControlAffinity.leading,
-                                  title: Text(officeDisplayName(member)),
-                                  subtitle: Text(
-                                    member['kind'] == 'agent'
-                                        ? 'Agent 同事'
-                                        : '人类同事',
-                                  ),
-                                  secondary: PersonAvatar(
-                                    name: officeDisplayName(member),
-                                    agent: member['kind'] == 'agent',
-                                    size: 30,
-                                  ),
-                                ),
-                              const Divider(height: 24),
-                              const Text(
-                                '发送方式',
-                                style: TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              RadioGroup<String>(
-                                groupValue: 'in_app',
-                                onChanged: (_) {},
-                                child: Column(
-                                  children: [
-                                    RadioListTile<String>(
+                                  if (_created != null) ...[
+                                    _urgencySource(_created!),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _requestStatus(_created!),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${(_created!['counts'] as Map)['acknowledged']} 已确认 · ${(_created!['counts'] as Map)['pending']} 待确认',
+                                    ),
+                                    TextButton(
+                                      onPressed: office.connected
+                                          ? () =>
+                                                showOfficeMessageUrgencyDetail(
+                                                  context,
+                                                  office,
+                                                  sourceRoom,
+                                                  str(_created!['id']),
+                                                )
+                                          : null,
+                                      child: const Text('查看确认详情'),
+                                    ),
+                                  ] else ...[
+                                    if (_source != null)
+                                      Card(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: OfficeEmojiText(
+                                            content: str(
+                                              _source!['content'],
+                                              '附件消息',
+                                            ),
+                                            selectable: false,
+                                          ),
+                                        ),
+                                      ),
+                                    if (_pending != null)
+                                      const Text(
+                                        '正在确认上一次发送结果，接收人已锁定。重试会复用原加急请求。',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: mutedColor,
+                                        ),
+                                      ),
+                                    if (!_ready || _needsReview)
+                                      TextButton(
+                                        onPressed: _busy || !office.connected
+                                            ? null
+                                            : _load,
+                                        child: const Text('重新核对来源与成员'),
+                                      ),
+                                    Text(
+                                      '选择接收成员 · 已选 ${_selected.length} 人',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    TextField(
                                       key: const ValueKey(
-                                        'urgency-channel-in-app',
+                                        'urgency-member-search',
                                       ),
-                                      value: 'in_app',
+                                      controller: _search,
                                       enabled: edit,
-                                      contentPadding: EdgeInsets.zero,
-                                      title: const Text('仅应用内'),
-                                      subtitle: const Text(
-                                        '发送站内通知，由接收成员主动确认；阅读消息不会自动确认加急。',
+                                      decoration: const InputDecoration(
+                                        hintText: '搜索群内人或 Agent',
+                                        prefixIcon: Icon(Icons.search),
+                                        isDense: true,
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: TextButton.icon(
+                                        key: const ValueKey(
+                                          'urgency-select-unread',
+                                        ),
+                                        onPressed:
+                                            edit &&
+                                                office.connected &&
+                                                _ready &&
+                                                !_needsReview &&
+                                                _blocked == null
+                                            ? _selectUnread
+                                            : null,
+                                        icon: const Icon(
+                                          Icons.done_all,
+                                          size: 18,
+                                        ),
+                                        label: Text(
+                                          _unreadError == null
+                                              ? '全选未读成员'
+                                              : '重试读取未读成员',
+                                        ),
                                       ),
                                     ),
-                                    const RadioListTile<String>(
-                                      key: ValueKey('urgency-channel-sms'),
-                                      value: 'in_app_sms',
-                                      enabled: false,
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Text('应用内 + 短信'),
-                                      subtitle: Text('短信渠道未配置，暂不可用'),
+                                    _urgencyError(_unreadError),
+                                    if (_unreadNotice != null)
+                                      Text(
+                                        _unreadNotice!,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: mutedColor,
+                                        ),
+                                      ),
+                                    if (_ready && _members.isEmpty)
+                                      const Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: Text('当前会话没有其他可接收成员'),
+                                      ),
+                                    for (final member in shown)
+                                      CheckboxListTile(
+                                        key: ValueKey(
+                                          'urgency-recipient-${personId(member)}',
+                                        ),
+                                        value: _selected.contains(
+                                          personId(member),
+                                        ),
+                                        onChanged: !edit
+                                            ? null
+                                            : (checked) => setState(() {
+                                                final id = personId(member);
+                                                if (checked == true) {
+                                                  if (_selected.length >= 100) {
+                                                    _error = '一次最多加急 100 位成员';
+                                                  } else {
+                                                    _selected.add(id);
+                                                  }
+                                                } else {
+                                                  _selected.remove(id);
+                                                }
+                                              }),
+                                        contentPadding: EdgeInsets.zero,
+                                        dense: true,
+                                        visualDensity: VisualDensity.compact,
+                                        controlAffinity:
+                                            ListTileControlAffinity.leading,
+                                        title: Text(officeDisplayName(member)),
+                                        subtitle: Text(
+                                          member['kind'] == 'agent'
+                                              ? 'Agent 同事'
+                                              : '人类同事',
+                                        ),
+                                        secondary: PersonAvatar(
+                                          name: officeDisplayName(member),
+                                          agent: member['kind'] == 'agent',
+                                          size: 30,
+                                        ),
+                                      ),
+                                    const Divider(height: 24),
+                                    const Text(
+                                      '发送方式',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                    const RadioListTile<String>(
-                                      key: ValueKey('urgency-channel-phone'),
-                                      value: 'in_app_phone',
-                                      enabled: false,
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Text('应用内 + 电话'),
-                                      subtitle: Text('电话渠道未配置，暂不可用'),
+                                    RadioGroup<String>(
+                                      groupValue: 'in_app',
+                                      onChanged: (_) {},
+                                      child: Column(
+                                        children: [
+                                          RadioListTile<String>(
+                                            key: const ValueKey(
+                                              'urgency-channel-in-app',
+                                            ),
+                                            value: 'in_app',
+                                            enabled: edit,
+                                            dense: true,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            contentPadding: EdgeInsets.zero,
+                                            title: const Text('仅应用内'),
+                                            subtitle: const Text(
+                                              '接收成员需主动确认，阅读不等于确认。',
+                                            ),
+                                          ),
+                                          const RadioListTile<String>(
+                                            key: ValueKey(
+                                              'urgency-channel-sms',
+                                            ),
+                                            value: 'in_app_sms',
+                                            enabled: false,
+                                            dense: true,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            contentPadding: EdgeInsets.zero,
+                                            title: Text('应用内 + 短信'),
+                                            subtitle: Text('短信渠道未配置，暂不可用'),
+                                          ),
+                                          const RadioListTile<String>(
+                                            key: ValueKey(
+                                              'urgency-channel-phone',
+                                            ),
+                                            value: 'in_app_phone',
+                                            enabled: false,
+                                            dense: true,
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            contentPadding: EdgeInsets.zero,
+                                            title: Text('应用内 + 电话'),
+                                            subtitle: Text(
+                                              '电话渠道未配置，暂不可用',
+                                              key: ValueKey(
+                                                'urgency-phone-status',
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
-                                ),
+                                ],
                               ),
-                            ],
-                          ],
+                            ),
+                          ),
                         ),
                 ),
                 if (current && _created == null)
                   Padding(
+                    key: const ValueKey('urgency-fixed-actions'),
                     padding: const EdgeInsets.all(12),
-                    child: Row(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('取消'),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            key: const ValueKey('urgency-send'),
-                            onPressed:
-                                !office.connected ||
-                                    _busy ||
-                                    (_pending == null &&
-                                        (!_ready ||
-                                            _needsReview ||
-                                            _selected.isEmpty ||
-                                            _blocked != null))
-                                ? null
-                                : _send,
-                            child: Text(
-                              _pending != null
-                                  ? '重试确认同一次发送'
-                                  : MediaQuery.sizeOf(context).width < 720
-                                  ? '加急 发送'
-                                  : Theme.of(context).platform ==
-                                        TargetPlatform.macOS
-                                  ? '加急 发送 ⌘+Enter'
-                                  : '加急 发送 Ctrl+Enter',
+                        if (_moreBelow)
+                          const Padding(
+                            key: ValueKey('urgency-scroll-hint'),
+                            padding: EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.keyboard_arrow_down,
+                                  size: 16,
+                                  color: mutedColor,
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    '下方还有成员或发送方式，继续滚动查看',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: mutedColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('取消'),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: FilledButton(
+                                key: const ValueKey('urgency-send'),
+                                onPressed:
+                                    !office.connected ||
+                                        _busy ||
+                                        (_pending == null &&
+                                            (!_ready ||
+                                                _needsReview ||
+                                                _selected.isEmpty ||
+                                                _blocked != null))
+                                    ? null
+                                    : _send,
+                                child: Text(
+                                  _pending != null
+                                      ? '重试确认同一次发送'
+                                      : MediaQuery.sizeOf(context).width < 720
+                                      ? '加急 发送'
+                                      : Theme.of(context).platform ==
+                                            TargetPlatform.macOS
+                                      ? '加急 发送 ⌘+Enter'
+                                      : '加急 发送 Ctrl+Enter',
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -1065,6 +1065,28 @@ class _OfficeShellState extends State<OfficeShell> {
         }
         return OfficeConversation(
           state: s,
+          onCreateCalendar: () {
+            final identity = _identityKey;
+            go(7);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted &&
+                  identity == _identityKey &&
+                  s.moduleAvailable('calendar')) {
+                _calendarKey.currentState?.createEvent();
+              }
+            });
+          },
+          onCreateMeeting: () {
+            final identity = _identityKey;
+            go(6);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted &&
+                  identity == _identityKey &&
+                  s.moduleAvailable('meetings')) {
+                _meetingsKey.currentState?.createMeeting();
+              }
+            });
+          },
           onAgentStore: () {
             _agentStore = true;
             go(1);

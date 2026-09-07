@@ -48,6 +48,11 @@ Return only a JSON object without code fences: {"action":"reply|silent|blocked",
 "content":"message text, required for reply", "rationale":"short explanation of your
 decision based on visible evidence", "mentions":["participant_id"], "artifact":null}
 artifact may instead be {"title":"document title","content":"complete Markdown draft"}.
+For a reply you may optionally add "rich_text":{"version":1,"spans":[{"start":0,
+"end":4,"styles":["bold"]}]}. Styles are bold, italic, underline and strikethrough;
+use at most 200 spans, with 1-4 styles each. Offsets are UTF-16 code units into the
+exact plain content, not Python character indices; never split an emoji surrogate
+pair. Omit rich_text when formatting is unnecessary or the action is not reply.
 For native work also include "summary":"visible plan" and "steps":[{"key":"unique-step",
 "operation":"exact allowed operation name","arguments":{},"evidence":[{"kind":"message|document|task|calendar",
 "id":"captured resource id","revision":1,"quote":"exact nonempty source substring"}]}].
@@ -67,6 +72,56 @@ class IMError(RuntimeError):
     def __init__(self, status, code="request_failed"):
         self.status, self.code = status, code
         super().__init__("Native IM request failed: %s (%s)" % (status, code))
+
+
+def normalize_im_rich_text(value, content):
+    """Canonicalize the same UTF-16 span contract used by native-rich-text.js."""
+    if value is None:
+        return None
+    styles = ("bold", "italic", "underline", "strikethrough")
+
+    def fail():
+        raise ModelError("invalid IM rich text")
+
+    def safe_integer(number):
+        return (not isinstance(number, bool) and isinstance(number, (int, float))
+                and (isinstance(number, int) or number.is_integer())
+                and abs(number) <= 9007199254740991)
+
+    if (not isinstance(content, str) or not isinstance(value, dict)
+            or not safe_integer(value.get("version")) or value["version"] != 1
+            or set(value) - {"version", "spans"}
+            or not isinstance(value.get("spans"), list) or len(value["spans"]) > 200):
+        fail()
+    # surrogatepass also matches JavaScript strings containing explicit UTF-16
+    # surrogate units; offsets can never bisect a valid high/low pair.
+    encoded = content.encode("utf-16-le", errors="surrogatepass")
+    units = [int.from_bytes(encoded[index:index + 2], "little")
+             for index in range(0, len(encoded), 2)]
+
+    def boundary(at):
+        return at in {0, len(units)} or not (
+            0xd800 <= units[at - 1] <= 0xdbff and 0xdc00 <= units[at] <= 0xdfff)
+
+    normalized, seen = [], set()
+    for span in value["spans"]:
+        if not isinstance(span, dict) or set(span) != {"start", "end", "styles"}:
+            fail()
+        start, end, requested = span["start"], span["end"], span["styles"]
+        if not safe_integer(start) or not safe_integer(end):
+            fail()
+        start, end = int(start), int(end)
+        if (not 0 <= start < end <= len(units) or not boundary(start) or not boundary(end)
+                or not isinstance(requested, list) or not 1 <= len(requested) <= 4
+                or any(style not in styles for style in requested)):
+            fail()
+        chosen = [style for style in styles if style in requested]
+        key = (start, end, tuple(chosen))
+        if key not in seen:
+            seen.add(key)
+            normalized.append({"start": start, "end": end, "styles": chosen})
+    normalized.sort(key=lambda span: (span["start"], span["end"], ",".join(span["styles"])))
+    return {"version": 1, "spans": normalized} if normalized else None
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -162,6 +217,12 @@ class IMAgent:
         result = {"action": action, "content": content if action == "reply" else "",
             "rationale": rationale, "mentions": list(dict.fromkeys(mentions)) if action == "reply" else [],
             "artifact": artifact}
+        if raw.get("rich_text") is not None:
+            if action != "reply":
+                raise ModelError("non-reply IM result cannot contain rich text")
+            rich_text = normalize_im_rich_text(raw["rich_text"], content)
+            if rich_text is not None:
+                result["rich_text"] = rich_text
         steps = raw.get("steps", [])
         allowed = {op.get("name"): op for op in context.get("actions", {}).get("operations", [])}
         maximum = min(4, context.get("actions", {}).get("max_steps", 0))

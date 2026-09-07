@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../office_state.dart' hide Json;
 import 'attachments.dart';
 import 'business_widgets.dart';
+import 'message_forward_bundle.dart';
+import 'office_rich_text.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
 
@@ -40,7 +42,7 @@ class _OfficeMessageOriginalState extends State<OfficeMessageOriginal> {
   int _intent = 0;
   Timer? _refresh;
   String get _currentIdentity =>
-      '${widget.state.endpoint}:${personId(widget.state.me ?? {})}';
+      '${widget.state.identityGeneration}:${widget.state.endpoint}:${personId(widget.state.me ?? {})}';
   @override
   void initState() {
     super.initState();
@@ -159,7 +161,9 @@ class _OfficeMessageOriginalState extends State<OfficeMessageOriginal> {
                           ),
                         ),
                       const Divider(height: 24),
-                      if (message['retracted_at'] != null)
+                      if (message['hidden'] == true)
+                        const Text('这条消息已从你的聊天中删除')
+                      else if (message['retracted_at'] != null)
                         const Text('这条消息已撤回')
                       else ...[
                         if (_parent != null)
@@ -181,10 +185,20 @@ class _OfficeMessageOriginalState extends State<OfficeMessageOriginal> {
                               str(_parent!['id']),
                             ),
                           ),
-                        SelectableText(
-                          str(message['content']),
-                          style: const TextStyle(fontSize: 14, height: 1.7),
-                        ),
+                        if (message['kind'] == 'forward_bundle' &&
+                            message['forward_bundle'] is Map)
+                          OfficeForwardBundleCard(
+                            state: widget.state,
+                            roomId: widget.roomId,
+                            message: message,
+                          ),
+                        if (message['kind'] != 'forward_bundle' ||
+                            str(message['content']).isNotEmpty)
+                          OfficeRichText(
+                            content: str(message['content']),
+                            richText: message['rich_text'],
+                            style: const TextStyle(fontSize: 14, height: 1.7),
+                          ),
                         for (final attachment in maps(message['attachments']))
                           MessageAttachment(
                             state: widget.state,

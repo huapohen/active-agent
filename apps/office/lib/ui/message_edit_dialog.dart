@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../office_state.dart' hide Json;
 import 'office_theme.dart';
+import 'office_rich_text.dart';
 
-Future<String?> showOfficeMessageEdit(
+Future<OfficeRichTextValue?> showOfficeMessageEdit(
   BuildContext context,
   OfficeState state,
   Json message,
-) => showDialog<String>(
+) => showDialog<OfficeRichTextValue>(
   context: context,
   barrierDismissible: false,
   builder: (_) => _MessageMutationDialog(state: state, message: message),
@@ -45,13 +46,18 @@ class _MessageMutationDialogState extends State<_MessageMutationDialog> {
   late final bool _hasAttachments;
   bool _expired = false, _retracted = false;
   String? _error;
+  Json? _richText;
+  String _previousContent = "";
   String get _identityKey =>
-      '${widget.state.endpoint}|${personId(widget.state.me ?? {})}|${widget.state.connected}';
+      '${widget.state.identityGeneration}|${widget.state.endpoint}|${personId(widget.state.me ?? {})}|${widget.state.connected}';
   bool get _valid =>
       !_expired && widget.state.connected && _identity == _identityKey;
   bool get _ownsMessage =>
       _authorId == personId(widget.state.me ?? {}) && _authorId.isNotEmpty;
   bool get _canSubmit => _valid && !_retracted && _ownsMessage;
+  bool get _hasSharedCard =>
+      widget.message['kind'] == 'forward_bundle' &&
+      widget.message['forward_bundle'] is Map;
 
   @override
   void initState() {
@@ -69,8 +75,45 @@ class _MessageMutationDialogState extends State<_MessageMutationDialog> {
         maps(widget.message['attachments']).isNotEmpty;
     _retracted = widget.message['retracted_at'] != null;
     _content = TextEditingController(text: str(widget.message['content']));
+    _previousContent = _content.text;
+    _richText = officeNormalizeRichText(
+      _content.text,
+      widget.message['rich_text'],
+    );
+    _content.addListener(_contentChanged);
     _observe();
     widget.state.addListener(_changed);
+  }
+
+  void _contentChanged() {
+    if (_previousContent == _content.text) return;
+    _richText = officeRebaseRichText(
+      _previousContent,
+      _content.text,
+      _richText,
+    );
+    _previousContent = _content.text;
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _format() async {
+    if (!_canSubmit) return;
+    final result = await showOfficeRichTextEditor(
+      context,
+      state: widget.state,
+      content: _content.text,
+      richText: _richText,
+      sourceIsCurrent: () => mounted && _canSubmit,
+    );
+    if (!mounted || !_canSubmit || result == null) return;
+    setState(() {
+      _previousContent = result.content;
+      _richText = result.richText;
+      _content.value = TextEditingValue(
+        text: result.content,
+        selection: TextSelection.collapsed(offset: result.content.length),
+      );
+    });
   }
 
   void _observe() {
@@ -84,6 +127,7 @@ class _MessageMutationDialogState extends State<_MessageMutationDialog> {
     }
     if (widget.message['retracted_at'] != null) _retracted = true;
     if (_expired || _retracted) {
+      _richText = null;
       _content.clear();
       _error = null;
     }
@@ -97,6 +141,7 @@ class _MessageMutationDialogState extends State<_MessageMutationDialog> {
   @override
   void dispose() {
     widget.state.removeListener(_changed);
+    _content.removeListener(_contentChanged);
     _content.dispose();
     super.dispose();
   }
@@ -108,14 +153,20 @@ class _MessageMutationDialogState extends State<_MessageMutationDialog> {
       setState(() {});
       return;
     }
-    if (!widget.retract && _content.text.trim().isEmpty && !_hasAttachments) {
+    if (!widget.retract &&
+        _content.text.trim().isEmpty &&
+        !_hasAttachments &&
+        !_hasSharedCard) {
       setState(() => _error = '消息内容不能为空');
       return;
     }
     if (widget.retract) {
       Navigator.pop(context, true);
     } else {
-      Navigator.pop(context, _content.text);
+      Navigator.pop(
+        context,
+        OfficeRichTextValue(content: _content.text, richText: _richText),
+      );
     }
   }
 
@@ -149,6 +200,18 @@ class _MessageMutationDialogState extends State<_MessageMutationDialog> {
                       autofocus: true,
                       decoration: const InputDecoration(hintText: '消息内容'),
                     ),
+                  if (!widget.retract) ...[
+                    TextButton.icon(
+                      onPressed: _format,
+                      icon: const Icon(Icons.text_fields),
+                      label: const Text('文字格式'),
+                    ),
+                    if (_richText != null)
+                      OfficeRichText(
+                        content: _content.text,
+                        richText: _richText,
+                      ),
+                  ],
                   if (_error != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),

@@ -49,9 +49,11 @@ class MentionOffice extends LayoutOfficeState {
     String? replyTo,
     String? clientId,
     List<String> attachmentIds = const [],
+    Json? richText,
   }) async {
     sends.add({
       'content': content,
+      'rich_text': ?richText,
       'mentions': [...mentions],
       'mention_all': mentionAll,
       'source_room_id': sourceRoomId,
@@ -87,7 +89,7 @@ Future<void> mountConversation(WidgetTester tester, MentionOffice state) async {
   await tester.pumpAndSettle();
 }
 
-Finder composer() => find.widgetWithText(TextField, '发送消息，或 @ 工作伙伴共同推进');
+Finder composer() => find.byKey(const ValueKey('composer-input'));
 Future<void> openMentions(WidgetTester tester) async {
   await tester.tap(find.byTooltip('提及成员'));
   await tester.pumpAndSettle();
@@ -102,8 +104,9 @@ Future<void> selectAllAndAgent(WidgetTester tester) async {
 }
 
 Future<void> sendComposer(WidgetTester tester) async {
-  await tester.ensureVisible(find.text('发送'));
-  await tester.tap(find.text('发送'));
+  await tester.pump();
+  await tester.ensureVisible(find.byKey(const ValueKey('composer-send')));
+  await tester.tap(find.byKey(const ValueKey('composer-send')));
   await tester.pumpAndSettle();
 }
 
@@ -354,7 +357,8 @@ void main() {
       await mountConversation(tester, state);
       await selectAllAndAgent(tester);
       await tester.enterText(composer(), '原群待确认');
-      await tester.tap(find.text('发送'));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('composer-send')));
       await tester.pump();
       state.changeRoom('room-b');
       await tester.pumpAndSettle();
@@ -379,7 +383,8 @@ void main() {
       await mountConversation(tester, state);
       await selectAllAndAgent(tester);
       await tester.enterText(composer(), '旧身份的群体提及');
-      await tester.tap(find.text('发送'));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('composer-send')));
       await tester.pump();
       state.changeIdentity();
       await tester.pumpAndSettle();
