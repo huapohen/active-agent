@@ -137,6 +137,20 @@ class _OfficeShellState extends State<OfficeShell> {
       }
     }
 
+    void manage(String action) {
+      if (!current()) return;
+      if (drawerContext != null) {
+        if (drawerContext.mounted &&
+            ModalRoute.of(drawerContext)?.isCurrent == true) {
+          Navigator.pop(drawerContext, action);
+        }
+      } else if (action == 'manage') {
+        showOfficeMessageGroupEditor(context, _messageGroups);
+      } else {
+        showOfficeMessageLabelEditor(context, _messageGroups);
+      }
+    }
+
     return OfficeMessageGroupPanel(
       controller: _messageGroups,
       mobile: drawerContext != null,
@@ -146,12 +160,8 @@ class _OfficeShellState extends State<OfficeShell> {
         _selectMessageGroup(id);
         if (drawerContext != null) close();
       },
-      onManage: () {
-        if (current()) showOfficeMessageGroupEditor(context, _messageGroups);
-      },
-      onCreateLabel: () {
-        if (current()) showOfficeMessageLabelEditor(context, _messageGroups);
-      },
+      onManage: () => manage('manage'),
+      onCreateLabel: () => manage('create-label'),
     );
   }
 
@@ -167,46 +177,65 @@ class _OfficeShellState extends State<OfficeShell> {
     if (_mobileGroupsOpen) return;
     final identity = _identityKey;
     setState(() => _mobileGroupsOpen = true);
+    String? action;
+    ModalRoute<String>? drawerRoute;
     try {
-      await showDialog<void>(
+      action = await showDialog<String>(
         context: context,
+        useSafeArea: false,
         barrierColor: Colors.black38,
-        builder: (drawerContext) => Align(
-          alignment: Alignment.centerLeft,
-          child: SizedBox(
-            width: (MediaQuery.sizeOf(drawerContext).width * .78).clamp(
-              240,
-              350,
-            ),
-            height: double.infinity,
-            child: SafeArea(
-              child: AnimatedBuilder(
-                animation: s,
-                builder: (_, _) => identity == _identityKey
-                    ? _groupPanel(drawerContext: drawerContext)
-                    : Material(
-                        color: Colors.white,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.all(20),
-                              child: Text('工作身份已变化，请重新打开分组。'),
+        builder: (drawerContext) {
+          drawerRoute = ModalRoute.of<String>(drawerContext);
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: (MediaQuery.sizeOf(drawerContext).width * .80).clamp(
+                240,
+                350,
+              ),
+              height: double.infinity,
+              child: Material(
+                key: const ValueKey('message-groups-mobile-surface'),
+                color: Colors.white,
+                child: SafeArea(
+                  child: AnimatedBuilder(
+                    animation: s,
+                    builder: (_, _) => identity == _identityKey
+                        ? _groupPanel(drawerContext: drawerContext)
+                        : Material(
+                            color: Colors.white,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: Text('工作身份已变化，请重新打开分组。'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(drawerContext),
+                                  child: const Text('关闭'),
+                                ),
+                              ],
                             ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(drawerContext),
-                              child: const Text('关闭'),
-                            ),
-                          ],
-                        ),
-                      ),
+                          ),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       );
+      // The edit sheet starts only after the drawer overlay has left the
+      // screen; a retained drawer callback must never pop that newer route.
+      await drawerRoute?.completed;
     } finally {
       if (mounted) setState(() => _mobileGroupsOpen = false);
+    }
+    if (!mounted || identity != _identityKey) return;
+    if (action == 'manage') {
+      await showOfficeMessageGroupEditor(context, _messageGroups);
+    } else if (action == 'create-label') {
+      await showOfficeMessageLabelEditor(context, _messageGroups);
     }
   }
 

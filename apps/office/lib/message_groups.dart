@@ -85,8 +85,16 @@ class OfficeMessageGroups extends ChangeNotifier {
     if (_disposed || (value['revision'] as num) < revision) return;
     snapshot = value;
     error = null;
-    if (group(selectedId) == null ||
-        (group(selectedId)?['visible'] != true &&
+    final selected = group(selectedId);
+    final parentId =
+        selected?['parent_id'] ??
+        (selected?['type'] == 'label' && group('labels') != null
+            ? 'labels'
+            : null);
+    final parentVisible =
+        parentId == null || group(parentId)?['visible'] == true;
+    if (selected == null ||
+        ((selected['visible'] != true || !parentVisible) &&
             !shortcuts.contains(selectedId))) {
       selectedId = 'messages';
     }
@@ -132,11 +140,13 @@ class OfficeMessageGroups extends ChangeNotifier {
     required List<String> order,
     required List<String> hiddenIds,
     required List<String> shortcutIds,
+    Map<String, String>? messageDisplayRules,
   }) => write('/message-groups', 'PATCH', {
     'base_revision': baseRevision,
     'order': order,
     'hidden_ids': hiddenIds,
     'shortcut_ids': shortcutIds,
+    'message_display_rules': ?messageDisplayRules,
   });
 
   Future<Json> createLabel({

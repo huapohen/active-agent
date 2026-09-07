@@ -1,0 +1,118 @@
+{
+  "conversion": "Original library SVG paths wrapped in SVG viewport, rendered at 96x96 transparent PNG using rsvg-convert; runtime tint only. No paths redrawn.",
+  "libraries": {
+    "solar": {
+      "info": {
+        "name": "Solar",
+        "total": 7608,
+        "author": {
+          "name": "480 Design",
+          "url": "https://www.figma.com/community/file/1166831539721848736"
+        },
+        "license": {
+          "title": "CC BY 4.0",
+          "spdx": "CC-BY-4.0",
+          "url": "https://creativecommons.org/licenses/by/4.0/"
+        },
+        "samples": [
+          "magnifier-zoom-out-broken",
+          "armchair-2-bold-duotone",
+          "traffic-economy-line-duotone",
+          "user-rounded-bold-duotone",
+          "soundwave-linear",
+          "hamburger-menu-broken"
+        ],
+        "height": 24,
+        "category": "UI 24px",
+        "tags": [
+          "Precise Shapes",
+          "Has Padding",
+          "Uses Stroke"
+        ],
+        "palette": false
+      },
+      "iconify_collection_source_url": "https://raw.githubusercontent.com/iconify/icon-sets/master/json/solar.json",
+      "iconify_collection_git_blob_sha": "0aad4db4e1e1b8b7da2522e7a94fc186a6c1a84e",
+      "iconify_collection_sha256": "987f4d4b05e68f8ed0140fcfcb3f91f5226cc35d9cf47e5f64267c55903eec14"
+    },
+    "tabler": {
+      "info": {
+        "name": "Tabler Icons",
+        "total": 6184,
+        "version": "3.46.0",
+        "author": {
+          "name": "Paweł Kuna",
+          "url": "https://github.com/tabler/tabler-icons"
+        },
+        "license": {
+          "title": "MIT",
+          "spdx": "MIT",
+          "url": "https://github.com/tabler/tabler-icons/blob/master/LICENSE"
+        },
+        "samples": [
+          "alien",
+          "device-desktop",
+          "photo",
+          "chevron-right",
+          "check",
+          "square-root"
+        ],
+        "height": 24,
+        "category": "UI 24px",
+        "tags": [
+          "Precise Shapes",
+          "Has Padding",
+          "Uses Stroke"
+        ],
+        "palette": false
+      },
+      "iconify_collection_source_url": "https://raw.githubusercontent.com/iconify/icon-sets/master/json/tabler.json",
+      "iconify_collection_git_blob_sha": "e971f683c6886aaf24179ffcad28e46b9d5aac0a",
+      "iconify_collection_sha256": "0efe30fc0f1e88b243e0f9511b2317995c75aea722210972b3dd3cbbd45ee70a",
+      "license_source": {
+        "sha": "3e82379dab3fe93d9ee22251949604ed63ddea39",
+        "download_url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/LICENSE",
+        "path": "LICENSE",
+        "sha256": "b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db"
+      }
+    }
+  },
+  "assets": [
+    {
+      "asset": "solar-chat-round-unread-linear.png",
+      "library": "solar",
+      "icon": "chat-round-unread-linear",
+      "license": "CC-BY-4.0",
+      "source_body_sha256": "d569aaf7c02007fadca89484e5ca6edc9632b23fb86d1fc5f11551c689ba4575",
+      "wrapped_svg_sha256": "be33f88c30c2ac784b670037b2b29952c9856008cf9ed71b12fd1b2d695a94c4",
+      "png_sha256": "164e139ce2a05dd45fbd6277f2900c3442e3fd2531ea5e60cef8c52d3c7946f4"
+    },
+    {
+      "asset": "solar-chat-round-check-linear.png",
+      "library": "solar",
+      "icon": "chat-round-check-linear",
+      "license": "CC-BY-4.0",
+      "source_body_sha256": "e618bd69600353b03a16d936178e181934ad4d811ea38c631f123f4c311e61ed",
+      "wrapped_svg_sha256": "97e184545295f29f3a4f4e6a6d21de51fe17188698f9e1a0a6a3a6e8eca4308f",
+      "png_sha256": "9cd1da7493807ee9afb4f69959ee94dc0a1378a1c31c888726c444c4f18fa8e7"
+    },
+    {
+      "asset": "tabler-flag-3.png",
+      "library": "tabler",
+      "icon": "flag-3",
+      "license": "MIT",
+      "source_body_sha256": "dad6e70187220d49e39293105a757b2db9e341438ea4f5ec944cee6c11443e17",
+      "wrapped_svg_sha256": "9e7eeec0703c9896f2ab475f1f4213535686dc83168231374073fa6e0210e158",
+      "png_sha256": "a5458b0ea0fb17351339004c9366b54a904ed79ba05cac7aa228c966f2dab85a"
+    },
+    {
+      "asset": "tabler-message-2.png",
+      "library": "tabler",
+      "icon": "message-2",
+      "license": "MIT",
+      "source_body_sha256": "65b4ba43377ade0e4cac6c8fb37a2382d2aae906109ab7a4c4783f4fc1736fa3",
+      "wrapped_svg_sha256": "72edf9948b06762e306a3899d493b743c3c928ab628ba273ca1fd51d0196b948",
+      "png_sha256": "b684524f96f780e40df3463fb124a6f2931da649a93ed627bdca78d75028dbd5"
+    }
+  ]
+}

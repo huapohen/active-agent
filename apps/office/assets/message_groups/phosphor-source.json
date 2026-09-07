@@ -1,0 +1,18 @@
+{
+  "library": "Phosphor Icons",
+  "license": "MIT",
+  "conversion": "Unmodified SVG paths rendered as a 96x96 transparent PNG by rsvg-convert.",
+  "source": {
+    "sha": "38d9cf0f8a2acba6af6ca782f09d495d39ed6bf1",
+    "path": "assets/regular/chat-circle-text.svg",
+    "html_url": "https://github.com/phosphor-icons/core/blob/main/assets/regular/chat-circle-text.svg",
+    "download_url": "https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/chat-circle-text.svg",
+    "sha256": "782e66bd9b7f809fe8f955d5b41ae9ebffd4cbf59661688dbfd497bfea621f56"
+  },
+  "license_source": {
+    "sha": "78c9810819776e135d314adc0ff26eda7bec8b38",
+    "path": "LICENSE",
+    "html_url": "https://github.com/phosphor-icons/core/blob/main/LICENSE",
+    "download_url": "https://raw.githubusercontent.com/phosphor-icons/core/main/LICENSE"
+  }
+}

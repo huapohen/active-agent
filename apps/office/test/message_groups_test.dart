@@ -31,7 +31,7 @@ Json groupSnapshot(String principal, {int revision = 1}) {
     'marked': '标记',
     'mentions': '@我',
     'direct': '单聊',
-    'groups': '群聊',
+    'groups': '群组',
     'completed': '已完成',
     'muted': '免打扰',
     'agents': 'Agent单聊',
@@ -461,7 +461,7 @@ void main() {
           expect(panel, findsOneWidget);
           final width = tester.getSize(panel).width;
           if (size.width < 760) {
-            expect(width, closeTo(size.width * .78, 1));
+            expect(width, closeTo(size.width * .80, 1));
             expect(tester.getTopLeft(panel).dx, 0);
           } else {
             expect(width, inInclusiveRange(140, 200));
@@ -483,7 +483,7 @@ void main() {
         expect(find.text('人类同事单聊'), findsNothing);
         expect(find.text('Agent 同事单聊'), findsOneWidget);
         expect(find.text('人机共同项目群'), findsNothing);
-        await choose('群聊');
+        await choose('群组');
         expect(find.text('人机共同项目群'), findsOneWidget);
         expect(find.text('人类同事单聊'), findsNothing);
         expect(find.text('Agent 同事单聊'), findsNothing);

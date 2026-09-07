@@ -203,7 +203,7 @@ void main() {
         await tester.tap(find.byTooltip('消息分组'));
         await tester.pumpAndSettle();
         final panel = find.byType(OfficeMessageGroupPanel);
-        final group = find.descendant(of: panel, matching: find.text('群聊'));
+        final group = find.descendant(of: panel, matching: find.text('群组'));
         await tester.ensureVisible(group);
         await tester.tap(group);
         await tester.pumpAndSettle();

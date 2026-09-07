@@ -28,5 +28,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/branding/rocket.png
+    - assets/message_groups/
     - assets/emoji/catalog.json
     - assets/emoji/feishu/

@@ -1,0 +1,109 @@
+{
+  "library": "Remix Icon",
+  "version": "4.6.0",
+  "license": "Apache-2.0",
+  "source_tree_sha": "8bc436bdd329cf342958d8effdd078bfa74354c6",
+  "conversion": "Unmodified SVG paths rendered to 96x96 transparent PNG by rsvg-convert; UI tint applied at runtime.",
+  "sources": [
+    {
+      "path": "License",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+      "size": 11357,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/License",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "icons/Business/at-line.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6cd84a0596890721475590e6250b85e9398a31b5",
+      "size": 732,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/6cd84a0596890721475590e6250b85e9398a31b5",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/icons/Business/at-line.svg",
+      "sha256": "ce17fb4fd2d3c703b79bda6169f1d99e39f222de7a8109393122d457a80c1002"
+    },
+    {
+      "path": "icons/Business/flag-line.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "03111ff654838ad06e9aee480e21185f1c3edd46",
+      "size": 340,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/03111ff654838ad06e9aee480e21185f1c3edd46",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/icons/Business/flag-line.svg",
+      "sha256": "f2a7780e8041a40fafea07e39146d81f9f32f43508088c7cb21cb14f06895f16"
+    },
+    {
+      "path": "icons/Communication/chat-check-line.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "65cad395c9987e89ca073e2d289501d85a0b9ee3",
+      "size": 362,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/65cad395c9987e89ca073e2d289501d85a0b9ee3",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/icons/Communication/chat-check-line.svg",
+      "sha256": "2db0e0dcfaa44bff04191c3343482da9ae1cdf6f21717107ff91135b9448cf52"
+    },
+    {
+      "path": "icons/Communication/chat-unread-line.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "564c5e04bf024cd9457a036cb5a83e13edb79c9d",
+      "size": 458,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/564c5e04bf024cd9457a036cb5a83e13edb79c9d",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/icons/Communication/chat-unread-line.svg",
+      "sha256": "ba1513f8caf5f4aab352502bfce5cd5f5d419ead569c7be29b85161462977317"
+    },
+    {
+      "path": "icons/Communication/feedback-line.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5c38e3f7cdec9a355dbc2d0bb2917c19ec9da0aa",
+      "size": 284,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/5c38e3f7cdec9a355dbc2d0bb2917c19ec9da0aa",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/icons/Communication/feedback-line.svg",
+      "sha256": "28026c5aee2d309d4fb4d9d2bf2d07dda1ae342382771668a9d587e215485459"
+    },
+    {
+      "path": "icons/Document/file-cloud-line.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9edd3f66168d479eaa537589a6fd8233746d270d",
+      "size": 1049,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/9edd3f66168d479eaa537589a6fd8233746d270d",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/icons/Document/file-cloud-line.svg",
+      "sha256": "d9b1c7fec2a39d5a1a6b9d7e98358b095ea6bfc0c57963dca7ab3de3e3d2ac90"
+    },
+    {
+      "path": "icons/System/list-settings-line.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2de6e8b5e6a5fede754394883c075fd3f3289df7",
+      "size": 850,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/2de6e8b5e6a5fede754394883c075fd3f3289df7",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/icons/System/list-settings-line.svg",
+      "sha256": "6c5484b05244cb686a2a5bcc0db79801eb853372e1c124190741953fd18e6186"
+    },
+    {
+      "path": "icons/User & Faces/group-line.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6788283b96942f19544e56b5fae7195ba615b3e4",
+      "size": 704,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/6788283b96942f19544e56b5fae7195ba615b3e4",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/icons/User%20%26%20Faces/group-line.svg",
+      "sha256": "b3219248ec1cc9eb4ddd33b0e83ac4fcc4e2a2a0df23c68f867a63641ed0a808"
+    },
+    {
+      "path": "icons/User & Faces/user-line.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c4292eb2bdd3bcfa0bd5edf75661fdf57fcbe8c3",
+      "size": 406,
+      "url": "https://api.github.com/repos/Remix-Design/RemixIcon/git/blobs/c4292eb2bdd3bcfa0bd5edf75661fdf57fcbe8c3",
+      "source_url": "https://raw.githubusercontent.com/Remix-Design/RemixIcon/v4.6.0/icons/User%20%26%20Faces/user-line.svg",
+      "sha256": "44ce27189cac344f59aae27ef4e353f3cc1bafc19b1112b682e4cccc6f938a02"
+    }
+  ]
+}

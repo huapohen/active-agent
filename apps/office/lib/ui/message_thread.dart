@@ -11,12 +11,14 @@ Future<void> showOfficeMessageThread(
   BuildContext context,
   OfficeState state,
   String roomId,
-  Json rootMessage,
-) {
+  Json rootMessage, {
+  bool createTopic = false,
+}) {
   final panel = OfficeMessageThread(
     state: state,
     roomId: roomId,
     rootMessage: rootMessage,
+    createTopic: createTopic,
   );
   if (MediaQuery.sizeOf(context).width < 760) {
     return showModalBottomSheet<void>(
@@ -54,10 +56,12 @@ class OfficeMessageThread extends StatefulWidget {
     required this.state,
     required this.roomId,
     required this.rootMessage,
+    this.createTopic = false,
   });
   final OfficeState state;
   final String roomId;
   final Json rootMessage;
+  final bool createTopic;
   @override
   State<OfficeMessageThread> createState() => _OfficeMessageThreadState();
 }
@@ -67,11 +71,13 @@ class _OfficeMessageThreadState extends State<OfficeMessageThread> {
   late final (OfficeState, int, String, String) _identity;
   late final String _rootId, _roomId;
   Json? _root, _replyTo;
+  Json? _topic;
   List<Json> _messages = [];
   int _cursor = 0, _total = 0, _intent = 0;
   bool _busy = false, _sending = false, _hasMore = false, _expired = false;
   String? _loadError, _sendError;
   bool _refreshQueued = false;
+  bool _reopenRequired = false;
   OfficeState get s => widget.state;
   (OfficeState, int, String, String) get _currentIdentity =>
       (s, s.identityGeneration, s.endpoint, personId(s.me ?? {}));
@@ -97,6 +103,7 @@ class _OfficeMessageThreadState extends State<OfficeMessageThread> {
       _intent++;
       _input.clear();
       _root = _replyTo = null;
+      _topic = null;
       _messages = [];
       _loadError = _sendError = null;
       setState(() {});
@@ -128,7 +135,7 @@ class _OfficeMessageThreadState extends State<OfficeMessageThread> {
   }
 
   Future<void> _load({bool more = false, int? through}) async {
-    if (!_current || _busy || !s.connected) return;
+    if (!_current || _busy || !s.connected || _reopenRequired) return;
     final intent = ++_intent;
     final target = through ?? _cursor;
     var after = more ? _cursor : 0;
@@ -138,12 +145,42 @@ class _OfficeMessageThreadState extends State<OfficeMessageThread> {
       _loadError = null;
     });
     try {
+      if (widget.createTopic && _topic == null) {
+        final topic = await s.createMessageTopic(_roomId, widget.rootMessage);
+        if (!mounted || !_current || intent != _intent) return;
+        if (topic['room_id'] != _roomId ||
+            topic['root_message_id'] != _rootId ||
+            str(topic['id']).isEmpty) {
+          throw OfficeException(502, '话题响应不完整，请重试');
+        }
+        _topic = topic;
+      }
+      if (widget.createTopic) {
+        final detail = await s.officeRequest(
+          '/rooms/${Uri.encodeComponent(_roomId)}/topics/${Uri.encodeComponent(str(_topic!['id']))}',
+        );
+        if (!mounted || !_current || intent != _intent) return;
+        final topic = detail['topic'];
+        if (topic is! Map ||
+            topic['id'] != _topic!['id'] ||
+            topic['room_id'] != _roomId ||
+            topic['root_message_id'] != _rootId) {
+          throw OfficeException(502, '话题响应不完整，请重试');
+        }
+      }
       late Json result;
       do {
         result = await s.officeRequest(
           '/rooms/${Uri.encodeComponent(_roomId)}/messages/${Uri.encodeComponent(_rootId)}/thread?after=$after&limit=50',
         );
         if (!mounted || !_current || intent != _intent) return;
+        if (widget.createTopic) {
+          final root = result['root_message'];
+          if (root is Map &&
+              (root['hidden'] == true || root['retracted_at'] != null)) {
+            throw OfficeException(409, '原消息已隐藏或撤回，当前话题不可用');
+          }
+        }
         collected.addAll(maps(result['messages']));
         final next = (result['after_cursor'] as num?)?.toInt() ?? after;
         if (result['has_more'] == true && next <= after) {
@@ -175,9 +212,17 @@ class _OfficeMessageThreadState extends State<OfficeMessageThread> {
     } catch (error) {
       if (mounted && _current && intent == _intent) {
         setState(() {
-          _loadError = friendlyError(error);
+          _reopenRequired =
+              widget.createTopic &&
+              _topic == null &&
+              error is OfficeException &&
+              error.code == 'conflict';
+          _loadError = _reopenRequired
+              ? '原消息已变化，请关闭后重新打开话题。'
+              : friendlyError(error);
           if (error is OfficeException &&
-              [401, 403, 404].contains(error.status)) {
+              ([401, 403, 404].contains(error.status) ||
+                  widget.createTopic && error.status == 409)) {
             _root = _replyTo = null;
             _messages = [];
           }
@@ -322,7 +367,9 @@ class _OfficeMessageThreadState extends State<OfficeMessageThread> {
                 if (_current)
                   IconButton(
                     tooltip: '刷新话题',
-                    onPressed: _busy || !s.connected ? null : _load,
+                    onPressed: _busy || !s.connected || _reopenRequired
+                        ? null
+                        : _load,
                     icon: const Icon(Icons.refresh, size: 20),
                   ),
                 IconButton(
@@ -344,7 +391,7 @@ class _OfficeMessageThreadState extends State<OfficeMessageThread> {
                 children: [
                   if (!s.connected) const Text('连接已中断，回复草稿已保留。'),
                   BusinessError(_loadError),
-                  if (_loadError != null)
+                  if (_loadError != null && !_reopenRequired)
                     TextButton(
                       onPressed: _busy || !s.connected ? null : _load,
                       child: const Text('重新加载话题'),

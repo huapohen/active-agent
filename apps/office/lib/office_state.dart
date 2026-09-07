@@ -1920,6 +1920,15 @@ class OfficeState extends ChangeNotifier {
     'message',
   );
 
+  Future<Json> createMessageTopic(
+    String roomId,
+    Json rootMessage,
+  ) => _createOfficeItem(
+    '/rooms/${Uri.encodeComponent(roomId)}/messages/${Uri.encodeComponent(rootMessage['id'] as String)}/topic',
+    {'base_revision': rootMessage['revision']},
+    'topic',
+  );
+
   Future<Json> uploadAttachment(
     String filename,
     Uint8List bytes, {

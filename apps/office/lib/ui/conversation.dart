@@ -816,7 +816,13 @@ class _OfficeConversationState extends State<OfficeConversation>
       } else if (action == 'topic') {
         if (sourceRoomId != null) {
           await _showPanel(
-            () => showOfficeMessageThread(context, s, sourceRoomId, message),
+            () => showOfficeMessageThread(
+              context,
+              s,
+              sourceRoomId,
+              message,
+              createTopic: true,
+            ),
           );
         }
       } else if (action == 'agent') {
