@@ -51,10 +51,14 @@ class OfficeMessageGroupPanel extends StatefulWidget {
     required this.onSelected,
     required this.onManage,
     required this.onCreateLabel,
+    this.onClose,
+    this.mobile = false,
   });
   final OfficeMessageGroups controller;
   final ValueChanged<String> onSelected;
   final VoidCallback onManage, onCreateLabel;
+  final VoidCallback? onClose;
+  final bool mobile;
   @override
   State<OfficeMessageGroupPanel> createState() =>
       _OfficeMessageGroupPanelState();
@@ -117,22 +121,69 @@ class _OfficeMessageGroupPanelState extends State<OfficeMessageGroupPanel> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+              padding: widget.mobile
+                  ? const EdgeInsets.fromLTRB(16, 14, 8, 8)
+                  : const EdgeInsets.fromLTRB(7, 10, 8, 10),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: Text(
-                      '分组',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                  if (!widget.mobile && widget.onClose != null)
+                    IconButton(
+                      key: const ValueKey('message-groups-close'),
+                      tooltip: '收起消息分组',
+                      onPressed: widget.onClose,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 32,
+                        height: 32,
+                      ),
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(32, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.menu, color: mutedColor, size: 20),
+                    ),
+                  Expanded(
+                    child: GestureDetector(
+                      onLongPress: c.loaded ? widget.onManage : null,
+                      onSecondaryTap: c.loaded ? widget.onManage : null,
+                      child: const Text(
+                        '分组',
+                        key: ValueKey('message-groups-title'),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
                   IconButton(
-                    tooltip: '编辑消息分组',
-                    onPressed: c.loaded ? widget.onManage : null,
-                    icon: const Icon(Icons.settings_outlined, size: 18),
+                    key: ValueKey(
+                      widget.mobile && widget.onClose != null
+                          ? 'message-groups-close'
+                          : 'message-groups-manage',
+                    ),
+                    tooltip: widget.mobile && widget.onClose != null
+                        ? '收起消息分组'
+                        : '编辑消息分组',
+                    onPressed: widget.mobile && widget.onClose != null
+                        ? widget.onClose
+                        : (c.loaded ? widget.onManage : null),
+                    constraints: widget.mobile
+                        ? null
+                        : const BoxConstraints.tightFor(width: 32, height: 32),
+                    style: widget.mobile
+                        ? null
+                        : IconButton.styleFrom(
+                            minimumSize: const Size(32, 32),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                    padding: widget.mobile ? null : EdgeInsets.zero,
+                    icon: Icon(
+                      widget.mobile && widget.onClose != null
+                          ? Icons.menu
+                          : Icons.settings_outlined,
+                      size: widget.mobile && widget.onClose != null ? 20 : 18,
+                    ),
                   ),
                 ],
               ),

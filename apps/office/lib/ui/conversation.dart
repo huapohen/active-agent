@@ -2523,6 +2523,15 @@ class _OfficeConversationState extends State<OfficeConversation>
                         minLines: 1,
                         maxLines: 7,
                         maxLength: 12000,
+                        textInputAction: widget.mobile
+                            ? TextInputAction.send
+                            : null,
+                        // Keep the composing range until the submitted action
+                        // has been checked; the default completion clears it.
+                        onEditingComplete: widget.mobile ? () {} : null,
+                        onSubmitted: widget.mobile
+                            ? _submitMobileComposer
+                            : null,
                         style: const TextStyle(fontSize: 13, height: 1.7),
                         decoration: InputDecoration(
                           hintText:
@@ -2739,18 +2748,16 @@ class _OfficeConversationState extends State<OfficeConversation>
               },
             ),
           ],
-          if (value.text.trim().isNotEmpty || _attachments.isNotEmpty)
-            _composerIcon(
-              'composer-send',
-              _sending ? '发送中' : '发送',
-              Icons.send_rounded,
-              _canSendDraft ? _send : null,
-              color: accentColor,
-            ),
         ],
       ),
     ),
   );
+
+  void _submitMobileComposer(String _) {
+    final composing = _input.value.composing;
+    if (composing.isValid && !composing.isCollapsed) return;
+    _send();
+  }
 
   bool get _canSendDraft =>
       !_sending &&

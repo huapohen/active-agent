@@ -61,6 +61,9 @@ class _OfficeShellState extends State<OfficeShell> {
   }
 
   bool _groupsOpen = false;
+  String? _groupsIdentity;
+  bool get _desktopGroupsOpen => _groupsOpen && _groupsIdentity == _identityKey;
+  bool _mobileGroupsOpen = false;
   bool _moreOpen = false;
   String? _moreIdentity;
   bool get _moreVisible => _moreOpen && _moreIdentity == _identityKey;
@@ -120,34 +123,91 @@ class _OfficeShellState extends State<OfficeShell> {
     _messageGroups.select(id);
   }
 
-  Widget _groupPanel({BuildContext? drawerContext}) => OfficeMessageGroupPanel(
-    controller: _messageGroups,
-    onSelected: (id) {
-      _selectMessageGroup(id);
-      if (drawerContext != null) Navigator.pop(drawerContext);
-    },
-    onManage: () => showOfficeMessageGroupEditor(context, _messageGroups),
-    onCreateLabel: () => showOfficeMessageLabelEditor(context, _messageGroups),
-  );
+  Widget _groupPanel({BuildContext? drawerContext}) {
+    final identity = _identityKey;
+    bool current() => mounted && identity == _identityKey;
+    void close() {
+      if (drawerContext != null) {
+        if (drawerContext.mounted &&
+            ModalRoute.of(drawerContext)?.isCurrent == true) {
+          Navigator.pop(drawerContext);
+        }
+      } else if (current()) {
+        setState(() => _groupsOpen = false);
+      }
+    }
 
-  void _toggleGroups(bool mobile) {
+    return OfficeMessageGroupPanel(
+      controller: _messageGroups,
+      mobile: drawerContext != null,
+      onClose: close,
+      onSelected: (id) {
+        if (!current()) return;
+        _selectMessageGroup(id);
+        if (drawerContext != null) close();
+      },
+      onManage: () {
+        if (current()) showOfficeMessageGroupEditor(context, _messageGroups);
+      },
+      onCreateLabel: () {
+        if (current()) showOfficeMessageLabelEditor(context, _messageGroups);
+      },
+    );
+  }
+
+  Future<void> _toggleGroups(bool mobile) async {
     if (!_messageGroups.loaded) unawaited(_messageGroups.refresh());
     if (!mobile) {
-      setState(() => _groupsOpen = !_groupsOpen);
+      setState(() {
+        _groupsOpen = !_desktopGroupsOpen;
+        _groupsIdentity = _identityKey;
+      });
       return;
     }
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black38,
-      builder: (drawerContext) => Align(
-        alignment: Alignment.centerLeft,
-        child: SizedBox(
-          width: (MediaQuery.sizeOf(drawerContext).width * .78).clamp(240, 350),
-          height: double.infinity,
-          child: SafeArea(child: _groupPanel(drawerContext: drawerContext)),
+    if (_mobileGroupsOpen) return;
+    final identity = _identityKey;
+    setState(() => _mobileGroupsOpen = true);
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierColor: Colors.black38,
+        builder: (drawerContext) => Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: (MediaQuery.sizeOf(drawerContext).width * .78).clamp(
+              240,
+              350,
+            ),
+            height: double.infinity,
+            child: SafeArea(
+              child: AnimatedBuilder(
+                animation: s,
+                builder: (_, _) => identity == _identityKey
+                    ? _groupPanel(drawerContext: drawerContext)
+                    : Material(
+                        color: Colors.white,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Text('工作身份已变化，请重新打开分组。'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(drawerContext),
+                              child: const Text('关闭'),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      if (mounted) setState(() => _mobileGroupsOpen = false);
+    }
   }
 
   String get _identityKey =>
@@ -542,7 +602,9 @@ class _OfficeShellState extends State<OfficeShell> {
                   : Row(
                       children: [
                         _rail(),
-                        if (_nav == 0 && s.moduleAvailable('im') && _groupsOpen)
+                        if (_nav == 0 &&
+                            s.moduleAvailable('im') &&
+                            _desktopGroupsOpen)
                           Container(
                             width: 160,
                             margin: const EdgeInsets.fromLTRB(0, 10, 8, 10),
@@ -1321,7 +1383,9 @@ class _OfficeShellState extends State<OfficeShell> {
     return Column(
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(19, mobile ? 20 : 22, 12, 15),
+          padding: mobile
+              ? const EdgeInsets.fromLTRB(19, 20, 12, 15)
+              : const EdgeInsets.fromLTRB(7, 10, 8, 10),
           child: Row(
             children: [
               if (mobile) ...[
@@ -1334,6 +1398,22 @@ class _OfficeShellState extends State<OfficeShell> {
                 ),
                 const SizedBox(width: 11),
               ],
+              if (!mobile && !_desktopGroupsOpen)
+                IconButton(
+                  key: const ValueKey('message-groups-open'),
+                  onPressed: () => _toggleGroups(false),
+                  tooltip: '消息分组',
+                  constraints: const BoxConstraints.tightFor(
+                    width: 32,
+                    height: 32,
+                  ),
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(32, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.menu, color: mutedColor, size: 20),
+                ),
               Expanded(
                 child: mobile
                     ? Column(
@@ -1355,8 +1435,9 @@ class _OfficeShellState extends State<OfficeShell> {
                       )
                     : const Text(
                         '消息',
+                        key: ValueKey('message-list-title'),
                         style: TextStyle(
-                          fontSize: 23,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1366,18 +1447,11 @@ class _OfficeShellState extends State<OfficeShell> {
                   tooltip: '全局搜索',
                   onPressed: () => setState(() => _searchOpen = true),
                   icon: const Icon(Icons.search, size: 22),
-                )
-              else
-                IconButton(
-                  onPressed: () => _toggleGroups(false),
-                  tooltip: '消息分组',
-                  icon: Icon(
-                    Icons.menu,
-                    color: _groupsOpen ? accentColor : mutedColor,
-                    size: 20,
-                  ),
                 ),
-              _quickMenu(),
+              if (mobile)
+                _quickMenu()
+              else
+                SizedBox(width: 32, height: 32, child: _quickMenu()),
             ],
           ),
         ),
@@ -1430,8 +1504,9 @@ class _OfficeShellState extends State<OfficeShell> {
           padding: const EdgeInsets.fromLTRB(18, 2, 18, 10),
           child: Row(
             children: [
-              if (mobile)
+              if (mobile && !_mobileGroupsOpen)
                 IconButton(
+                  key: const ValueKey('message-groups-open'),
                   tooltip: '消息分组',
                   onPressed: () => _toggleGroups(true),
                   icon: const Icon(Icons.menu, size: 20),

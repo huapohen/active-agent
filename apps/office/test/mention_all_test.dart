@@ -105,8 +105,8 @@ Future<void> selectAllAndAgent(WidgetTester tester) async {
 
 Future<void> sendComposer(WidgetTester tester) async {
   await tester.pump();
-  await tester.ensureVisible(find.byKey(const ValueKey('composer-send')));
-  await tester.tap(find.byKey(const ValueKey('composer-send')));
+  await tester.showKeyboard(composer());
+  await tester.testTextInput.receiveAction(TextInputAction.send);
   await tester.pumpAndSettle();
 }
 
@@ -358,7 +358,7 @@ void main() {
       await selectAllAndAgent(tester);
       await tester.enterText(composer(), '原群待确认');
       await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('composer-send')));
+      await tester.testTextInput.receiveAction(TextInputAction.send);
       await tester.pump();
       state.changeRoom('room-b');
       await tester.pumpAndSettle();
@@ -384,7 +384,7 @@ void main() {
       await selectAllAndAgent(tester);
       await tester.enterText(composer(), '旧身份的群体提及');
       await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('composer-send')));
+      await tester.testTextInput.receiveAction(TextInputAction.send);
       await tester.pump();
       state.changeIdentity();
       await tester.pumpAndSettle();

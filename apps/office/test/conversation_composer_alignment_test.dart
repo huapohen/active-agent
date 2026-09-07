@@ -125,6 +125,12 @@ Future<void> click(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> sendFromMobileKeyboard(WidgetTester tester) async {
+  await tester.showKeyboard(input);
+  await tester.testTextInput.receiveAction(TextInputAction.send);
+  await tester.pumpAndSettle();
+}
+
 void mockScreenshot(
   WidgetTester tester,
   Future<Object?> Function(MethodCall) handler,
@@ -458,7 +464,7 @@ void main() {
       await click(tester, find.byKey(const ValueKey('composer-inline-bold')));
       await click(tester, find.byKey(const ValueKey('composer-format-close')));
       expect(find.byKey(const ValueKey('composer-agent')), findsOneWidget);
-      await click(tester, sendButton);
+      await sendFromMobileKeyboard(tester);
       expect(state.sent.single['rich_text'], {
         'version': 1,
         'spans': [
@@ -472,6 +478,71 @@ void main() {
       expect(sendButton, findsNothing);
     },
   );
+  for (final width in [320.0, 390.0]) {
+    for (final keyboard in [false, true]) {
+      for (final formatting in [false, true]) {
+        testWidgets(
+          'mobile ${width.toInt()} ${keyboard ? 'keyboard' : 'no keyboard'} ${formatting ? 'Aa' : 'common'} tools stay fixed through typing and clearing',
+          (tester) async {
+            await mountComposer(
+              tester,
+              ComposerOffice(),
+              width: width,
+              mobile: true,
+            );
+            if (keyboard) {
+              tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+              addTearDown(tester.view.resetViewInsets);
+              await tester.pumpAndSettle();
+            }
+            if (formatting) {
+              await click(
+                tester,
+                find.byKey(const ValueKey('composer-format')),
+              );
+            }
+            final keys = formatting
+                ? [
+                    'composer-format-close',
+                    'composer-inline-bold',
+                    'composer-inline-strikethrough',
+                    'composer-inline-italic',
+                    'composer-inline-underline',
+                    'composer-list-numbered',
+                    'composer-list-bullet',
+                  ]
+                : [
+                    'composer-emoji',
+                    'composer-mention',
+                    'composer-voice',
+                    'composer-images',
+                    'composer-format',
+                    'composer-agent',
+                    'composer-more',
+                  ];
+            final emptyCenters = {
+              for (final key in keys)
+                key: tester.getCenter(find.byKey(ValueKey(key))),
+            };
+            for (final text in ['协作草稿', '']) {
+              await tester.enterText(input, text);
+              await tester.pumpAndSettle();
+              for (final key in keys) {
+                final current = tester.getCenter(find.byKey(ValueKey(key)));
+                expect(
+                  (current - emptyCenters[key]!).distance,
+                  lessThan(.1),
+                  reason:
+                      '$key moved when draft became ${text.isEmpty ? 'empty' : 'nonempty'}',
+                );
+              }
+              expect(tester.takeException(), isNull);
+            }
+          },
+        );
+      }
+    }
+  }
   testWidgets(
     'mobile plus toggles shut on the second tap and retains work tools',
     (tester) async {
@@ -488,18 +559,133 @@ void main() {
     },
   );
   testWidgets(
-    'mobile keyboard leaves input and send above its top edge without overflow',
+    'mobile keyboard leaves input and fixed tools above its top edge without overflow',
     (tester) async {
       await mountComposer(tester, ComposerOffice(), width: 390, mobile: true);
       tester.view.viewInsets = const FakeViewPadding(bottom: 300);
       addTearDown(tester.view.resetViewInsets);
       await tester.enterText(input, '键盘上方的草稿');
       await tester.pumpAndSettle();
-      expect(tester.getRect(sendButton).bottom, lessThanOrEqualTo(544));
+      expect(sendButton, findsNothing);
+      expect(
+        tester
+            .getRect(find.byKey(const ValueKey('mobile-composer-tools')))
+            .bottom,
+        lessThanOrEqualTo(544),
+      );
+      expect(
+        tester.widget<TextField>(input).textInputAction,
+        TextInputAction.send,
+      );
       expect(tester.getRect(input).bottom, lessThanOrEqualTo(544));
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('mobile keyboard send submits once and keeps the input focused', (
+    tester,
+  ) async {
+    final state = ComposerOffice();
+    await mountComposer(tester, state, width: 390, mobile: true);
+    await tester.enterText(input, '键盘发送');
+    expect(sendButton, findsNothing);
+    await sendFromMobileKeyboard(tester);
+    expect(state.sent.single['content'], '键盘发送');
+    expect(tester.widget<TextField>(input).controller!.text, isEmpty);
+    expect(tester.widget<TextField>(input).focusNode!.hasFocus, isTrue);
+    await sendFromMobileKeyboard(tester);
+    expect(state.sent, hasLength(1));
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
+    'mobile keyboard send never submits an unfinished IME candidate',
+    (tester) async {
+      final state = ComposerOffice();
+      await mountComposer(tester, state, width: 390, mobile: true);
+      await tester.showKeyboard(input);
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: '协作',
+          selection: TextSelection.collapsed(offset: 2),
+          composing: TextRange(start: 0, end: 2),
+        ),
+      );
+      await tester.pump();
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pumpAndSettle();
+      expect(state.sent, isEmpty);
+      expect(
+        tester.widget<TextField>(input).controller!.value.composing,
+        const TextRange(start: 0, end: 2),
+      );
+      tester.testTextInput.updateEditingValue(
+        const TextEditingValue(
+          text: '协作',
+          selection: TextSelection.collapsed(offset: 2),
+        ),
+      );
+      await tester.pump();
+      await sendFromMobileKeyboard(tester);
+      expect(state.sent.single['content'], '协作');
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'hardware Enter plus mobile send action share one pending delivery',
+    (tester) async {
+      final state = ComposerOffice()..pendingSend = Completer<Json>();
+      await mountComposer(tester, state, width: 390, mobile: true);
+      await tester.enterText(input, '同一个发送动作');
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await tester.pump();
+      expect(state.sent, hasLength(1));
+      state.pendingSend!.complete({'id': 'sent-once'});
+      await tester.pumpAndSettle();
+      await sendFromMobileKeyboard(tester);
+      expect(state.sent, hasLength(1));
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'mobile send action respects connection and ignores empty drafts',
+    (tester) async {
+      final state = ComposerOffice();
+      await mountComposer(tester, state, width: 320, mobile: true);
+      await sendFromMobileKeyboard(tester);
+      await tester.enterText(input, '  ');
+      await sendFromMobileKeyboard(tester);
+      state.connected = false;
+      await tester.enterText(input, '离线草稿');
+      await sendFromMobileKeyboard(tester);
+      expect(state.sent, isEmpty);
+      expect(tester.widget<TextField>(input).controller!.text, '离线草稿');
+      state.connected = true;
+      await sendFromMobileKeyboard(tester);
+      expect(state.sent.single['content'], '离线草稿');
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets('mobile hardware send keeps the configured modifier shortcut', (
+    tester,
+  ) async {
+    final state = ComposerOffice();
+    state.settings['send_shortcut'] = 'mod_enter';
+    await mountComposer(tester, state, width: 390, mobile: true);
+    await tester.enterText(input, '需要修饰键');
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(state.sent, isEmpty);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pumpAndSettle();
+    expect(state.sent, hasLength(1));
+    await tester.enterText(input, '系统键盘发送');
+    await sendFromMobileKeyboard(tester);
+    expect(state.sent.last['content'], '系统键盘发送');
+    expect(state.sent, hasLength(2));
+    expect(tester.takeException(), isNull);
+  }, variant: const TargetPlatformVariant({TargetPlatform.macOS}));
   testWidgets(
     'mobile expanded title survives collapse and reopening without duplicate encoding',
     (tester) async {
@@ -530,7 +716,7 @@ void main() {
       );
       await click(tester, find.byKey(const ValueKey('expanded-collapse')));
       expect(tester.widget<TextField>(input).controller!.text, '共同计划\n协作正文');
-      await click(tester, sendButton);
+      await sendFromMobileKeyboard(tester);
       expect(state.sent.single['rich_text'], {
         'version': 1,
         'spans': [

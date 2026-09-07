@@ -663,9 +663,29 @@ void main() {
         '布局检查草稿',
       );
       await tester.pumpAndSettle();
-      final send = tester.getRect(find.byKey(const ValueKey('composer-send')));
-      expect(send.right, lessThanOrEqualTo(dimensions.width));
-      expect(send.bottom, lessThanOrEqualTo(dimensions.height));
+      if (dimensions.width < 760) {
+        expect(find.byKey(const ValueKey('composer-send')), findsNothing);
+        final input = find.byKey(const ValueKey('composer-input'));
+        expect(
+          tester.widget<TextField>(input).textInputAction,
+          TextInputAction.send,
+        );
+        for (final control in [
+          input,
+          find.byKey(const ValueKey('composer-more')),
+        ]) {
+          final rect = tester.getRect(control);
+          expect(rect.left, greaterThanOrEqualTo(0));
+          expect(rect.right, lessThanOrEqualTo(dimensions.width));
+          expect(rect.bottom, lessThanOrEqualTo(dimensions.height));
+        }
+      } else {
+        final send = tester.getRect(
+          find.byKey(const ValueKey('composer-send')),
+        );
+        expect(send.right, lessThanOrEqualTo(dimensions.width));
+        expect(send.bottom, lessThanOrEqualTo(dimensions.height));
+      }
       expect(tester.takeException(), isNull);
       if (dimensions.width < 760) {
         await tester.tap(find.byTooltip('返回会话'));
