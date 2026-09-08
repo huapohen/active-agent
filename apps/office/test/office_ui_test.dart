@@ -593,7 +593,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text(tool.$1));
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(TextField, tool.$2), findsOneWidget);
+      expect(
+        tool.$1 == '创建日程'
+            ? find.byKey(const ValueKey('calendar-event-title'))
+            : find.widgetWithText(TextField, tool.$2),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
@@ -717,7 +722,10 @@ void main() {
       }
       await tester.tap(find.text('日历').first);
       await tester.pumpAndSettle();
-      expect(find.text('今天'), findsOneWidget);
+      expect(
+        dimensions.width < 760 ? find.byTooltip('切换日历视图') : find.text('今天'),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
       for (final (entry, id) in [
         ('邮箱', 'mail'),
@@ -882,7 +890,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(state.settings['send_shortcut'], 'mod_enter');
     await tester.scrollUntilVisible(
-      find.text('Agent 与插件'),
+      find.text('Agent 与插件').first,
       250,
       scrollable: find.byType(Scrollable).first,
     );

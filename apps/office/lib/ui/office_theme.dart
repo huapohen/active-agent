@@ -288,16 +288,25 @@ class OfficeSearch extends StatelessWidget {
     required this.hint,
     required this.onChanged,
     this.controller,
+    this.onTap,
+    this.readOnly = false,
   });
   final String hint;
   final ValueChanged<String> onChanged;
   final TextEditingController? controller;
+  final VoidCallback? onTap;
+  final bool readOnly;
   @override
   Widget build(BuildContext context) => SizedBox(
     height: officeFontSize(context, desktop: 33, mobile: 36),
     child: TextField(
       controller: controller,
       onChanged: onChanged,
+      onTap: onTap,
+      readOnly: readOnly,
+      canRequestFocus: !readOnly,
+      showCursor: readOnly ? false : null,
+      enableInteractiveSelection: !readOnly,
       style: TextStyle(
         fontSize: officeFontSize(context, desktop: 12, mobile: 16),
       ),

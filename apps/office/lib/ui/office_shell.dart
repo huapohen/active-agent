@@ -473,67 +473,80 @@ class _OfficeShellState extends State<OfficeShell> {
       );
 
   Future<void> _showIdentityCard() {
+    final identity = _identityKey;
+    final owner = s;
     final person = {...?s.enterpriseSummary['membership'] as Map?, ...?s.me};
     final id = personId(s.me ?? {});
+    final account = str(s.accountInfo['username']);
     return showDialog<void>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('我的个人名片'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              PersonAvatar(
-                name: str(person['name']),
-                agent: person['kind'] == 'agent',
-                size: 70,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                str(person['name']),
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              for (final field in [
-                'organization_name',
-                'department_name',
-                'job_title',
-                'profession',
-              ])
-                if (str(person[field]).isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Text(
-                      str(person[field]),
-                      style: const TextStyle(fontSize: 15),
-                    ),
+      builder: (c) => AnimatedBuilder(
+        animation: owner,
+        builder: (_, _) => AlertDialog(
+          title: const Text('我的个人名片'),
+          content: !mounted || identity != _identityKey
+              ? const Text('身份已改变，请关闭后重新打开个人名片。')
+              : SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      PersonAvatar(
+                        name: str(person['name']),
+                        agent: person['kind'] == 'agent',
+                        size: 70,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        str(person['name']),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      for (final field in [
+                        'organization_name',
+                        'department_name',
+                        'job_title',
+                        'profession',
+                      ])
+                        if (str(person[field]).isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(
+                              str(person[field]),
+                              style: const TextStyle(fontSize: 15),
+                            ),
+                          ),
+                      Text(
+                        '账号：$account',
+                        style: const TextStyle(fontSize: 14, color: mutedColor),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton.icon(
+                        onPressed: () async {
+                          if (!mounted || identity != _identityKey) return;
+                          await Clipboard.setData(ClipboardData(text: id));
+                          if (c.mounted &&
+                              mounted &&
+                              identity == _identityKey) {
+                            notifyOffice(c, '当前身份 ID 已复制');
+                          }
+                        },
+                        icon: const Icon(Icons.copy_outlined, size: 18),
+                        label: const Text('复制身份 ID'),
+                      ),
+                    ],
                   ),
-              Text(
-                '账号：${str(s.accountInfo['username'])}',
-                style: const TextStyle(fontSize: 14, color: mutedColor),
-              ),
-              const SizedBox(height: 12),
-              TextButton.icon(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: id));
-                  if (c.mounted) notifyOffice(c, '当前身份 ID 已复制');
-                },
-                icon: const Icon(Icons.copy_outlined, size: 18),
-                label: const Text('复制身份 ID'),
-              ),
-            ],
-          ),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('关闭'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c),
-            child: const Text('关闭'),
-          ),
-        ],
       ),
     );
   }
@@ -544,19 +557,14 @@ class _OfficeShellState extends State<OfficeShell> {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () async {
-          final endpoint = s.endpoint;
-          final identity = personId(s.me ?? {});
-          final generation = s.identityGeneration;
+          final identity = _identityKey;
           final box = context.findRenderObject()! as RenderBox;
           final action = await showOfficeProfileMenu(
             context,
             s,
             anchor: box.localToGlobal(Offset.zero) & box.size,
           );
-          if (!mounted ||
-              s.endpoint != endpoint ||
-              personId(s.me ?? {}) != identity ||
-              s.identityGeneration != generation) {
+          if (!mounted || identity != _identityKey) {
             return;
           }
           switch (action) {
@@ -611,9 +619,7 @@ class _OfficeShellState extends State<OfficeShell> {
                   ],
                 ),
               );
-              if (change == true &&
-                  mounted &&
-                  s.identityGeneration == generation) {
+              if (change == true && mounted && identity == _identityKey) {
                 s.disconnect();
               }
             case 'logout':
@@ -1074,11 +1080,16 @@ class _OfficeShellState extends State<OfficeShell> {
             if (collapsed)
               IconButton(
                 tooltip: '搜索',
-                onPressed: () => _search(''),
+                onPressed: _focusSearch,
                 icon: const Icon(Icons.search, size: 21),
               )
             else
-              OfficeSearch(hint: '搜索', onChanged: _search),
+              OfficeSearch(
+                hint: '搜索',
+                readOnly: true,
+                onTap: _focusSearch,
+                onChanged: (_) {},
+              ),
             SizedBox(height: collapsed ? 8 : 22),
             Expanded(
               child: ListView(
@@ -1270,6 +1281,14 @@ class _OfficeShellState extends State<OfficeShell> {
     );
   }
 
+  Widget _mobileModuleProfile() => _profileButton(
+    PersonAvatar(
+      name: str(s.me?['name']),
+      agent: s.me?['kind'] == 'agent',
+      size: 36,
+    ),
+  );
+
   Widget _mobile() {
     if (_nav == 11 || _nav == 13) {
       return Material(color: Colors.white, child: _main(true));
@@ -1290,16 +1309,26 @@ class _OfficeShellState extends State<OfficeShell> {
           state: s,
           mobile: true,
           onCreateCalendar: () {
+            final identity = _identityKey;
             _changeNav(7);
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _calendarKey.currentState?.createEvent(),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted &&
+                  identity == _identityKey &&
+                  s.moduleAvailable('calendar')) {
+                _calendarKey.currentState?.createEvent();
+              }
+            });
           },
           onCreateMeeting: () {
+            final identity = _identityKey;
             _changeNav(6);
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _meetingsKey.currentState?.createMeeting(),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted &&
+                  identity == _identityKey &&
+                  s.moduleAvailable('meetings')) {
+                _meetingsKey.currentState?.createMeeting();
+              }
+            });
           },
           onBack: () => setState(() => _roomOpen = false),
         ),
@@ -1314,7 +1343,7 @@ class _OfficeShellState extends State<OfficeShell> {
           ? _roomList(mobile: true)
           : Column(
               children: [
-                if (!(_nav == 6 && _media.activeMeeting != null))
+                if (_nav != 6 && _nav != 7)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
                     child: Row(
@@ -1479,11 +1508,18 @@ class _OfficeShellState extends State<OfficeShell> {
           state: s,
           media: _media,
           onCalendar: () => go(7),
+          onMinutes: () => go(14),
+          mobileHeaderLeading: mobile && navigate == null
+              ? _mobileModuleProfile()
+              : null,
         );
       case 7:
         return OfficeCalendar(
           key: _calendarKey,
           state: s,
+          mobileHeaderLeading: mobile && navigate == null
+              ? _mobileModuleProfile()
+              : null,
           onMeeting: (id) async {
             if (navigate == null) {
               await _joinMeeting(id);
