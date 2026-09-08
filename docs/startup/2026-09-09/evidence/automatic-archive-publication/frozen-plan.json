@@ -1,0 +1,160 @@
+{
+  "protocol": "renji.immutable-linked-stage-publication.v2",
+  "publication": "startup-automatic-archive-publication-20260909-0649",
+  "prepared_at": "2026-09-08T22:55:40.779801+00:00",
+  "preparation_head": "ae128f4871937e7fc5c3a10bdf6c31692deca47d",
+  "delivery": {
+    "source_path": "docs/startup/2026-09-09/STARTUP_AUTOMATIC_ARCHIVE_DELIVERY_0639.md",
+    "source_commit": "ae128f4871937e7fc5c3a10bdf6c31692deca47d",
+    "source_commit_time": "2026-09-09T06:50:59+08:00",
+    "source_commit_description": "docs(startup): record archive and message interaction phase evidence",
+    "implementation_commits": [
+      {
+        "commit": "2fc663150ec66fa2c402e1a38668264f0d961e5a",
+        "at": "2026-09-09T06:37:12+08:00",
+        "description": "feat(startup): automate execution archives and add native message actions"
+      }
+    ],
+    "original_md_sha256": "2948d1f9a8c81b8e2f07ac8ff1775419221aa66a618bfda2066499c01c1ec6d8",
+    "derived_body_sha256": "caa2a0daa326e144bb62bc7a05d74c99fc6f1ba141e46de4ef7fb988e70ad3c2",
+    "server_trimmed_body_sha256": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1",
+    "title": "人机 startup 阶段交付：自动归档、双端代码保真与消息交互 · 2026-09-09 06:39",
+    "relative_links": [
+      {
+        "original": "MANUAL_STARTUP_GUIDE.md",
+        "committed_path": "docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md"
+      },
+      {
+        "original": "AUTOMATIC_TERMINAL_ARCHIVE_0621.md",
+        "committed_path": "docs/startup/2026-09-09/AUTOMATIC_TERMINAL_ARCHIVE_0621.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/AUTOMATIC_TERMINAL_ARCHIVE_0621.md"
+      },
+      {
+        "original": "ARCHIVE_CODE_FIDELITY_0627.md",
+        "committed_path": "docs/startup/2026-09-09/ARCHIVE_CODE_FIDELITY_0627.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/ARCHIVE_CODE_FIDELITY_0627.md"
+      },
+      {
+        "original": "MESSAGE_ACTIONS_NATIVE_CONTRACT_0622.md",
+        "committed_path": "docs/startup/2026-09-09/MESSAGE_ACTIONS_NATIVE_CONTRACT_0622.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/MESSAGE_ACTIONS_NATIVE_CONTRACT_0622.md"
+      },
+      {
+        "original": "evidence/automatic-archive/MANIFEST.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/automatic-archive/MANIFEST.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/evidence/automatic-archive/MANIFEST.json"
+      },
+      {
+        "original": "evidence/archive-code-fidelity/MANIFEST.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/MANIFEST.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/evidence/archive-code-fidelity/MANIFEST.json"
+      }
+    ]
+  },
+  "baseline": {
+    "documents": {
+      "25ae13fb": "1b1bb4045d8756b2b3947f9128341aabee06aec8763bcb5a7d25e4e601df7f74",
+      "9d62380a": "bebe01159577cff8ead1459c360987aa00bdce8b77270bd1fb7087abc3db8ede",
+      "a74679d5": "9578a20d49a7475da663ee824224d13e3bbded619b270a95812ddf60a604f0ca",
+      "f6b5ff58": "a8c786e8034a44b21abe2e9bf2ce55827a7113912afcac4c79470010a53a5002"
+    },
+    "targets": {
+      "startup-fixture-affine-20260909-initialized": {
+        "id": "2T4haLdQHZ5IkzU2mSJBG",
+        "title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "native_hash": "7f9daa1e91bdf1a4439e703d2d1de707fcf0ad7f90ed6080aa390b2a818f84f9",
+        "public": false
+      },
+      "startup-fixture-affine-h1-20260909": {
+        "id": "pLxvvvqAYXsM7iuxUGIeR",
+        "title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "native_hash": "a667865d5c306352eee0faf0b7e32277d68521835646723deca23001322d0aea",
+        "public": false
+      },
+      "startup-fixture-docmost-20260909-initialized": {
+        "id": "01a08286-d73b-76c5-922f-7e1204ba8b2d",
+        "title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "native_hash": "aa5d5c7957a79b784bb7823ee876f0dba93aa27ad3dde52f6766c84ac829feaa",
+        "updated_at": "2026-09-08T19:39:19.447Z",
+        "slug_id": "A8E8PJlMNX"
+      },
+      "startup-fixture-docmost-h1-20260909": {
+        "id": "01a08286-d78b-7621-ba89-e26e5c6fbb10",
+        "title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "native_hash": "8d348b738d883c884d45588cfb403d866b52a867f7588902d80571a78e03a2ba",
+        "updated_at": "2026-09-08T19:37:50.218Z",
+        "slug_id": "LLTf7xoGTa"
+      },
+      "startup-stage-publication-20260909-0418-affine": {
+        "id": "SLrA9aXyZV-vehgtC91W-",
+        "title_hash": "b2a1ad8b6dd1974d70422e4e0dc9c1f8123bb3924563d44ef8753326c2f34f4e",
+        "native_hash": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+        "public": false
+      },
+      "startup-stage-publication-20260909-0418-docmost": {
+        "id": "01a082b6-bade-7ef2-8bfc-02b75fcd97de",
+        "title_hash": "b2a1ad8b6dd1974d70422e4e0dc9c1f8123bb3924563d44ef8753326c2f34f4e",
+        "native_hash": "e34119fe1cbfde259d720a66ffb7d55c635c986664d56cf79afeaee25b8a9e5a",
+        "updated_at": "2026-09-08T20:30:08.605Z",
+        "slug_id": "gsZSY3HjJU"
+      },
+      "startup-archive-code-20260909-0618-affine": {
+        "id": "KfTj5XXxNr39dXMML9eff",
+        "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "native_hash": "cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d",
+        "public": false
+      },
+      "startup-archive-code-20260909-0618-docmost": {
+        "id": "01a0831e-38e3-76d9-8c34-0466c871bb42",
+        "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "native_hash": "d95e9b09dc123a4812e9448f7f660ee1b5c9bd785337fbbb7fd46dc96d7bb152",
+        "updated_at": "2026-09-08T22:23:11.073Z",
+        "slug_id": "l8xzi5wOsi"
+      }
+    },
+    "old_configs": {
+      "data/startup/document-sync/config.json": {
+        "config_hash": "3c908e3398464da65a2dc9a02e63d81f2ff2e091d22a61e80d679b3c38fc0187",
+        "journal_hash": "b0015ed81500829a5a1e14876d64bccbd2727271ba7aedaa041afbf0d4b5a948"
+      },
+      "data/startup/publications/startup-stage-publication-20260909-0418/config.json": {
+        "config_hash": "87def3b98f0b703faa210b34a00839f192c148c3b916801db798180d9ce922df",
+        "journal_hash": "8c11808d31b561b2b530853fc46351be7e75345da3d84e6449acb7160fec4abf"
+      },
+      "data/startup/publications/archive-code-20260909-0618/config.json": {
+        "config_hash": "26001902b95c5531852e5ca744167c1df9db744e3fb36b57c9e705d5bc231d58",
+        "journal_hash": "5b73e016d09508eda0756475f32f498b7a26aeafca45f84fa320abc2a386dce0"
+      }
+    }
+  },
+  "acl": {
+    "room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+    "principal_id": "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+    "members": [
+      [
+        "principal-2d890f24-2303-4d17-b049-d85ccd75e97d",
+        "agent",
+        "member",
+        false
+      ],
+      [
+        "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+        "human",
+        "owner",
+        false
+      ]
+    ],
+    "room_kind": "group",
+    "message_count": 0
+  },
+  "target_profiles": {
+    "affine": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+    "docmost": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2"
+  },
+  "source_create_budget": 1,
+  "target_create_budget_each": 1,
+  "chat_messages": 0,
+  "model_calls": 0,
+  "old_resource_writes": 0
+}

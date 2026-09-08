@@ -1,0 +1,70 @@
+{
+  "protocol": "renji.stage-publication-evidence.v1",
+  "generated_at": "2026-09-09T07:02:30.983825+08:00",
+  "scope": "Only the 2026-09-09 06:39 stage report newly published as doc_free 7e81ae07 r1 and its two new controlled projections. Native profile validation and SHA-256 receipt comparison; no digital signature claim, no pixel-equivalence claim.",
+  "source_commit": "ae128f4871937e7fc5c3a10bdf6c31692deca47d",
+  "implementation_commit": "2fc663150ec66fa2c402e1a38668264f0d961e5a",
+  "source_path": "docs/startup/2026-09-09/STARTUP_AUTOMATIC_ARCHIVE_DELIVERY_0639.md",
+  "source_document_id": "7e81ae07",
+  "source_revision": 1,
+  "source_canonical_sha256": "496f4be4df4262477d98fec5732e8310c2f472eb81be25752d9d40cd4663a4d0",
+  "target_states": {
+    "affine": "native_verified",
+    "docmost": "native_verified"
+  },
+  "markdown_export_error_both": "readback_mismatch",
+  "docmost_platform_difference_scope": "8 link marks x 3 explicit attributes: target=_blank; rel=noopener noreferrer nofollow; internal=false. class/title are null.",
+  "historical_preservation": {
+    "source_documents": 4,
+    "target_projections": 8,
+    "old_config_and_journal_sets": 3
+  },
+  "files": [
+    {
+      "path": "frozen-plan.json",
+      "bytes": 8043,
+      "sha256": "4e88ce233ce952cec05a33739b7342a937cf46519bb0940955d64596b6659456"
+    },
+    {
+      "path": "publication-receipt.json",
+      "bytes": 8215,
+      "sha256": "711d7bbbe667f6c4c7fbf1480d8cb91efa77a69f5286e1c848adf303c6dbfc31"
+    },
+    {
+      "path": "derived-body.md",
+      "bytes": 10105,
+      "sha256": "caa2a0daa326e144bb62bc7a05d74c99fc6f1ba141e46de4ef7fb988e70ad3c2"
+    },
+    {
+      "path": "published-body.md",
+      "bytes": 10104,
+      "sha256": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1"
+    },
+    {
+      "path": "affine-final-native.bin",
+      "bytes": 22168,
+      "sha256": "4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936"
+    },
+    {
+      "path": "docmost-final-native.json",
+      "bytes": 18062,
+      "sha256": "e32512c5952f7a0e1473b7bc0ccec16ea59a99089ad5a26d9a0d0893bfae038f"
+    },
+    {
+      "path": "independent-final-readback.json",
+      "bytes": 1584,
+      "sha256": "11a08d672b43472738c994b8b58e118cbda318c5e948202b8495c4b4bffb39d2"
+    },
+    {
+      "path": "root-independent-source-readback.json",
+      "bytes": 557,
+      "sha256": "051ee91e010963997c96644161f8eba015925125880ce557954ff912e109cfa8"
+    },
+    {
+      "path": "desktop-stage-report-open.png",
+      "bytes": 150417,
+      "sha256": "100e885493b77d1e3619b4b4bf20a2dad990adb66a8962379f1ccfad16f957f5"
+    }
+  ],
+  "total_bytes": 229255
+}

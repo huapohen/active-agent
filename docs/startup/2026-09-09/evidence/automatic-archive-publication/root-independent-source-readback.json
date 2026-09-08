@@ -1,0 +1,16 @@
+{
+  "at": "2026-09-08T22:58:00.741351+00:00",
+  "root_independent_read": true,
+  "source_document_id": "7e81ae07",
+  "revision": 1,
+  "human_http_status": 200,
+  "agent_http_status": 200,
+  "nonmember_http_status": 403,
+  "same_full_document": true,
+  "body_exact_after_server_terminal_lf_trim": true,
+  "source_content_sha256": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1",
+  "immutable_file_links_verified": 6,
+  "desktop_native_report_opened": true,
+  "desktop_screenshot": "desktop-stage-report-open.png",
+  "external_writes": 0
+}

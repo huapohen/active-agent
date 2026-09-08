@@ -1,0 +1,144 @@
+{
+  "verified_at": "2026-09-08T22:56:35.674753+00:00",
+  "delivery": {
+    "source_path": "docs/startup/2026-09-09/STARTUP_AUTOMATIC_ARCHIVE_DELIVERY_0639.md",
+    "source_commit": "ae128f4871937e7fc5c3a10bdf6c31692deca47d",
+    "source_commit_time": "2026-09-09T06:50:59+08:00",
+    "source_commit_description": "docs(startup): record archive and message interaction phase evidence",
+    "implementation_commits": [
+      {
+        "commit": "2fc663150ec66fa2c402e1a38668264f0d961e5a",
+        "at": "2026-09-09T06:37:12+08:00",
+        "description": "feat(startup): automate execution archives and add native message actions"
+      }
+    ],
+    "original_md_sha256": "2948d1f9a8c81b8e2f07ac8ff1775419221aa66a618bfda2066499c01c1ec6d8",
+    "derived_body_sha256": "caa2a0daa326e144bb62bc7a05d74c99fc6f1ba141e46de4ef7fb988e70ad3c2",
+    "server_trimmed_body_sha256": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1",
+    "title": "人机 startup 阶段交付：自动归档、双端代码保真与消息交互 · 2026-09-09 06:39",
+    "relative_links": [
+      {
+        "original": "MANUAL_STARTUP_GUIDE.md",
+        "committed_path": "docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md"
+      },
+      {
+        "original": "AUTOMATIC_TERMINAL_ARCHIVE_0621.md",
+        "committed_path": "docs/startup/2026-09-09/AUTOMATIC_TERMINAL_ARCHIVE_0621.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/AUTOMATIC_TERMINAL_ARCHIVE_0621.md"
+      },
+      {
+        "original": "ARCHIVE_CODE_FIDELITY_0627.md",
+        "committed_path": "docs/startup/2026-09-09/ARCHIVE_CODE_FIDELITY_0627.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/ARCHIVE_CODE_FIDELITY_0627.md"
+      },
+      {
+        "original": "MESSAGE_ACTIONS_NATIVE_CONTRACT_0622.md",
+        "committed_path": "docs/startup/2026-09-09/MESSAGE_ACTIONS_NATIVE_CONTRACT_0622.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/MESSAGE_ACTIONS_NATIVE_CONTRACT_0622.md"
+      },
+      {
+        "original": "evidence/automatic-archive/MANIFEST.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/automatic-archive/MANIFEST.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/evidence/automatic-archive/MANIFEST.json"
+      },
+      {
+        "original": "evidence/archive-code-fidelity/MANIFEST.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/MANIFEST.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/ae128f4871937e7fc5c3a10bdf6c31692deca47d/docs/startup/2026-09-09/evidence/archive-code-fidelity/MANIFEST.json"
+      }
+    ]
+  },
+  "publication_head": "ae128f4871937e7fc5c3a10bdf6c31692deca47d",
+  "verification_head": "ae128f4871937e7fc5c3a10bdf6c31692deca47d",
+  "source_document_id": "7e81ae07",
+  "source_revision": 1,
+  "source_content_hash": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1",
+  "source_room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+  "human_agent_same_document": true,
+  "nonmember_http_status": 403,
+  "historical_source_documents_unchanged": 4,
+  "old_projections_unchanged": 8,
+  "old_configs_and_journals_unchanged": true,
+  "second_pass_no_append": true,
+  "targets": [
+    {
+      "provider": "affine",
+      "url": "http://127.0.0.1:3010/workspace/a901cbc0-59ac-40b6-86bf-fcca7ff7b619/pos1eudO5AYgYiEVx146t",
+      "observation": {
+        "id": "pos1eudO5AYgYiEVx146t",
+        "title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "native_hash": "4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936",
+        "public": false
+      },
+      "record": {
+        "binding_id": "startup-automatic-archive-publication-20260909-0649-affine",
+        "binding_hash": "e5f775ed762549be6f8736f156583fb9e6255b86c692bc702054a5530395ee11",
+        "sequence": 4,
+        "state": "native_verified",
+        "external_id": "pos1eudO5AYgYiEVx146t",
+        "source_revision": 1,
+        "source_content_hash": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1",
+        "desired_body_hash": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1",
+        "desired_title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "observed_body_hash": "6488398e9e20f1e5d09ed2176c315d9c2a127999807ea6d1baee18a63937805e",
+        "observed_title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "title_verified": true,
+        "at": "2026-09-08T22:56:34.654473Z",
+        "observed_raw_body_hash": "6cd3863e14c6d243f1d994d4baede53682bca7601695036e82484a5615beb5bc",
+        "native": {
+          "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "target_version": "sha256:4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936",
+          "source_canonical_hash": "496f4be4df4262477d98fec5732e8310c2f472eb81be25752d9d40cd4663a4d0",
+          "target_canonical_hash": "496f4be4df4262477d98fec5732e8310c2f472eb81be25752d9d40cd4663a4d0",
+          "target_native_raw_hash": "4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936",
+          "platform_behavior_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "platform_differences": 0,
+          "markdown_export_error": "readback_mismatch"
+        }
+      }
+    },
+    {
+      "provider": "docmost",
+      "url": "http://127.0.0.1:3021/p/GzQBbzDiOT",
+      "observation": {
+        "id": "01a0833c-cc3a-71aa-83f4-b29474708ce6",
+        "title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "native_hash": "33788efd0ed01d445eba35ccafc25467320d4fb71712d2142bc607c1e928e049",
+        "updated_at": "2026-09-08T22:56:34.872Z",
+        "slug_id": "GzQBbzDiOT"
+      },
+      "record": {
+        "binding_id": "startup-automatic-archive-publication-20260909-0649-docmost",
+        "binding_hash": "804cf638cd2466eb99ec828451e1e988daf44e53a4689afbc81b107679fd7f07",
+        "sequence": 4,
+        "state": "native_verified",
+        "external_id": "01a0833c-cc3a-71aa-83f4-b29474708ce6",
+        "source_revision": 1,
+        "source_content_hash": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1",
+        "desired_body_hash": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1",
+        "desired_title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "observed_body_hash": "a05e7391aaf36c39b715c96c406e5c4cf9ad601c18d9ba206a18810f02647eed",
+        "observed_title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "title_verified": true,
+        "at": "2026-09-08T22:56:35.078114Z",
+        "observed_raw_body_hash": "a05e7391aaf36c39b715c96c406e5c4cf9ad601c18d9ba206a18810f02647eed",
+        "native": {
+          "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "target_version": "2026-09-08T22:56:34.872Z",
+          "source_canonical_hash": "496f4be4df4262477d98fec5732e8310c2f472eb81be25752d9d40cd4663a4d0",
+          "target_canonical_hash": "496f4be4df4262477d98fec5732e8310c2f472eb81be25752d9d40cd4663a4d0",
+          "target_native_raw_hash": "e32512c5952f7a0e1473b7bc0ccec16ea59a99089ad5a26d9a0d0893bfae038f",
+          "platform_behavior_hash": "7f13503db3618c8a9bc4306a635a9a7ed9ec0f0cd81f2620aa24098888002500",
+          "platform_differences": 24,
+          "markdown_export_error": "readback_mismatch"
+        }
+      }
+    }
+  ],
+  "new_journal_sha256": "de683e338d01b5be1ee3680754e931bb4e5cc24b0dddb76621c02cf7f3dcc0da",
+  "new_journal_lines": 8,
+  "original_relative_links_resolved_to_docs_commit": true,
+  "chat_messages_sent": 0,
+  "model_calls": 0
+}
