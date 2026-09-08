@@ -1,0 +1,265 @@
+{
+  "schema": "renji-run-archive-docfree-adapter/v1",
+  "recorded_at": "2026-09-08T21:51:29.946889+00:00",
+  "baseline_commit": "380d7bef5b8ce78f6dae38b812e8aa9931ca67d1",
+  "implementation_status": "uncommitted",
+  "mode": "single_source_synthetic",
+  "real_docfree_writes_by_this_component_test": 0,
+  "model_calls_by_this_component_test": 0,
+  "production_dynamic_source_acl_complete": false,
+  "automatic_temporal_archive_integrated": false,
+  "validation": [
+    {
+      "kind": "normal",
+      "path": "/tmp/renji-runarchive-store-http-final-20260909.jsonl",
+      "sha256": "461f0eef5b07c7e84635407757da9ef410de9004ded8a921287937527f798938",
+      "packages": {
+        "github.com/huapohen/active-agent/services/collaboration/internal/store": {
+          "top_level_pass": [
+            "TestCreateAndStopActionsAreDurableAndCurrentlyAuthorized",
+            "TestExecutionArchiveDeterministicUnknownNeverRecreatesAndLateReadback",
+            "TestExecutionArchiveConcurrentPreparationClaimsAndFinalCursor",
+            "TestExecutionArchiveRequestMarkerBlocksConcurrentDuplicateAndExpiredOwner",
+            "TestExecutionArchiveRevocationPreventsWriteAndReadButAllowsActualLateFact",
+            "TestExecutionArchiveLosslessChunksAndModelCannotForgeReceipt",
+            "TestExecutionEvidenceCompleteStablePaginationAndRawFacts",
+            "TestExecutionEvidenceAuditAfterStopAndRevocationAcrossAllScopes",
+            "TestExecutionEvidenceMachineWorkspaceAndEqualAuditRoles",
+            "TestExecutionEvidenceConcurrentAppendHasNoCursorHoles",
+            "TestExecutionEvidenceReadWaitsForCurrentScopeRevocation",
+            "TestExecutionReadsStayInsideInheritedScopeAndUseCurrentEpoch",
+            "TestExecutionReadHoldsAllScopeChecksInTheReadingTransaction",
+            "TestExecutorBindingCannotReadAnotherWorkspaceOfSameAgent",
+            "TestExecutionBindingRequiresCurrentWorkspaceAdministrationAndMachineIdentity",
+            "TestExecutionAgentOwnerHasEqualAdministrationAndProactiveSelfControl",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction",
+            "TestExecutionConcurrentActionCommitsOneMessageAndPayloadCollisionConflicts",
+            "TestExecutionStopAndResumeNeverRevivesInheritedEpoch",
+            "TestExecutionChecksAllScopesInsideMessageTransaction",
+            "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion",
+            "TestExecutionEvidenceAfterStopIsIdempotentButCannotInventSuccess",
+            "TestExecutionCompletedRunMayDeliverAlreadyCommittedAction",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads",
+            "TestOutboxHeartbeatProtectsHealthyOldClaim",
+            "TestOutboxExpiredClaimCannotSendButCanRecordItsLateResponse",
+            "TestOutboxReplacementClaimRejectsOldReceiptAndReportsZeroRows",
+            "TestOutboxClaimExpiredWhileWaitingForAuthorizationCannotCallProvider",
+            "TestOutboxStopBlocksPendingAgentDeliveryAndHumanCanIntervene",
+            "TestOutboxResumeDoesNotReviveOldEpochAndMissingEpochFailsClosed",
+            "TestOutboxRevokedWorkspaceMemberCannotPublish",
+            "TestOutboxGroupRegistrationRechecksEachMember",
+            "TestOutboxUnknownPublishIsNotRetried",
+            "TestOutboxReceiptSurvivesCallerCancellationAfterProviderSuccess",
+            "TestIdentityIsolation",
+            "TestConcurrentMessageReceiptAndRevocation"
+          ],
+          "subtest_pass": [
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/root",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/epoch",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/origins_deleted",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/runtime",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/workflow",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/principal",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/executor",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/run",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/origin_epoch",
+            "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/source_stop",
+            "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/policy_version",
+            "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/executor_version",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/principal",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/workspace",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/origin_member",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/executor"
+          ],
+          "failed": [],
+          "skipped": []
+        },
+        "github.com/huapohen/active-agent/services/collaboration/internal/httpapi": {
+          "top_level_pass": [
+            "TestExecutionEvidenceRESTAndMCPShareCurrentAllSourceAuthorization",
+            "TestMachineRoutesRequireServerRunAndInheritedStopScope",
+            "TestRongCloudSessionIsNotGenerallyIssuedBeforeWritePolicyVerification",
+            "TestReviewWorkspaceCanonicalReceiptAcrossAPIAndMCP",
+            "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI",
+            "TestReviewMCPParameterlessToolsPermitOmittedArguments",
+            "TestReviewMCPUnknownToolIsProtocolError",
+            "TestReviewCurrentPermissionsAndCrossResourceActionFence",
+            "TestReviewPaginationAcrossAPIAndMCP",
+            "TestAPIAndMCPShareActionsAndCurrentPermissions",
+            "TestMCPProtocolAndOriginBoundaries"
+          ],
+          "subtest_pass": [
+            "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/invalid",
+            "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/forbidden",
+            "TestReviewMCPParameterlessToolsPermitOmittedArguments/identity_read",
+            "TestReviewMCPParameterlessToolsPermitOmittedArguments/room_list"
+          ],
+          "failed": [],
+          "skipped": []
+        },
+        "github.com/huapohen/active-agent/services/collaboration/internal/runarchive": {
+          "top_level_pass": [
+            "TestArchiveConfigRejectsUnknownFieldsAndUnsafeFiles",
+            "TestArchiveConfigRejectsProductionAndUnboundDestinations",
+            "TestArchiveBindingFingerprintSortsMappingsButPreservesDestination",
+            "TestRunArchiveExactReadbackAndRepeatNeverCreatesAgain",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate",
+            "TestRunArchiveBindingConfigurationCannotDrift",
+            "TestRunArchiveChecksAuthenticationAgainImmediatelyBeforeWrite",
+            "TestRunArchiveSourceAudienceLockProtectsInFlightExternalWrite",
+            "TestRunArchiveConcurrentInvocationsHaveOneExternalCreate",
+            "TestDocClientRejectsRedirectWithoutLeakingCredential"
+          ],
+          "subtest_pass": [
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/lost-response",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/body-mismatch",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/title-mismatch",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/forged-hash",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/multi-source",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/unmapped-room",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/revoke-agent",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/revoke-human-audience",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/disabled-executor",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/wrong-subject",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/wrong-audience",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/non-expiring",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/target-outsider",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/writer-mismatch"
+          ],
+          "failed": [],
+          "skipped": []
+        },
+        "github.com/huapohen/active-agent/services/collaboration/cmd/run-archive": {
+          "top_level_pass": [
+            "TestRunArchiveCommandDisabledBeforeCredentialsOrDatabase",
+            "TestRunArchiveCommandNoInlineCredentialOrTargetOverride"
+          ],
+          "subtest_pass": [],
+          "failed": [],
+          "skipped": []
+        }
+      }
+    },
+    {
+      "kind": "race",
+      "path": "/tmp/renji-runarchive-race-20260909.jsonl",
+      "sha256": "e7b77662c5dcb1d5099d226230f139ced95189fc10a686ecc5d9c8d556671fed",
+      "packages": {
+        "github.com/huapohen/active-agent/services/collaboration/internal/runarchive": {
+          "top_level_pass": [
+            "TestArchiveConfigRejectsUnknownFieldsAndUnsafeFiles",
+            "TestArchiveConfigRejectsProductionAndUnboundDestinations",
+            "TestArchiveBindingFingerprintSortsMappingsButPreservesDestination",
+            "TestRunArchiveExactReadbackAndRepeatNeverCreatesAgain",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate",
+            "TestRunArchiveBindingConfigurationCannotDrift",
+            "TestRunArchiveChecksAuthenticationAgainImmediatelyBeforeWrite",
+            "TestRunArchiveSourceAudienceLockProtectsInFlightExternalWrite",
+            "TestRunArchiveConcurrentInvocationsHaveOneExternalCreate",
+            "TestDocClientRejectsRedirectWithoutLeakingCredential"
+          ],
+          "subtest_pass": [
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/lost-response",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/body-mismatch",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/title-mismatch",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/forged-hash",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/multi-source",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/unmapped-room",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/revoke-agent",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/revoke-human-audience",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/disabled-executor",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/wrong-subject",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/wrong-audience",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/non-expiring",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/target-outsider",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/writer-mismatch"
+          ],
+          "failed": [],
+          "skipped": []
+        },
+        "github.com/huapohen/active-agent/services/collaboration/cmd/run-archive": {
+          "top_level_pass": [
+            "TestRunArchiveCommandDisabledBeforeCredentialsOrDatabase",
+            "TestRunArchiveCommandNoInlineCredentialOrTargetOverride"
+          ],
+          "subtest_pass": [],
+          "failed": [],
+          "skipped": []
+        }
+      }
+    },
+    {
+      "kind": "independent",
+      "path": "/tmp/renji-runarchive-independent-final-20260909.log",
+      "sha256": "b1117029ba495e8105c0b4902474c343c60ac16bff8a6d26fcbbb3076a73bce7",
+      "packages": {
+        "github.com/huapohen/active-agent/services/collaboration/internal/runarchive": {
+          "top_level_pass": [
+            "TestArchiveConfigRejectsUnknownFieldsAndUnsafeFiles",
+            "TestArchiveConfigRejectsProductionAndUnboundDestinations",
+            "TestArchiveBindingFingerprintSortsMappingsButPreservesDestination",
+            "TestRunArchiveExactReadbackAndRepeatNeverCreatesAgain",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate",
+            "TestRunArchiveBindingConfigurationCannotDrift",
+            "TestRunArchiveChecksAuthenticationAgainImmediatelyBeforeWrite",
+            "TestRunArchiveSourceAudienceLockProtectsInFlightExternalWrite",
+            "TestRunArchiveConcurrentInvocationsHaveOneExternalCreate",
+            "TestDocClientRejectsRedirectWithoutLeakingCredential"
+          ],
+          "subtest_pass": [
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/lost-response",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/body-mismatch",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/title-mismatch",
+            "TestRunArchiveUnknownOutcomesAreNotRetriedAsCreates/forged-hash",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/multi-source",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/unmapped-room",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/revoke-agent",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/revoke-human-audience",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/disabled-executor",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/wrong-subject",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/wrong-audience",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/non-expiring",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/target-outsider",
+            "TestRunArchiveRejectsSourceAndMachineAndAudienceBoundariesBeforeCreate/writer-mismatch"
+          ],
+          "failed": [],
+          "skipped": []
+        },
+        "github.com/huapohen/active-agent/services/collaboration/cmd/run-archive": {
+          "top_level_pass": [
+            "TestRunArchiveCommandDisabledBeforeCredentialsOrDatabase",
+            "TestRunArchiveCommandNoInlineCredentialOrTargetOverride"
+          ],
+          "subtest_pass": [],
+          "failed": [],
+          "skipped": []
+        }
+      }
+    }
+  ],
+  "vet": {
+    "command": "go vet -p 2 ./internal/store ./internal/httpapi ./internal/runarchive ./cmd/run-archive",
+    "exit_code": 0
+  },
+  "sources": {
+    "services/collaboration/internal/store/execution_archive.go": "d314af115ff77d8ace0f04d23c5d73567c6e8bbd150819f183d234cb5e0742d6",
+    "services/collaboration/internal/store/execution_archive_audience.go": "24d61fc3ad62e885505c04c29828e2bd0debdd11313f0d011a45dd82f319f420",
+    "services/collaboration/internal/store/migrations/00005_archive_target_binding.sql": "61e970399c930830416cdabcfdfeb3eac354f5dc4e8bbea71aeb97f143084a48",
+    "services/collaboration/internal/runarchive/config.go": "d2ef6b6ac3857f7fd941a666ec6688aaebca917633ef37570af6fa09ba091bef",
+    "services/collaboration/internal/runarchive/runner.go": "40002623f4995552083dfa068d4a083d59e935d8764e16e01499789718045b9d",
+    "services/collaboration/internal/runarchive/runner_test.go": "eea4c282c91315cbf27f6a4e84edf6644635a00c87593d77f540400d83530ef1",
+    "services/collaboration/internal/runarchive/config_test.go": "3d1a4dcbb19b8c6aba4241e2c08c4adc2759124c36084e2682ff40b20bd9b262",
+    "services/collaboration/cmd/run-archive/main.go": "8d71428c5fd0009fc88616ece4a97be1ca3f13233fd392086cdcc63294693a29",
+    "services/collaboration/cmd/run-archive/main_test.go": "55683d25545bbbe6e58a75bb12e938a41a3a5d8f7e200343a8fa05e510bf9969"
+  },
+  "limitations": [
+    "Target membership preflight and POST have no cross-service CAS.",
+    "Direct Doc Free readers cannot dynamically enforce later Go source ACL revocation.",
+    "All multi-source Run archives are rejected; only allowlisted synthetic source is supported.",
+    "CLI archive adapter is implemented; automatic Temporal archive hook not implemented by this component.",
+    "An unknown outcome without target ID must not be retried as create."
+  ]
+}

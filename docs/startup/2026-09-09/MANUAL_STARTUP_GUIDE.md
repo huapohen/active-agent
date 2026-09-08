@@ -90,7 +90,7 @@ go run ./cmd/api
 curl --noproxy '*' --fail --silent --show-error http://127.0.0.1:3318/healthz
 ```
 
-第一次部署到全新数据库才按服务 README 使用 `--migrate`。正常开机不要重新执行 probe、fixture provision、文档实例 setup 或 transport worker；这些不是启动界面的必要步骤。
+首次部署或升级到带有新数据库迁移的版本时，按服务 README 使用 `--migrate`，只应用未执行的迁移。本阶段新增的 00004、00005 已在本机应用，普通重启无需重复初始化。正常开机不要重新执行 probe、fixture provision、文档实例 setup 或 transport worker；这些不是启动界面的必要步骤。
 
 ## 4. 启动新版 Mac 电脑端与 Web
 
@@ -172,3 +172,5 @@ cd /Users/lwblx/huapohen/agent/execute/enterprise_work/active_agent/apps/office
 本次运行日志可参考 `/tmp/renji-startup-web-20260909.log` 和 `/tmp/renji-startup-desktop-20260909.log`。手动执行上述命令时，日志默认出现在所属终端；新手动运行不会自动沿用这些历史日志文件。
 
 本阶段尚未完成 Clerk 真人跨端登录、融云客户端真实收包和断线恢复、手机新栈迁移、完整飞书页面以及生产签名发布。当前能够启动和预览，不等于这些项目已经验收。
+
+2026-09-09 05:59 补记：新文档正文阅读器及执行档案代码在 `a639a8843093bed98b04b375d361de6e2c2129c9`（Git 时间 05:56:24+08:00）提交，启动电脑端的顺序不变。当前本机另有 Temporal 持久开发服务，但打开界面无需启动模型 worker。短期机器 token 有期限；不要把归档/模型凭证复制到登录框，也不要因它过期重置人类账号密码。

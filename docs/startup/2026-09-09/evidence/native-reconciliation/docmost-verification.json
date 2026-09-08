@@ -1,0 +1,25 @@
+{
+  "source_id": "a74679d5",
+  "source_revision": 1,
+  "target_id": "01a082b6-bade-7ef2-8bfc-02b75fcd97de",
+  "state": "native_verified",
+  "sequence": 4,
+  "at": "2026-09-08T21:15:20.583567Z",
+  "markdown_still_mismatched": true,
+  "original_6_lines_exact_prefix": true,
+  "original_affine_records_unchanged": true,
+  "original_config_unchanged": true,
+  "second_pass_no_append": true,
+  "target_writes": 0,
+  "native": {
+    "profile": "docmost.prosemirror.gfm.goldmark-1.8.6.v1",
+    "target_version": "2026-09-08T20:30:08.605Z",
+    "source_canonical_hash": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+    "target_canonical_hash": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+    "target_native_raw_hash": "57428f0f86d5b55e03e768a791141f49e14b17960d0155be45a5b7b848a9bd72",
+    "platform_behavior_hash": "acae5c3b212148636d6cf9b6ce8d58553a47e24675a7e9e09345e0000a5cd85a",
+    "platform_differences": 27,
+    "markdown_export_error": "readback_mismatch"
+  },
+  "journal_sha256": "7095123139869a35d08c826711223780abef3890829f93ad2c33355802ac9ac4"
+}

@@ -1,0 +1,159 @@
+{
+  "schema": "renji-run-evidence-archive-foundation/v1",
+  "at": "2026-09-08T21:22:56.135845+00:00",
+  "baseline_commit": "380d7bef5b8ce78f6dae38b812e8aa9931ca67d1",
+  "implementation_status": "uncommitted",
+  "tests": [
+    {
+      "kind": "final",
+      "path": "/tmp/renji-run-archive-20260909-final.jsonl",
+      "sha256": "0d5bd9b4ba18af5e1146002a569a61cd7e59116c1efa4f4f23c3d858121e7640",
+      "packages": {
+        "github.com/huapohen/active-agent/services/collaboration/internal/store": {
+          "top_level_pass": [
+            "TestCreateAndStopActionsAreDurableAndCurrentlyAuthorized",
+            "TestExecutionArchiveDeterministicUnknownNeverRecreatesAndLateReadback",
+            "TestExecutionArchiveConcurrentPreparationClaimsAndFinalCursor",
+            "TestExecutionArchiveRequestMarkerBlocksConcurrentDuplicateAndExpiredOwner",
+            "TestExecutionArchiveRevocationPreventsWriteAndReadButAllowsActualLateFact",
+            "TestExecutionArchiveLosslessChunksAndModelCannotForgeReceipt",
+            "TestExecutionEvidenceCompleteStablePaginationAndRawFacts",
+            "TestExecutionEvidenceAuditAfterStopAndRevocationAcrossAllScopes",
+            "TestExecutionEvidenceMachineWorkspaceAndEqualAuditRoles",
+            "TestExecutionEvidenceConcurrentAppendHasNoCursorHoles",
+            "TestExecutionEvidenceReadWaitsForCurrentScopeRevocation",
+            "TestExecutionReadsStayInsideInheritedScopeAndUseCurrentEpoch",
+            "TestExecutionReadHoldsAllScopeChecksInTheReadingTransaction",
+            "TestExecutorBindingCannotReadAnotherWorkspaceOfSameAgent",
+            "TestExecutionBindingRequiresCurrentWorkspaceAdministrationAndMachineIdentity",
+            "TestExecutionAgentOwnerHasEqualAdministrationAndProactiveSelfControl",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction",
+            "TestExecutionConcurrentActionCommitsOneMessageAndPayloadCollisionConflicts",
+            "TestExecutionStopAndResumeNeverRevivesInheritedEpoch",
+            "TestExecutionChecksAllScopesInsideMessageTransaction",
+            "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion",
+            "TestExecutionEvidenceAfterStopIsIdempotentButCannotInventSuccess",
+            "TestExecutionCompletedRunMayDeliverAlreadyCommittedAction",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads",
+            "TestOutboxHeartbeatProtectsHealthyOldClaim",
+            "TestOutboxExpiredClaimCannotSendButCanRecordItsLateResponse",
+            "TestOutboxReplacementClaimRejectsOldReceiptAndReportsZeroRows",
+            "TestOutboxClaimExpiredWhileWaitingForAuthorizationCannotCallProvider",
+            "TestOutboxStopBlocksPendingAgentDeliveryAndHumanCanIntervene",
+            "TestOutboxResumeDoesNotReviveOldEpochAndMissingEpochFailsClosed",
+            "TestOutboxRevokedWorkspaceMemberCannotPublish",
+            "TestOutboxGroupRegistrationRechecksEachMember",
+            "TestOutboxUnknownPublishIsNotRetried",
+            "TestOutboxReceiptSurvivesCallerCancellationAfterProviderSuccess",
+            "TestIdentityIsolation",
+            "TestConcurrentMessageReceiptAndRevocation"
+          ],
+          "subtest_pass": [
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/executor",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/run",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/origins_deleted",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/runtime",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/workflow",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/principal",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/root",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/epoch",
+            "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/origin_epoch",
+            "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/source_stop",
+            "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/policy_version",
+            "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/executor_version",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/principal",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/workspace",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/origin_member",
+            "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/executor"
+          ],
+          "failed": [],
+          "skipped_tests": []
+        },
+        "github.com/huapohen/active-agent/services/collaboration/internal/httpapi": {
+          "top_level_pass": [
+            "TestExecutionEvidenceRESTAndMCPShareCurrentAllSourceAuthorization",
+            "TestMachineRoutesRequireServerRunAndInheritedStopScope",
+            "TestRongCloudSessionIsNotGenerallyIssuedBeforeWritePolicyVerification",
+            "TestReviewWorkspaceCanonicalReceiptAcrossAPIAndMCP",
+            "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI",
+            "TestReviewMCPParameterlessToolsPermitOmittedArguments",
+            "TestReviewMCPUnknownToolIsProtocolError",
+            "TestReviewCurrentPermissionsAndCrossResourceActionFence",
+            "TestReviewPaginationAcrossAPIAndMCP",
+            "TestAPIAndMCPShareActionsAndCurrentPermissions",
+            "TestMCPProtocolAndOriginBoundaries"
+          ],
+          "subtest_pass": [
+            "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/invalid",
+            "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/forbidden",
+            "TestReviewMCPParameterlessToolsPermitOmittedArguments/identity_read",
+            "TestReviewMCPParameterlessToolsPermitOmittedArguments/room_list"
+          ],
+          "failed": [],
+          "skipped_tests": []
+        }
+      }
+    },
+    {
+      "kind": "race",
+      "path": "/tmp/renji-run-archive-20260909-race.jsonl",
+      "sha256": "3bee85d0b159945d5f66a9b3363bd3b27a52a815707732e2218a2bc3e1a68dcc",
+      "packages": {
+        "github.com/huapohen/active-agent/services/collaboration/internal/store": {
+          "top_level_pass": [
+            "TestExecutionArchiveDeterministicUnknownNeverRecreatesAndLateReadback",
+            "TestExecutionArchiveConcurrentPreparationClaimsAndFinalCursor",
+            "TestExecutionArchiveRequestMarkerBlocksConcurrentDuplicateAndExpiredOwner",
+            "TestExecutionArchiveRevocationPreventsWriteAndReadButAllowsActualLateFact",
+            "TestExecutionArchiveLosslessChunksAndModelCannotForgeReceipt",
+            "TestExecutionEvidenceCompleteStablePaginationAndRawFacts",
+            "TestExecutionEvidenceAuditAfterStopAndRevocationAcrossAllScopes",
+            "TestExecutionEvidenceMachineWorkspaceAndEqualAuditRoles",
+            "TestExecutionEvidenceConcurrentAppendHasNoCursorHoles",
+            "TestExecutionEvidenceReadWaitsForCurrentScopeRevocation",
+            "TestExecutionEvidenceAfterStopIsIdempotentButCannotInventSuccess"
+          ],
+          "subtest_pass": [],
+          "failed": [],
+          "skipped_tests": []
+        },
+        "github.com/huapohen/active-agent/services/collaboration/internal/httpapi": {
+          "top_level_pass": [
+            "TestExecutionEvidenceRESTAndMCPShareCurrentAllSourceAuthorization"
+          ],
+          "subtest_pass": [],
+          "failed": [],
+          "skipped_tests": []
+        }
+      }
+    }
+  ],
+  "vet": {
+    "packages": [
+      "internal/store",
+      "internal/httpapi"
+    ],
+    "exit_code": 0
+  },
+  "tested_source_sha256": {
+    "services/collaboration/internal/store/execution_actions.go": "adedb537f2aaf04b81748a9493095ed42acb9826583328055be38551c71a943a",
+    "services/collaboration/internal/store/execution_evidence.go": "39f16da623396780de8c00b891891d0fd86c44b29d935fc102fa478b842dc0da",
+    "services/collaboration/internal/store/execution_archive.go": "caeeab5a13948533597a7fa737c63490eb45c5b9c4acf25d7e03531f46e08cbc",
+    "services/collaboration/internal/store/migrations/00004_execution_archive.sql": "becd146a273ca4ec71af03107a00d246deee65f9d9437bb467a481f8ed413a20",
+    "services/collaboration/internal/httpapi/execution_evidence.go": "1cba2602fa089f6f6e4ba580750ce6231c33cd30ea59ccc59ef2806f278410ae",
+    "services/collaboration/internal/httpapi/execution.go": "b2353963046aade63a76c226d3bfa83786097524aab61e522f6b50090e41e174",
+    "services/collaboration/internal/httpapi/capabilities.go": "c5a2f040ed78cb957d49c5acc27de1698298a1f5252ba32417eb7f194e1f9869",
+    "services/collaboration/internal/httpapi/execution_evidence_test.go": "c34ee534b3dbd3763174e05c774b9d6eedbfc5cccd762ec4530a8a2e63f90291",
+    "services/collaboration/internal/store/execution_evidence_test.go": "27e4dbdba8687272b44625460953ab3033d9d867c8f1950da7ee1d56218e155e",
+    "services/collaboration/internal/store/execution_archive_test.go": "18e022b44cd8e372277bf0447093c5702dc3eb9c33f6ff2d5df211ab5af7f3c4"
+  },
+  "live_readback": "output/startup-temporal-runtime-20260909/run-evidence-independent-readback-0520.json",
+  "scope": {
+    "database": "real PostgreSQL isolated disposable test schemas",
+    "provider_writes_by_this_task": 0,
+    "temporal_worker_started_by_this_task": false,
+    "models_called_by_this_task": false,
+    "doc_free_live_archive_by_this_task": false,
+    "production_multi_source_document_acl": "not implemented"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "profile": "affine.database-v3.rich-text.b4c8548c0.v1",
+  "sourceCanonicalHash": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+  "targetCanonicalHash": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+  "beforeSnapshotHash": "ae1cc01f9e5b2ce812a8ec329b96e907c2d95870d0927c54fef9c2d1e77456e6",
+  "updateHash": "6d0eb416f297116d93c28dd88f21c8885b2ad454ab40bbc0d788218333401ee6",
+  "afterSnapshotHash": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+  "sameDocumentId": true,
+  "retainedTableBlockIds": [
+    "5j_Pl3rXbUnEPSwTW0acJ",
+    "RlgEYkgfRxULYAIW3dGGe",
+    "fdMLlIWxCGU1dK38IASMn",
+    "DmD8saS4W_72Vm0HRrVsA"
+  ],
+  "preservedOriginalNonTableBlocks": 54,
+  "addedRowBlocks": 21,
+  "beforeBlocks": 58,
+  "afterBlocks": 79,
+  "fullStructureEqual": true,
+  "unknownOrUnvisitedBlocks": 0,
+  "targetWrites": 0,
+  "tableModel": "affine:database",
+  "tableSchemaVersion": 3
+}

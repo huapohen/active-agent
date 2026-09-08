@@ -1,0 +1,38 @@
+{
+  "protocol": "renji.frozen-affine-native-repair.v1",
+  "binding_id": "startup-stage-publication-20260909-0418-affine",
+  "binding_scope": {
+    "target": "affine",
+    "target_endpoint": "http://127.0.0.1:3010",
+    "namespace_id": "a901cbc0-59ac-40b6-86bf-fcca7ff7b619",
+    "source_endpoint": "http://127.0.0.1:3218",
+    "principal_id": "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+    "room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+    "document_id": "a74679d5",
+    "generation": 1,
+    "approved_by": "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+    "approval_reference": "2026-09-09 authorized startup stage delivery; exact new canonical document in existing controlled room and provider namespaces; no chat or old document writes"
+  },
+  "config_sha256": "87def3b98f0b703faa210b34a00839f192c148c3b916801db798180d9ce922df",
+  "target_id": "SLrA9aXyZV-vehgtC91W-",
+  "source_revision": 1,
+  "source_exact_hash": "44d5f1a1f25b256dd2aef7e80e81b7b6b47d0677b856519f4a1a79d16cfc8844",
+  "title_sha256": "b2a1ad8b6dd1974d70422e4e0dc9c1f8123bb3924563d44ef8753326c2f34f4e",
+  "source_file": "docs/startup/2026-09-09/STARTUP_FOUNDATION_DELIVERY_0424.md",
+  "source_file_sha256": "34b76dcae212510d4035348e30e77e399311a1a43c3eb53633d64765558ca8c2",
+  "source_canonical_file": "docs/startup/2026-09-09/evidence/publication-source.canonical.json",
+  "source_canonical_sha256": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+  "before_native_sha256": "ae1cc01f9e5b2ce812a8ec329b96e907c2d95870d0927c54fef9c2d1e77456e6",
+  "before_target_timestamp": 1788899408474,
+  "update_sha256": "6d0eb416f297116d93c28dd88f21c8885b2ad454ab40bbc0d788218333401ee6",
+  "after_offline_native_sha256": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+  "table_block_ids": [
+    "5j_Pl3rXbUnEPSwTW0acJ",
+    "RlgEYkgfRxULYAIW3dGGe",
+    "fdMLlIWxCGU1dK38IASMn",
+    "DmD8saS4W_72Vm0HRrVsA"
+  ],
+  "preserved_non_table_blocks": 54,
+  "client_version": "0.27.4",
+  "native_profile": "affine.database-v3.rich-text.b4c8548c0.v1"
+}

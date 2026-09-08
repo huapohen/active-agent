@@ -1,0 +1,50 @@
+{
+  "recorded_at": "2026-09-09T05:29:35.186325+08:00",
+  "temporal": {
+    "cli": "1.8.3",
+    "server": "1.31.2",
+    "mode": "persistent local development server",
+    "namespace": "renji-startup",
+    "model_success_verified": false,
+    "worker_restart_after_committed_action_verified": false,
+    "failed_history_preserved_across_server_restart": true,
+    "failed_history_events": 19
+  },
+  "case1": {
+    "run_id": "b94da23b-4cb9-4f06-a03d-701fc4475108",
+    "status": "failed",
+    "evidence_count": 2,
+    "actions": 0,
+    "reason": "stage.input not supported by pre-fix gateway; reconciled by appending real Temporal FAILED observation"
+  },
+  "case2": {
+    "run_id": "76dedd18-1ddf-4fc0-abfa-19aee795b034",
+    "status": "failed",
+    "model_attempts": 3,
+    "actions": 0,
+    "reason": "configured model endpoint unavailable; direct TCP timeout and proxy TLS timeout; no model response"
+  },
+  "transport": {
+    "required_provider": "rongcloud",
+    "new_dispatches": 0,
+    "old_pending_fixture_left_intact": true
+  },
+  "test_logs": [
+    {
+      "path": "/tmp/renji-harness-responses-native-terminal-final-20260909.jsonl",
+      "sha256": "d535f274174f5c7dfdafba1631307de014a641ed3c3d38ffa9b27ec6a92d7800"
+    },
+    {
+      "path": "/tmp/renji-native-plugin-boundary-review-20260909.log",
+      "sha256": "7d7daa896a6e7f4a7d3df790882d1d25c35300ac0ddee4bef13ee733d0368cff"
+    }
+  ],
+  "desktop": {
+    "current_user": "huapohen",
+    "mode": "legacy migration",
+    "body_document_id": "a74679d5",
+    "revision": 1,
+    "native_read_and_return_verified": true,
+    "screenshot": "output/startup-document-reader-native-20260909.png"
+  }
+}

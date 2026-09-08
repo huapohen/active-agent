@@ -6,7 +6,9 @@
 
 实现基线：`acee8003c7c55694716778189179ec272da44347`，提交时间 `2026-09-09T01:22:28+08:00`，描述 `docs: close equal-rights stage and prepare major-version handoff`。
 
-本文记录的 Harness 新代码尚未创建新提交。基线 SHA 不是这些新代码的实现提交号；正式阶段交付时应由总交付文档补充实际 SHA。
+初稿记录时，本文 Harness 新代码尚未提交。2026-09-09 05:57 +08:00 补充实际归属：首个 Harness 实现纳入 `a9005c01ee059b3f093d877ae1eb13828075d692`（`2026-09-09T04:15:30+08:00`，`feat(core): add Clerk-bound agent runs, RongCloud outbox, and document projections`）；后续原生读取、Responses、终态持久化和归档接入代码纳入 `a639a8843093bed98b04b375d361de6e2c2129c9`（`2026-09-09T05:56:24+08:00`，`feat(core): add native document verification and durable agent archives`）。`acee8003` 仍只是本稿的实现基线。
+
+下文保留 03:13–03:19 首轮实现和测试的历史范围，没有改写初稿时间或把假模型测试改成真实模型成功。后续真实失败 Run 的 Doc Free 归档及权限读回见 [归档适配器追加记录](RUN_ARCHIVE_DOC_FREE_ADAPTER_0549.md#2026-09-09-0557-0800-真实归档结果追加)。
 
 ## 本轮范围与结果
 

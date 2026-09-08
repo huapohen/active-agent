@@ -1,0 +1,14 @@
+[
+  {
+    "route": "direct",
+    "error": "URLError",
+    "reason": "timed out",
+    "duration": 7.02
+  },
+  {
+    "route": "system-proxy",
+    "error": "URLError",
+    "reason": "_ssl.c:1112: The handshake operation timed out",
+    "duration": 7.01
+  }
+]

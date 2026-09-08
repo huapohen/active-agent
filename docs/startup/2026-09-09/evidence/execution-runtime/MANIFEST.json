@@ -1,0 +1,65 @@
+{
+  "created_at": "2026-09-09T05:57:50.810606+08:00",
+  "implementation_commit": "a639a8843093bed98b04b375d361de6e2c2129c9",
+  "scope": "Actual failed Temporal Run and one fixed synthetic doc_free archive; no successful model execution claim.",
+  "history_before_sha256": "e18e401836093e83b5f926088153f6bf360116a869586af68b258a6391633d31",
+  "history_after_sha256": "e18e401836093e83b5f926088153f6bf360116a869586af68b258a6391633d31",
+  "history_json_equal": true,
+  "files": [
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/affine-independent-review.md",
+      "bytes": 5418,
+      "sha256": "08991f0e75e6f4cb2614c537f1c842cb30bc92ec4cee163783ff5b0ce7ea7077"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/case1-terminal-reconciliation.json",
+      "bytes": 3723,
+      "sha256": "de017994ce4deeb0747edcbad4b9c1a42222197194e134f1245eb49ac20eaefb"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/case2-history-after-server-restart.json",
+      "bytes": 17598,
+      "sha256": "e18e401836093e83b5f926088153f6bf360116a869586af68b258a6391633d31"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/case2-runtime-manifest.json",
+      "bytes": 419,
+      "sha256": "c0ec70c6c6bd8b3b52b455febf4a6cb02a1cde245409254b1e5591890d2ae63b"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/doc-free-archive-native.png",
+      "bytes": 119763,
+      "sha256": "6b90002331e10fd4e80dc375d7c31f148cdb2c9ed144b60418dccd8aa816f64f"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/doc-free-archive-verification.json",
+      "bytes": 1216,
+      "sha256": "667749825dafe0cd4a53922c4776f791aef1489ebd6dac30a4cb50d531ece46b"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/document-reader-live-api.json",
+      "bytes": 1071,
+      "sha256": "99ae3d10a0f8c4656fe66027df2749e04ab6d3dffce0810aec9ba16f54224a5b"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/full-go-tests.json",
+      "bytes": 47312,
+      "sha256": "2181c316d8e3271c68a210c286ae72c4694bbb9eb66cad619696864f85ac5960"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/model-network-probe.json",
+      "bytes": 256,
+      "sha256": "78fbb41fc6ce9722f374c3eb821d31a6ba7a6c939a1c435b1bc4d3ccbd7b88ef"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/runarchive-independent-review.md",
+      "bytes": 4135,
+      "sha256": "c862276962b5c3047455a83d8ea82f233da903fa08feed07508b1ae99e8bbe92"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/execution-runtime/runtime-summary.json",
+      "bytes": 1659,
+      "sha256": "766864053936285ca6c169a9f6c37616e786446ba4e774970cab0866e2e0284b"
+    }
+  ]
+}

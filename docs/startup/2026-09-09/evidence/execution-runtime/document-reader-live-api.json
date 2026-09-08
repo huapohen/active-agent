@@ -1,0 +1,32 @@
+{
+  "checked_at": "2026-09-08T21:08:36.694Z",
+  "probe": "transpiled actual apps/web/src/api.ts; normal authenticated fixed Vite proxy; read-only",
+  "source_sha256": "635e6bd49b2dbc9896062f72f4cf8b3496893e676f51124202f2103a7368bb84",
+  "library_count": 28,
+  "document_id": "a74679d5",
+  "room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+  "revision": 1,
+  "updated_at": "2026-09-08T20:30:08.121Z",
+  "content_chars": 7401,
+  "content_sha256": "44d5f1a1f25b256dd2aef7e80e81b7b6b47d0677b856519f4a1a79d16cfc8844",
+  "content_hash_matches": true,
+  "adapter_retired_read_rejected": true,
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/legacy/api/im/library",
+      "credentialInUrl": false,
+      "redirect": "error",
+      "cache": "no-store"
+    },
+    {
+      "method": "GET",
+      "path": "/legacy/api/im/rooms/room-1de8fc2a-eed0-438b-98c3-b79c8997859e/documents/a74679d5",
+      "credentialInUrl": false,
+      "redirect": "error",
+      "cache": "no-store"
+    }
+  ],
+  "external_or_management_bypass": false,
+  "client_token_persisted": false
+}

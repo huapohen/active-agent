@@ -1,0 +1,12 @@
+{
+  "run_id": "76dedd18-1ddf-4fc0-abfa-19aee795b034",
+  "workflow_id": "renji-runtime-v2-76dedd18-1ddf-4fc0-abfa-19aee795b034",
+  "namespace": "renji-startup",
+  "task_queue": "renji-startup-runtime-v1",
+  "source_room": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+  "source_epoch": 3,
+  "started_http_gateway_run": true,
+  "temporal_cli_exit_code": 0,
+  "recorded_at": 1788902200.919689,
+  "transport_dispatched": false
+}

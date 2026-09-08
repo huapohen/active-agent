@@ -1,0 +1,37 @@
+{
+  "at": "2026-09-08T21:53:42.838679+00:00",
+  "mode": "single_source_synthetic",
+  "source_run_id": "76dedd18-1ddf-4fc0-abfa-19aee795b034",
+  "source_run_status": "failed",
+  "archive_id": "75ae64e9-7234-4293-8b15-8cbfb70faefb",
+  "through": 5,
+  "verified_through": 5,
+  "document_id": "9d62380a",
+  "reads": [
+    {
+      "identity": "human",
+      "http_status": 200,
+      "id": "9d62380a",
+      "revision": 1,
+      "content_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+      "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+      "computed_body_hash_matches_frozen": true
+    },
+    {
+      "identity": "agent",
+      "http_status": 200,
+      "id": "9d62380a",
+      "revision": 1,
+      "content_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+      "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+      "computed_body_hash_matches_frozen": true
+    }
+  ],
+  "nonmember_read_status": 403,
+  "same_archive_on_second_run": true,
+  "old_documents_preserved_exact": 3,
+  "total_new_documents": 1,
+  "source_docs_before": 3,
+  "source_docs_after": 4,
+  "model_success_claimed": false
+}

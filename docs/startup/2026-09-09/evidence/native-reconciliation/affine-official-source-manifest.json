@@ -1,0 +1,107 @@
+[
+  {
+    "path": "blocksuite/affine/model/src/blocks/database/database-model.ts",
+    "bytes": 1018,
+    "sha256": "f36092f7a04b32f3e40ea354cf55b1183341dc5048fd490fc4b3ab30b7395b08"
+  },
+  {
+    "path": "blocksuite/affine/model/src/blocks/database/types.ts",
+    "bytes": 533,
+    "sha256": "d5fdc5811387eee331172a384570ac8feeb71a8638a481f81925caed508f3967"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/data-source.ts",
+    "bytes": 17659,
+    "sha256": "0b4859b48648a610a17aeea7ae74d382ef4de6a13765520d3da5649b3a7354d6"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/adapters/markdown.ts",
+    "bytes": 2067,
+    "sha256": "16556072a1ab83eed43e17e31975012b8a391f5504baddef2a53e4a713b2ffae"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/properties/rich-text/define.ts",
+    "bytes": 2332,
+    "sha256": "74efc02a1a76861e0c09a71252f6d0bab016509095f5b2d05f6e889dfd122ec1"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/properties/rich-text/cell-renderer.ts",
+    "bytes": 11934,
+    "sha256": "e20d2771110733db379b716fddf6ac1ceed9e577d410de3cbd06d1cdb1958866"
+  },
+  {
+    "path": "blocksuite/affine/data-view/src/view-presets/table/pc/header/database-header-column.ts",
+    "bytes": 14539,
+    "sha256": "257c2826ee1ccf85c06bd065efb6a70c709454e4b11904984e15cab43de84cfe"
+  },
+  {
+    "path": "blocksuite/affine/data-view/src/view-presets/table/pc/header/column-header.ts",
+    "bytes": 4490,
+    "sha256": "4289e9af592772f49b1657accc23fd3a12fecc3e5b609a934eca102c9766506b"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/views/index.ts",
+    "bytes": 450,
+    "sha256": "1854e8e9fac5bd73c39624be39b880fb6914572c13e05086af199e0262f810a8"
+  },
+  {
+    "path": "blocksuite/affine/data-view/src/view-presets/table/define.ts",
+    "bytes": 1355,
+    "sha256": "ef22f4332d130539bb2ca532a4255591a3aff47537ed86cc004613e49f23f381"
+  },
+  {
+    "path": "blocksuite/affine/data-view/src/view-presets/table/types.ts",
+    "bytes": 245,
+    "sha256": "372adfcab8a1a0b5a44587e834ffdf4ae2b0214024d03819bfbc8be12863293a"
+  },
+  {
+    "path": "blocksuite/affine/data-view/src/view-presets/table/table-view-manager.ts",
+    "bytes": 13128,
+    "sha256": "1a1714454d61e7c507af9607a6458248212dfc325b109cfda35bd2292e6a75df"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/utils/block-utils.ts",
+    "bytes": 5640,
+    "sha256": "16307e269c7fbc0e5195f71721d01eb0c1ef554a8015f019c22e2abb9963acc8"
+  },
+  {
+    "path": "blocksuite/framework/store/src/reactive/proxy.ts",
+    "bytes": 11354,
+    "sha256": "b06a41c6d14115eee16c823083fbcd8480c3dbd2da3588172fc0db2fd1c19470"
+  },
+  {
+    "path": "blocksuite/framework/store/src/reactive/native-y.ts",
+    "bytes": 2200,
+    "sha256": "042504384fb10574c66f1e9ce7bb134c93ab14d52dd97610c3ee038c6cb4cef2"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/properties/created-time/define.ts",
+    "bytes": 836,
+    "sha256": "2c1f9dbd4dd1a2ddfeb841028182b7d6e619d7627a4de40cd3a4f1c2794bebf3"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/properties/index.ts",
+    "bytes": 1025,
+    "sha256": "dd07d69cbcf1f6e02feab68c4b90928e538ea9941229b4ce0e7823a5b1f82e73"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/properties/title/define.ts",
+    "bytes": 2334,
+    "sha256": "c682177b3fa474de61f9f49a6c403c8c51e9133ab4dd176dd038ad9b2ffdcfda"
+  },
+  {
+    "path": "blocksuite/affine/data-view/src/core/data-source/base.ts",
+    "bytes": 9465,
+    "sha256": "d1a697bd109ecbca9f6dcc48052fdeeb961808954b8f06bee7716985980f3b19"
+  },
+  {
+    "path": "blocksuite/affine/data-view/src/core/view-manager/property.ts",
+    "bytes": 7177,
+    "sha256": "ab902cd4ebecc46c43a91636cc91a490cdf5b8c19b7abf78da2329ff001eb8eb"
+  },
+  {
+    "path": "blocksuite/affine/blocks/database/src/properties/created-time/cell-renderer.ts",
+    "bytes": 1295,
+    "sha256": "de491dd4a3acd74b5bf29915c3b6ed6b809635186d8884b069a8ec67f9f919f5"
+  }
+]

@@ -1,0 +1,81 @@
+{
+  "created_at": "2026-09-09T05:44:44.277727+08:00",
+  "scope": "Same a74679d5 r1 and two existing target IDs only; Docmost native read-only reconciliation; one AFFiNE native delta then read-only reconciliation; original unknown history retained. No all-format or pixel equivalence claim.",
+  "files": [
+    {
+      "path": "docs/startup/2026-09-09/evidence/native-reconciliation/docmost-native-receipt.json",
+      "bytes": 1487,
+      "sha256": "849ac39cb3ef864582678787eabdefbce043c15950b68f7b22ae6e3e3ade5083"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/native-reconciliation/docmost-verification.json",
+      "bytes": 1098,
+      "sha256": "af5fc60f4306b9bda64fd7d0b574a7be87f7f7fd6616fd95c078e7b86116119d"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/native-reconciliation/affine-native-receipt.json",
+      "bytes": 1515,
+      "sha256": "08ba5971deaf723b72d50275338bb7f2a9a27887d4b46f1c1d459a1ba6c86383"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/native-reconciliation/affine-verification.json",
+      "bytes": 1059,
+      "sha256": "34912571ff02f7cf4f93e755bb5d1729a4e7bed63fe4ea4479f43fd2234833c4"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/native-reconciliation/affine-frozen-repair.json",
+      "bytes": 2061,
+      "sha256": "5e112cb3c1ab0b95bf5dbdeb747655d289f8f46bd7061be8ff0e60c18995bbbf"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/native-reconciliation/affine-offline-proof.json",
+      "bytes": 943,
+      "sha256": "fef9e4c307feaaf987acaf4d564f4dc2eea804d286aee4846fe417bfac4c7408"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/native-reconciliation/affine-live-readback.json",
+      "bytes": 1206,
+      "sha256": "e9da3fe41a80d40b332879fea00b3cc80e510f5d4c735d1efe9b131c0ab2dcbe"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/native-reconciliation/affine-official-source-manifest.json",
+      "bytes": 3945,
+      "sha256": "e365eac0e0042543be0193e8080569a43022d674228ae046b83ea974ce405daa"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/native-reconciliation/affine-frozen-update.bin",
+      "bytes": 19639,
+      "sha256": "6d0eb416f297116d93c28dd88f21c8885b2ad454ab40bbc0d788218333401ee6"
+    },
+    {
+      "path": "services/collaboration/internal/documents/testdata/native/delivery.md",
+      "bytes": 14795,
+      "sha256": "34b76dcae212510d4035348e30e77e399311a1a43c3eb53633d64765558ca8c2",
+      "existing_fixture": true
+    },
+    {
+      "path": "services/collaboration/internal/documents/testdata/native/docmost.json",
+      "bytes": 106571,
+      "sha256": "02c8b3107ed302ed765f19eb7bf1dbd108f4e16c5fef75da6385fdbb0c880f10",
+      "existing_fixture": true
+    },
+    {
+      "path": "services/collaboration/internal/documents/testdata/native/affine-original.bin",
+      "bytes": 40752,
+      "sha256": "ae1cc01f9e5b2ce812a8ec329b96e907c2d95870d0927c54fef9c2d1e77456e6",
+      "existing_fixture": true
+    },
+    {
+      "path": "services/collaboration/internal/documents/testdata/native/affine-database.bin",
+      "bytes": 54880,
+      "sha256": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+      "existing_fixture": true
+    },
+    {
+      "path": "docs/startup/2026-09-09/STARTUP_FOUNDATION_DELIVERY_0424.md",
+      "bytes": 14795,
+      "sha256": "34b76dcae212510d4035348e30e77e399311a1a43c3eb53633d64765558ca8c2",
+      "existing_fixture": true
+    }
+  ]
+}

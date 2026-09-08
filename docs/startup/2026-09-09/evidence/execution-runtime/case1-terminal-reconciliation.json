@@ -1,0 +1,71 @@
+{
+  "at": 1788902488.638697,
+  "event_http": 204,
+  "evidence": {
+    "run": {
+      "context": {
+        "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+        "executor_id": "65406456-48cf-4d57-83ee-6a90c206e7a1",
+        "run_id": "b94da23b-4cb9-4f06-a03d-701fc4475108",
+        "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+        "scope_epoch": 3,
+        "runtime_version": "eino-v0.9.19-renji-1",
+        "workflow_version": "renji-stage-v1"
+      },
+      "workspace_id": "736b5198-479b-4505-8dbb-8d54b0d5c697",
+      "executor_version": 1,
+      "policy_version": 2,
+      "goal": "这是用户授权的隔离合成验收，只操作当前context.room_id。不要委派研究子代理。本次验证真实读取、两阶段动作与定时继续。\n阶段0：调用 im_room_list 和 im_message_read 读取当前会话（after=0）；随后提出恰好一项 message.send，key为runtime-v1-first，payload必须包含room_id=context.room_id和content。content写“[合成验收 runtime-v1] 第1阶段：已通过原生接口读取本群消息”，并附上你实际读取的一条消息的seq或说明为空。done=false，wait_seconds=60。不要宣称已送达客户端。\n阶段1：先读取当前群消息，核对已存在第1阶段的实际消息；结合receipts确认动作结果。提出恰好一项message.send，key为runtime-v1-second，payload.room_id=context.room_id；content写“[合成验收 runtime-v1] 第2阶段：定时继续后复核第一阶段记录”，并注明实际核对到的消息seq。done=true，wait_seconds=0。若未查到，不编造。两次提交只是本地持久动作，本轮未要求向融云派发，严禁声称融云/客户端收件成功。\n只返回规划协议所需JSON。",
+      "status": "failed",
+      "created_by": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+      "created_at": "2026-09-09T05:10:20.676642+08:00"
+    },
+    "mode": "audit",
+    "through": 2,
+    "cursor": 2,
+    "has_more": false,
+    "entries": [
+      {
+        "seq": 1,
+        "kind": "event",
+        "object_id": "7781a56665464e3f16b5b784632ffd94795862ccc43a6bf501fb97cde134dfeb",
+        "data": {
+          "created_at": "2026-09-08T21:21:28.501027+00:00",
+          "event": {
+            "data": {
+              "receipts": [],
+              "reconciliation": {
+                "history_sha256": "07cb59f2c663e82b03635cc48f25b8f7fe8b6077fa8642970c495b6da6a67d8e",
+                "observed_status": "FAILED",
+                "provider": "temporal",
+                "temporal_run_id": "01a082db-893b-722a-b816-675c6a17eb84",
+                "workflow_id": "renji-runtime-v1-b94da23b-4cb9-4f06-a03d-701fc4475108"
+              },
+              "stages": 0,
+              "status": "failed",
+              "summary": "实际 Temporal 已确认该首次执行在 stage.input 协议拒绝时失败；未产生动作。本事件只追加终态对账，保留原失败。"
+            },
+            "id": "7781a56665464e3f16b5b784632ffd94795862ccc43a6bf501fb97cde134dfeb",
+            "stage": 0,
+            "type": "run.failed"
+          },
+          "event_id": "7781a56665464e3f16b5b784632ffd94795862ccc43a6bf501fb97cde134dfeb",
+          "request_hash": "5ffb3f660b27ea387ef62e63e32f370841f92d82f5d5c35e55cfe981be3149c5"
+        },
+        "recorded_at": "2026-09-09T05:21:28.505614+08:00",
+        "legacy_snapshot": false
+      },
+      {
+        "seq": 2,
+        "kind": "run.status",
+        "object_id": "b94da23b-4cb9-4f06-a03d-701fc4475108",
+        "data": {
+          "previous_status": "running",
+          "status": "failed"
+        },
+        "recorded_at": "2026-09-09T05:21:28.508516+08:00",
+        "legacy_snapshot": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "state": "native_verified",
+  "before_journal_sha256": "7095123139869a35d08c826711223780abef3890829f93ad2c33355802ac9ac4",
+  "after_journal_sha256": "8c11808d31b561b2b530853fc46351be7e75345da3d84e6449acb7160fec4abf",
+  "before_lines": 7,
+  "after_lines": 8,
+  "original_prefix_exact": true,
+  "config_unchanged": true,
+  "target_writes": 0,
+  "second_pass_no_append": true,
+  "second_pass_target_writes": 0,
+  "native": {
+    "profile": "affine.database-v3.rich-text.b4c8548c0.v1",
+    "target_version": "sha256:a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+    "source_canonical_hash": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+    "target_canonical_hash": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+    "target_native_raw_hash": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+    "platform_behavior_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "platform_differences": 0,
+    "markdown_export_error": "readback_mismatch"
+  }
+}
