@@ -18,6 +18,14 @@ class OfficeQuickCreateAction {
   final String id, label;
   final IconData icon;
   final String? module, unavailableMessage;
+
+  String visibleLabel({required bool mobile}) => mobile
+      ? switch (id) {
+          'agent' => '添加 Agent',
+          'store' => 'Agent 商店',
+          _ => label,
+        }
+      : label;
 }
 
 /// IDs for working entries match OfficeShell's existing native actions.
@@ -269,7 +277,7 @@ class _OfficeQuickCreateMenuState extends State<OfficeQuickCreateMenu> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        action.label,
+                        action.visibleLabel(mobile: mobile),
                         maxLines: mobile ? 2 : 3,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

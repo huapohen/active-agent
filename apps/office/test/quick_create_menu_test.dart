@@ -140,10 +140,15 @@ void main() {
         );
         expect(icons.single.size, 24);
         final text = tester.widget<Text>(
-          find.descendant(of: row, matching: find.text(action.label)),
+          find.descendant(
+            of: row,
+            matching: find.text(action.visibleLabel(mobile: true)),
+          ),
         );
         expect(text.style?.fontSize, 17);
       }
+      expect(find.text('添加 Agent'), findsOneWidget);
+      expect(find.text('Agent 商店'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('quick-create-group')));
       await tester.pumpAndSettle();
       expect(selected, ['group']);
