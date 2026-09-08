@@ -116,6 +116,10 @@ func (g *HTTPGateway) AppendEvent(ctx context.Context, r RunContext, e Event) er
 }
 
 func (g *HTTPGateway) post(ctx context.Context, path string, body any, out any) error {
+	return g.request(ctx, http.MethodPost, path, body, out)
+}
+
+func (g *HTTPGateway) request(ctx context.Context, method, path string, body any, out any) error {
 	encoded, err := json.Marshal(body)
 	if err != nil {
 		return ErrInvalid
@@ -123,7 +127,11 @@ func (g *HTTPGateway) post(ctx context.Context, path string, body any, out any) 
 	if len(encoded) > 2*1024*1024 {
 		return ErrInvalid
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.base+path, bytes.NewReader(encoded))
+	var reader io.Reader
+	if body != nil {
+		reader = bytes.NewReader(encoded)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, g.base+path, reader)
 	if err != nil {
 		return ErrInvalid
 	}

@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	planActivityName   = "renji.agent.plan.v1"
-	actionActivityName = "renji.agent.action.v1"
+	planActivityName     = "renji.agent.plan.v1"
+	actionActivityName   = "renji.agent.action.v1"
+	terminalActivityName = "renji.agent.terminal.v1"
 )
 
 type Activities struct {
@@ -26,6 +27,29 @@ type ActionInput struct {
 	Context RunContext `json:"context"`
 	Stage   int        `json:"stage"`
 	Action  Action     `json:"action"`
+}
+
+type TerminalInput struct {
+	Context RunContext `json:"context"`
+	Result  RunResult  `json:"result"`
+}
+
+// Finalization is a separate durable activity. It writes only an audit event,
+// including after a source stop; the gateway still checks current membership
+// and executor binding. Retrying it cannot repeat a business action.
+func (a *Activities) Terminal(ctx context.Context, input TerminalInput) error {
+	if input.Context.Validate() != nil || a.Gateway == nil || input.Result.Stages < 0 || input.Result.Stages > 32 || len(input.Result.Summary) > 8000 || len(input.Result.Receipts) > 128 {
+		return failure(ErrInvalid)
+	}
+	status := input.Result.Status
+	switch status {
+	case "completed", "failed", "stopped", "reconciliation_required":
+	case "rejected", "stage_budget_exhausted":
+		status = "failed"
+	default:
+		return failure(ErrInvalid)
+	}
+	return failure(a.Gateway.AppendEvent(ctx, input.Context, Event{ID: StableID(input.Context.RunID, "workflow-terminal-v1"), Type: "run." + status, Stage: input.Result.Stages, Data: eventData(input.Result)}))
 }
 
 func failure(err error) error {
@@ -121,7 +145,7 @@ func (a *Activities) Execute(ctx context.Context, input ActionInput) (Receipt, e
 // RunWorkflow has no model/network/file I/O. Completed Plan and Action activity
 // results live in Temporal history. A replay therefore cannot re-plan a
 // committed stage or allocate a replacement logical action ID.
-func RunWorkflow(ctx workflow.Context, input RunInput) (RunResult, error) {
+func RunWorkflow(ctx workflow.Context, input RunInput) (result RunResult, runErr error) {
 	if err := input.Context.Validate(); err != nil {
 		return RunResult{}, failure(err)
 	}
@@ -136,7 +160,26 @@ func RunWorkflow(ctx workflow.Context, input RunInput) (RunResult, error) {
 		RetryPolicy:            &temporal.RetryPolicy{InitialInterval: time.Second, MaximumAttempts: 3},
 	}
 	ctx = workflow.WithActivityOptions(ctx, options)
-	result := RunResult{Status: "running", Receipts: []Receipt{}}
+	result = RunResult{Status: "running", Receipts: []Receipt{}}
+	defer func() {
+		// Old histories remain replayable; new executions persist their terminal
+		// status before Temporal reports completion to a caller.
+		if workflow.GetVersion(ctx, "persist-terminal-event-v1", workflow.DefaultVersion, 1) == workflow.DefaultVersion {
+			return
+		}
+		if runErr != nil {
+			result.Status = "failed"
+			if temporal.IsCanceledError(runErr) {
+				result.Status = "stopped"
+			}
+		}
+		finalCtx, _ := workflow.NewDisconnectedContext(ctx)
+		finalCtx = workflow.WithActivityOptions(finalCtx, workflow.ActivityOptions{StartToCloseTimeout: 20 * time.Second, ScheduleToCloseTimeout: time.Minute, RetryPolicy: &temporal.RetryPolicy{InitialInterval: time.Second, MaximumAttempts: 3}})
+		if err := workflow.ExecuteActivity(finalCtx, terminalActivityName, TerminalInput{input.Context, result}).Get(finalCtx, nil); err != nil && runErr == nil {
+			result.Status = "reconciliation_required"
+			runErr = err
+		}
+	}()
 	seen := make(map[string]Action)
 	for stage := 0; stage < input.MaxStages; stage++ {
 		var plan StageResult
@@ -198,4 +241,5 @@ func Register(w worker.Worker, a *Activities) {
 	w.RegisterWorkflowWithOptions(RunWorkflow, workflow.RegisterOptions{Name: WorkflowName})
 	w.RegisterActivityWithOptions(a.Plan, activity.RegisterOptions{Name: planActivityName})
 	w.RegisterActivityWithOptions(a.Execute, activity.RegisterOptions{Name: actionActivityName})
+	w.RegisterActivityWithOptions(a.Terminal, activity.RegisterOptions{Name: terminalActivityName})
 }

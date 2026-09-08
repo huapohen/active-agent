@@ -107,6 +107,7 @@ func nativeMessages(c *gin.Context, s *store.Store, room string, after int64, ru
 	return s.ExecutorMessages(c.Request.Context(), m.Issuer, m.MachineSubject, room, after)
 }
 func mountExecution(g *gin.Engine, v1 *gin.RouterGroup, s *store.Store, cfg config) {
+	mountExecutionEvidence(v1, s)
 	v1.POST("/executors", func(c *gin.Context) {
 		if denyUnscopedMachineMutation(c) {
 			return

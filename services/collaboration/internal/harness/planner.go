@@ -92,6 +92,14 @@ func (p *EinoPlanner) Plan(parent context.Context, input StageInput) (StageResul
 	if err != nil {
 		return StageResult{}, err
 	}
+	stageTools := []tool.BaseTool{readTool}
+	if reader, ok := p.config.Gateway.(NativeReader); ok {
+		reads, err := nativeReadTools(reader, trace)
+		if err != nil {
+			return StageResult{}, err
+		}
+		stageTools = append(stageTools, reads...)
+	}
 	skills, err := skill.NewMiddleware(ctx, &skill.Config{Backend: &stageSkills{trace: trace}})
 	if err != nil {
 		return StageResult{}, err
@@ -116,7 +124,7 @@ func (p *EinoPlanner) Plan(parent context.Context, input StageInput) (StageResul
 		Name: "renji_planner", Description: "Bounded native collaboration planner", ChatModel: guarded,
 		Instruction:  planningInstruction + "\nAllowed action types: " + strings.Join(p.config.AllowedActionTypes, ", "),
 		MaxIteration: p.config.MaxIterations,
-		ToolsConfig:  adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{Tools: []tool.BaseTool{readTool}}, EmitInternalEvents: true},
+		ToolsConfig:  adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{Tools: stageTools}, EmitInternalEvents: true},
 		Handlers:     []adk.ChatModelAgentMiddleware{skills, reduce, summary, &toolFence{trace: trace}},
 	})
 	if err != nil {

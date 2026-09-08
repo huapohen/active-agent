@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/huapohen/active-agent/services/collaboration/internal/domain"
@@ -136,7 +137,7 @@ func (s *Store) ExecuteAction(ctx context.Context, issuer, subject string, rc ha
 }
 
 var executionEventTypes = map[string]bool{
-	"stage.planned": true, "model.output": true, "agent.output": true, "tool.result": true,
+	"stage.input": true, "stage.planned": true, "model.output": true, "agent.output": true, "tool.result": true,
 	"action.succeeded": true, "action.rejected": true, "action.running": true, "action.unknown": true,
 	"run.stopped": true, "run.completed": true, "run.failed": true, "run.reconciliation_required": true,
 }
@@ -171,6 +172,42 @@ func (s *Store) AppendExecutionEvent(ctx context.Context, issuer, subject string
 		return err
 	}
 	postStop := stale || executionPolicyStale(b, run) || run.Status != "running"
+	if e.Type == "stage.input" {
+		if postStop {
+			return domain.ErrStopped
+		}
+		var input harness.StageInput
+		d := json.NewDecoder(bytes.NewReader(e.Data))
+		d.DisallowUnknownFields()
+		if d.Decode(&input) != nil || d.Decode(new(any)) != io.EOF || input.Stage != e.Stage || input.Stage < 0 || input.Stage >= 32 || input.Attempt < 1 || input.Attempt > 1000 || len(input.PreviousSummary) > 8000 || len(input.Receipts) > 128 {
+			return domain.ErrInvalid
+		}
+		if !reflect.DeepEqual(input.Context, run.Context) {
+			return domain.ErrForbidden
+		}
+		if input.Goal != run.Goal {
+			return domain.ErrConflict
+		}
+		seen := map[string]bool{}
+		for _, receipt := range input.Receipts {
+			if !validExecutionID(receipt.ActionID) || seen[receipt.ActionID] {
+				return domain.ErrInvalid
+			}
+			seen[receipt.ActionID] = true
+			var stored []byte
+			if err = tx.QueryRow(ctx, "SELECT receipt FROM execution_actions WHERE run_id=$1 AND action_id=$2", rc.RunID, receipt.ActionID).Scan(&stored); errors.Is(err, pgx.ErrNoRows) {
+				return domain.ErrForbidden
+			} else if err != nil {
+				return err
+			}
+			raw, _ := json.Marshal(receipt)
+			expected, _ := executionJSON(stored)
+			actual, _ := executionJSON(raw)
+			if !bytes.Equal(expected, actual) {
+				return domain.ErrConflict
+			}
+		}
+	}
 	var prior string
 	err = tx.QueryRow(ctx, "SELECT request_hash FROM execution_events WHERE run_id=$1 AND event_id=$2", rc.RunID, e.ID).Scan(&prior)
 	if err == nil {

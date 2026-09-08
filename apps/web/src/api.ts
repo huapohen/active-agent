@@ -1,10 +1,14 @@
-import type { Capabilities, CollaborationClient, Document, EventPage, Message, MessagePage, Principal, Room, RoomPage, SendIntent } from './types';
+import type { Capabilities, CollaborationClient, Document, DocumentContent, EventPage, Message, MessagePage, Principal, Room, RoomPage, SendIntent } from './types';
 
 type Json = Record<string, unknown>;
 const object = (value: unknown): Json => value && typeof value === 'object' && !Array.isArray(value) ? value as Json : {};
 const list = (value: unknown): Json[] => Array.isArray(value) ? value.map(object) : [];
 const text = (value: unknown, fallback = '') => typeof value === 'string' ? value : fallback;
 const number = (value: unknown, fallback = 0) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+const timestamp = (value: unknown) => {
+  const date = typeof value === 'number' || typeof value === 'string' ? new Date(value) : null;
+  return date && Number.isFinite(date.getTime()) ? typeof value === 'string' ? value : date.toISOString() : '';
+};
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string) {
@@ -93,6 +97,7 @@ abstract class HttpClient implements CollaborationClient {
   async createRoom(_title: string, _signal?: AbortSignal): Promise<Room> { return this.unsupported(); }
   async direct(_principalId: string, _signal?: AbortSignal): Promise<Room> { return this.unsupported(); }
   async documents(_signal?: AbortSignal): Promise<Document[]> { return this.unsupported(); }
+  async document(_roomId: string, _documentId: string, _signal?: AbortSignal): Promise<DocumentContent> { return this.unsupported(); }
   async events(_after: number, _signal?: AbortSignal): Promise<EventPage> { return this.unsupported(); }
   close() { this.lifecycle.abort(); this.token = async () => null; }
 }
@@ -144,10 +149,15 @@ export class LegacyClient extends HttpClient {
       // The authorized library returns room_ids, including documents shared in
       // several rooms. Use only a server-returned context; never invent one.
       const roomIds = Array.isArray(d.room_ids) ? d.room_ids.filter((id): id is string => typeof id === 'string' && id.length > 0) : [];
-      const date = typeof d.updated_at === 'number' ? new Date(d.updated_at) : null;
-      const updatedAt = date && Number.isFinite(date.getTime()) ? date.toISOString() : text(d.updated_at);
-      return { id: text(d.id), roomId: text(d.room_id) || roomIds[0] || '', title: text(d.title, text(d.name, '未命名文档')), revision: number(d.revision), updatedAt };
+      return { id: text(d.id), roomId: text(d.room_id) || roomIds[0] || '', roomIds, title: text(d.title, text(d.name, '未命名文档')), revision: number(d.revision), updatedAt: timestamp(d.updated_at) };
     });
+  }
+  async document(roomId: string, documentId: string, signal?: AbortSignal): Promise<DocumentContent> {
+    if (!roomId || roomId.length > 200 || !/^[a-zA-Z0-9_-]{1,100}$/.test(documentId)) throw new ApiError(422, 'invalid_document_context');
+    const result = await this.request(`/rooms/${encodeURIComponent(roomId)}/documents/${encodeURIComponent(documentId)}`, 'GET', undefined, signal);
+    const d = object(result.document);
+    if (d.id !== documentId || typeof d.title !== 'string' || typeof d.content !== 'string' || d.content.length > 200000 || !Number.isSafeInteger(d.revision) || number(d.revision, -1) < 0 || typeof d.content_hash !== 'string' || !/^[a-f0-9]{64}$/.test(d.content_hash)) throw new ApiError(502, 'invalid_document');
+    return { id: documentId, roomId, title: d.title, content: d.content, revision: d.revision as number, contentHash: d.content_hash, updatedAt: timestamp(d.updated_at) };
   }
   async events(after: number, signal?: AbortSignal): Promise<EventPage> { const result = await this.request(`/events?after=${after}&wait=20`, 'GET', undefined, signal); return { cursor: number(result.cursor, after), changed: list(result.events).length > 0, resetRequired: result.reset_required === true }; }
 }

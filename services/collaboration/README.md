@@ -2,7 +2,7 @@
 
 `startup` 分支使用 Go/Gin、PostgreSQL/pgx/sqlc/goose、Clerk 和**必选的融云**。Temporal 管理持久执行流程；Eino DeepAgents 管理有界规划，业务动作仍由协作内核授权和提交。当前是可执行的迁移阶段，不能当作完整商业发布。
 
-阶段验收入口：[实现与测试交付](../../docs/startup/2026-09-09/STARTUP_FOUNDATION_DELIVERY_0424.md)、[手动启动教程](../../docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md)、[实际发布与格式差异](../../docs/startup/2026-09-09/STARTUP_FOUNDATION_PUBLICATION_RECEIPT_0443.md)、[云文档目录原生修复](../../docs/startup/2026-09-09/LIBRARY_CONTEXT_NATIVE_FIX_0445.md)。复杂交付文档已在两个目标创建，但本次保真验收未通过：AFFiNE 表格语义与单元格代码格式存在缺口，两端 Markdown 导出均有结构差异。已保留原目标 ID 和未知回执，未通过重建或放宽哈希将它们签收为成功。
+阶段验收入口：[首次实现与测试交付](../../docs/startup/2026-09-09/STARTUP_FOUNDATION_DELIVERY_0424.md)、[手动启动教程](../../docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md)、[首次发布与格式差异](../../docs/startup/2026-09-09/STARTUP_FOUNDATION_PUBLICATION_RECEIPT_0443.md)、[文档正文阅读器](../../docs/startup/2026-09-09/CLOUD_DOCUMENT_READER_0510.md)。首次发布的未知回执保留。Docmost 已追加原生结构验证；AFFiNE 在原文档、原四个表格块 ID 上修复表头和单元格代码格式，随后回读完整结构。Markdown 字节一致与原生结构一致分开记录；浏览器视觉、通用原生增量写入仍需继续验收。
 
 ## 启动本机服务
 
@@ -22,7 +22,7 @@ cd services/collaboration
 go run ./cmd/api
 ```
 
-新数据库第一次启动，使用 `go run ./cmd/api --migrate` 应用版本化迁移。当前本机 public schema 已迁移，不需要反复初始化。不要重新运行文档实例 setup 或合成数据 provision。
+新数据库首次部署或升级到含新迁移的版本时，使用 `go run ./cmd/api --migrate` 应用尚未执行的版本化迁移。正常重启无需重新初始化。不要重新运行文档实例 setup 或合成数据 provision。
 
 终端 2：Web 热更新。
 
@@ -67,12 +67,21 @@ python3 scripts/dev_office.py --doc-free ../doc_free --no-worker
 | `/v1/workspaces`、`/v1/rooms`、群执行策略 | 有幂等回执的业务操作；机器版本尚未全部接入动作网关 |
 | `/v1/executors`、`/v1/agents/execution-policy` | 工作区管理员登记机器绑定、配置主动人格 |
 | `/v1/runs`、`/v1/runs/:id` | 创建和读取持久 Run；不会仅因创建而声称模型已经执行 |
+| `/v1/runs/:id/evidence`、MCP `run_evidence` | 按共享序号分页读取真实事件、动作、传输状态和 Run 状态；audit 模式保留终态核查，execution 模式拒绝停止或过期的执行范围 |
 | `/v1/mcp` | MCP 2025-11-25，提供当前身份、房间、消息及 Run 工具，和 REST 共用业务处理器 |
 | `/internal/harness/{binding,check,actions,events}` | 真实机器绑定、动态检查、动作提交和有界过程证据 |
 
 机器消息要求 `run_id` 与 64 位十六进制稳定动作 ID；没有 Run 的机器消息写入被拒绝。机器工具列表明确剔除尚未注册动作实现的管理工具。A2A、全部办公模块动作与外设协议仍在建设，不把任意模型文本输出当作协议能力。
 
 普通融云 SDK token 可以直接调用供应商写接口，单靠前端不调用发送无法构成服务端约束。目前仅允许显式列入 `RENJI_RONGCLOUD_TEST_PRINCIPALS` 的隔离测试主体申请客户端 token；默认不面向一般账号发放。此门槛不关闭服务端融云 Outbox，也不把融云降为可选。正式开通前仍需验证供应商禁言、托管群、撤回、其他会话类型及原始 SDK 对抗行为。
+
+## 持久执行与文档核验
+
+`cmd/worker` 使用 `.env.example` 中的独立 worker 配置。`RENJI_MODEL_API_STYLE=responses` 明确选择 Responses；空值或 `chat_completions` 选择原协议，未知值拒绝启动。不会因请求失败切换模型、端点或协议。Eino 在规划期间可通过已绑定 Run 读取当前房间和消息，每页都检查来源权限和停止状态；终态由单独 Temporal Activity 持久写回，重试终态记录不会再次执行业务动作。
+
+本机已运行使用 SQLite 历史的 Temporal 开发服务，并验证失败流程的 19 个历史事件经过实际服务重启后保持一致。配置的模型端点本轮网络超时，因此尚未证明成功的自主多阶段执行、持久等待后的模型续行或已提交动作之后的 worker 恢复。不能用失败历史恢复代替这些验收。
+
+`cmd/document-sync` 默认仍严格比较正文与标题。原生结构对账必须显式指定 `-binding` 和已支持的 `-native-profile`；AFFiNE 还需要 `-native-codec` 的绝对目录和 `-native-node` 的绝对可执行路径。独立 codec 使用自身锁文件安装依赖，子进程不继承父服务凭据。`native_verified` 是单独状态，保留 Markdown 导出差异；旧有未知记录不删除。已原生验证的 AFFiNE 数据库文档遇到新的源版本会要求原生写入方案，不能自动交给旧 Markdown writer 损坏表格。
 
 ## 验证与证据
 
@@ -89,11 +98,12 @@ go build ./...
 - `cmd/auth-probe`：在线验证已配置的 Clerk 机器 token，仅输出身份与期限，不输出凭据。
 - `cmd/transport-probe`：显式合成 fixture、持久意图与逐次外部观察，未知结果不重试。已有 fixture 必须复用，不能删除映射后重建。
 - `cmd/document-sync`：对已授权的 Doc Free 源文档建立 AFFiNE/Docmost 投影并读回正文和标题；具体配置见阶段文档。
+- `cmd/run-archive --config /absolute/private/config.json --run <Run ID>`：从持久证据生成 doc_free 档案并校验实际正文、标题与受众；当前仅允许显式单来源合成配置，未知创建不重建。配置与边界见 [归档适配说明](../../docs/startup/2026-09-09/RUN_ARCHIVE_DOC_FREE_ADAPTER_0549.md)。此命令尚未接入持续自动调度。
 
 详细结果见 [融云真实回执](../../docs/startup/2026-09-09/RONGCLOUD_OUTBOX_SYNTHETIC_PROBE_0356.md)、[文档双端同步](../../docs/startup/2026-09-09/DOCUMENT_SYNC_FOUNDATION.md)、[机器认证](../../docs/startup/2026-09-09/CLERK_MACHINE_AUTH_ADAPTER_0343.md)。
 
 ## 本阶段没有完成的商业要求
 
-Clerk 真人在所有端的登录/刷新、融云客户端接收与断线恢复、Flutter 迁移、完整飞书页面、生产签名与更新、A2A、全量办公插件、外设接入、真正运行的 Temporal 与模型、自主执行的持续调度和文档自动归档，均需继续实现和验收。Doc Free → AFFiNE/Docmost 已有真实合成验证，但旧 Docmost 3020 尚未迁移，生产目标权限撤回和复杂文档保真也未完成。
+Clerk 真人在所有端的登录/刷新、融云客户端接收与断线恢复、Flutter 迁移、完整飞书页面、生产签名与更新、A2A、全量办公插件、外设接入、真实模型成功多阶段执行、自主执行的持续调度和文档自动归档，均需继续实现和验收。Doc Free → AFFiNE/Docmost 已有真实合成验证，但旧 Docmost 3020 尚未迁移，生产目标权限撤回和全部复杂文档格式保真也未完成。
 
 Clerk 是首轮认证方案；Logto + OpenFGA 完整保留为第二方案，本阶段没有部署第二套身份系统。国内优先，海外和鸿蒙不在当前实施范围。

@@ -36,7 +36,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("machine binding or required gateway contracts are not ready")
 	}
-	model, err := harness.NewHTTPModel(os.Getenv("RENJI_MODEL_BASE_URL"), os.Getenv("RENJI_MODEL_API_KEY"), os.Getenv("RENJI_MODEL_NAME"), os.Getenv("RENJI_MODEL_REASONING_EFFORT"))
+	model, err := harness.NewConfiguredHTTPModel(os.Getenv("RENJI_MODEL_BASE_URL"), os.Getenv("RENJI_MODEL_API_KEY"), os.Getenv("RENJI_MODEL_NAME"), os.Getenv("RENJI_MODEL_REASONING_EFFORT"), os.Getenv("RENJI_MODEL_API_STYLE"))
 	if err != nil {
 		return fmt.Errorf("invalid explicit model configuration")
 	}

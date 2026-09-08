@@ -66,6 +66,8 @@ func (b Binding) fingerprint() string { raw, _ := json.Marshal(b); return Hash(s
 type Observation struct {
 	ExternalID, BodyHash, TitleHash string
 	TitleReadable                   bool
+	RawBodyHash                     string
+	Version                         string
 }
 type Source interface {
 	Read(context.Context, Binding) (Snapshot, error)
@@ -104,6 +106,10 @@ type Record struct {
 	TitleVerified     bool      `json:"title_verified"`
 	ErrorCode         string    `json:"error_code,omitempty"`
 	At                time.Time `json:"at"`
+	// Keep new optional fields LAST: zero values must marshal old journal records
+	// byte-for-byte identically so their existing hash chain remains valid.
+	ObservedRawBodyHash string       `json:"observed_raw_body_hash,omitempty"`
+	Native              *NativeProof `json:"native,omitempty"`
 }
 
 // Error strings contain bounded codes only. Never include provider messages,
@@ -120,17 +126,24 @@ func Code(err error) string {
 }
 
 type Engine struct {
-	Source Source
-	Target Target
-	Store  Store
-	Guard  Guard
-	Now    func() time.Time
+	Source                    Source
+	Target                    Target
+	Store                     Store
+	Guard                     Guard
+	Now                       func() time.Time
+	NativeVerificationProfile string
 }
 
 func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 	var last Record
+	if e.NativeVerificationProfile != "" && e.NativeVerificationProfile != DocmostNativeProfile && e.NativeVerificationProfile != AffineNativeProfile {
+		return last, Failure("unsupported_native_profile")
+	}
 	if err := b.Validate(); err != nil {
 		return last, err
+	}
+	if e.NativeVerificationProfile == DocmostNativeProfile && b.Target != "docmost" || e.NativeVerificationProfile == AffineNativeProfile && b.Target != "affine" {
+		return last, Failure("native_profile_target_mismatch")
 	}
 	if e.Source == nil || e.Target == nil || e.Store == nil || e.Guard == nil || e.Target.Name() != b.Target {
 		return last, Failure("gateway_not_configured")
@@ -173,6 +186,11 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 	if err := e.Target.ValidateSnapshot(source); err != nil {
 		return prior, err
 	}
+	if e.NativeVerificationProfile != "" {
+		if _, err := markdownTree(source.Content); err != nil {
+			return prior, err
+		}
+	}
 	now := time.Now
 	if e.Now != nil {
 		now = e.Now
@@ -206,6 +224,39 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 		}
 		return nil
 	}
+	// Native verification is an explicit operator opt-in. It only reconciles
+	// this exact source revision and an existing ID; it never resends a write.
+	tryNative := func(r Record, observed Observation) (Record, error) {
+		if e.NativeVerificationProfile == "" {
+			return r, Failure("native_verification_disabled")
+		}
+		verifier, ok := e.Target.(NativeTarget)
+		if !ok {
+			return r, Failure("native_verification_unavailable")
+		}
+		if r.SourceRevision != source.Revision || r.SourceContentHash != source.ContentHash || r.DesiredTitleHash != Hash(source.Title) || r.DesiredBodyHash != BodyHash(source.Content) {
+			return r, Failure("native_source_version_mismatch")
+		}
+		if err := fence(); err != nil {
+			return r, err
+		}
+		proof, err := verifier.VerifyNative(ctx, r.ExternalID, source, observed)
+		if err != nil {
+			return r, err
+		}
+		if proof.Profile != e.NativeVerificationProfile || proof.SourceCanonicalHash == "" || proof.SourceCanonicalHash != proof.TargetCanonicalHash || proof.TargetNativeRawHash == "" || proof.TargetVersion == "" || observed.RawBodyHash == "" || !observed.TitleReadable || observed.TitleHash != r.DesiredTitleHash {
+			return r, Failure("invalid_native_proof")
+		}
+		if err := fence(); err != nil {
+			return r, err
+		}
+		r.ObservedBodyHash = observed.BodyHash
+		r.ObservedRawBodyHash = observed.RawBodyHash
+		r.ObservedTitleHash = observed.TitleHash
+		r.TitleVerified = true
+		r.Native = &proof
+		return save(r, "native_verified", "")
+	}
 	if exists {
 		if prior.State == "conflict" {
 			return prior, Failure("target_conflict_requires_resolution")
@@ -225,6 +276,9 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 		// never automatically resent, since provider APIs expose no version CAS.
 		if prior.State == "prepared" || prior.State == "submitted" || prior.State == "unknown" {
 			if !sameDesired {
+				if e.NativeVerificationProfile != "" {
+					return tryNative(prior, observed)
+				}
 				r, x := save(prior, "unknown", "write_outcome_unknown")
 				if x != nil {
 					return r, x
@@ -232,6 +286,7 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 				return r, Failure("write_outcome_unknown")
 			}
 			prior.ObservedBodyHash = observed.BodyHash
+			prior.ObservedRawBodyHash = observed.RawBodyHash
 			prior.ObservedTitleHash = observed.TitleHash
 			prior.TitleVerified = observed.TitleReadable
 			state := "verified"
@@ -262,6 +317,24 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 				return prior, err
 			}
 		}
+		if prior.State == "native_verified" {
+			if prior.Native == nil || e.NativeVerificationProfile != prior.Native.Profile {
+				return prior, Failure("native_profile_required")
+			}
+			verifier, ok := e.Target.(NativeTarget)
+			if !ok {
+				return prior, Failure("native_verification_unavailable")
+			}
+			if observed.RawBodyHash != prior.ObservedRawBodyHash || b.Target == "docmost" && observed.Version != prior.Native.TargetVersion {
+				return prior, Failure("external_native_change_detected")
+			}
+			if err := verifier.CheckNativeBaseline(ctx, prior.ExternalID, observed, *prior.Native); err != nil {
+				return prior, err
+			}
+			if err := fence(); err != nil {
+				return prior, err
+			}
+		}
 		if observed.BodyHash != prior.ObservedBodyHash || (observed.TitleReadable && observed.TitleHash != prior.ObservedTitleHash) {
 			r, x := save(prior, "conflict", "external_change_detected")
 			if x != nil {
@@ -278,6 +351,12 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 			}
 			return prior, nil
 		}
+	}
+	// The provider's Markdown MCP explicitly does not support database blocks.
+	// A later source revision needs a frozen native write plan; never route it
+	// through that lossy fallback after a native database projection is signed.
+	if exists && prior.State == "native_verified" && prior.Native != nil && prior.Native.Profile == AffineNativeProfile {
+		return prior, Failure("affine_native_write_plan_required")
 	}
 	current := Record{BindingID: b.ID, BindingHash: b.fingerprint(), Sequence: prior.Sequence, ExternalID: prior.ExternalID, SourceRevision: source.Revision, SourceContentHash: source.ContentHash, DesiredBodyHash: BodyHash(source.Content), DesiredTitleHash: Hash(source.Title)}
 	if err := fence(); err != nil {
@@ -336,12 +415,16 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 		return r, err
 	}
 	current.ObservedBodyHash = observed.BodyHash
+	current.ObservedRawBodyHash = observed.RawBodyHash
 	current.ObservedTitleHash = observed.TitleHash
 	current.TitleVerified = observed.TitleReadable && observed.TitleHash == current.DesiredTitleHash
 	if observed.ExternalID != current.ExternalID || observed.BodyHash != current.DesiredBodyHash || (observed.TitleReadable && !current.TitleVerified) {
 		r, x := save(current, "unknown", "readback_mismatch")
 		if x != nil {
 			return r, x
+		}
+		if e.NativeVerificationProfile != "" && observed.ExternalID == current.ExternalID {
+			return tryNative(r, observed)
 		}
 		return r, Failure("readback_mismatch")
 	}

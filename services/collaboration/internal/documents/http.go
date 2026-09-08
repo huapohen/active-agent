@@ -124,9 +124,11 @@ func (d *DocFree) Read(ctx context.Context, b Binding) (Snapshot, error) {
 }
 
 type Affine struct {
-	HTTP         *HTTP
-	MetadataHTTP *HTTP
-	WorkspaceID  string
+	HTTP                 *HTTP
+	MetadataHTTP         *HTTP
+	WorkspaceID          string
+	NativeCodecPath      string
+	NativeNodeExecutable string
 }
 
 func NewAffine(endpoint, workspace, token string) (*Affine, error) {
@@ -226,7 +228,7 @@ func (a *Affine) Read(ctx context.Context, id string) (Observation, error) {
 	if err != nil {
 		return Observation{}, err
 	}
-	result := Observation{ExternalID: id, BodyHash: BodyHash(text)}
+	result := Observation{ExternalID: id, BodyHash: BodyHash(text), RawBodyHash: Hash(text)}
 	if a.MetadataHTTP != nil {
 		title, err := a.readTitle(ctx, id)
 		if err != nil {
@@ -312,17 +314,18 @@ func NewDocmost(endpoint, space, authToken string) (*Docmost, error) {
 		return nil, Failure("invalid_credential")
 	}
 	h, err := NewHTTP(endpoint, http.Header{"Cookie": {"authToken=" + authToken}})
-	return &Docmost{h, space}, err
+	return &Docmost{HTTP: h, SpaceID: space}, err
 }
 func (d *Docmost) Name() string                      { return "docmost" }
 func (d *Docmost) Scope() (string, string)           { return d.HTTP.base, d.SpaceID }
 func (d *Docmost) ValidateSnapshot(s Snapshot) error { return nil }
 
 type docmostPage struct {
-	ID      string  `json:"id"`
-	Title   string  `json:"title"`
-	Content *string `json:"content"`
-	SpaceID string  `json:"spaceId"`
+	ID        string          `json:"id"`
+	Title     string          `json:"title"`
+	Content   json.RawMessage `json:"content"`
+	SpaceID   string          `json:"spaceId"`
+	UpdatedAt string          `json:"updatedAt"`
 }
 
 func (d *Docmost) call(ctx context.Context, path string, args any) (docmostPage, error) {
@@ -353,10 +356,11 @@ func (d *Docmost) Read(ctx context.Context, id string) (Observation, error) {
 	if err != nil {
 		return Observation{}, err
 	}
-	if r.ID != id || r.Content == nil {
+	var body string
+	if r.ID != id || len(r.Content) == 0 || json.Unmarshal(r.Content, &body) != nil {
 		return Observation{}, Failure("invalid_response")
 	}
-	return Observation{ExternalID: r.ID, BodyHash: BodyHash(*r.Content), TitleHash: Hash(r.Title), TitleReadable: true}, nil
+	return Observation{ExternalID: r.ID, BodyHash: BodyHash(body), RawBodyHash: Hash(body), Version: r.UpdatedAt, TitleHash: Hash(r.Title), TitleReadable: true}, nil
 }
 func (d *Docmost) Create(ctx context.Context, s Snapshot) (string, error) {
 	r, err := d.call(ctx, "pages/create", map[string]any{"spaceId": d.SpaceID, "title": s.Title, "content": s.Content, "format": "markdown"})

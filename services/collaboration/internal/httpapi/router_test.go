@@ -158,7 +158,7 @@ func TestMCPProtocolAndOriginBoundaries(t *testing.T) {
 	require.Equal(t, 202, code)
 	code, out = request(t, h, "human-test", "POST", "/v1/mcp", map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
 	require.Equal(t, 200, code)
-	require.Len(t, out["result"].(map[string]any)["tools"], 9)
+	require.Len(t, out["result"].(map[string]any)["tools"], 10)
 	code, _ = request(t, h, "human-test", "GET", "/v1/mcp", nil)
 	require.Equal(t, 405, code)
 	code, _ = request(t, h, "human-test", "POST", "/v1/mcp", map[string]any{"jsonrpc": "2.0", "id": map[string]string{"invalid": "id"}, "method": "ping"})

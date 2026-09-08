@@ -5,7 +5,8 @@ export type Room = { id: string; title: string; kind: string; version: number; s
 export type RoomPage = { rooms: Room[]; cursor: number };
 export type MessagePage = { messages: Message[]; hasMoreBefore: boolean; hasMoreAfter: boolean; firstUnreadSeq?: number };
 export type SendIntent = { actionId: string; content: string; mentions: string[]; scopeEpoch?: number };
-export type Document = { id: string; roomId: string; title: string; revision?: number; updatedAt?: string };
+export type Document = { id: string; roomId: string; roomIds?: string[]; title: string; revision?: number; updatedAt?: string };
+export type DocumentContent = Document & { content: string; revision: number; contentHash: string };
 export type EventPage = { cursor: number; changed: boolean; resetRequired: boolean };
 export type Capabilities = { directory: boolean; documents: boolean; roomPreferences: boolean; createRoom: boolean; mentions: boolean; liveEvents: boolean; readReceipts: boolean };
 
@@ -24,6 +25,7 @@ export interface CollaborationClient {
   createRoom(title: string, signal?: AbortSignal): Promise<Room>;
   direct(principalId: string, signal?: AbortSignal): Promise<Room>;
   documents(signal?: AbortSignal): Promise<Document[]>;
+  document(roomId: string, documentId: string, signal?: AbortSignal): Promise<DocumentContent>;
   events(after: number, signal?: AbortSignal): Promise<EventPage>;
   close(): void;
 }

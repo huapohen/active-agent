@@ -22,10 +22,12 @@ type capability struct {
 
 func registry() []capability {
 	out := []capability{}
-	for _, id := range []string{"identity.read", "workspace.create", "room.list", "room.create", "message.read", "message.send", "room.execution_policy", "transport.session", "executor.register", "agent.execution_policy", "execution.run.create", "execution.run.read"} {
+	for _, id := range []string{"identity.read", "workspace.create", "room.list", "room.create", "message.read", "message.send", "room.execution_policy", "transport.session", "executor.register", "agent.execution_policy", "execution.run.create", "execution.run.read", "execution.evidence.read"} {
 		mcp := id != "transport.session" && id != "executor.register" && id != "agent.execution_policy"
 		access := "authenticated"
 		switch id {
+		case "execution.evidence.read":
+			access = "all_source_audit_or_live_execution"
 		case "message.send":
 			access = "run_required"
 		case "workspace.create", "room.create", "room.execution_policy", "executor.register", "agent.execution_policy":
@@ -33,7 +35,7 @@ func registry() []capability {
 		case "transport.session":
 			access = "isolated_test_only"
 		}
-		out = append(out, capability{ID: id, MachineAccess: access, Version: "1", Protocols: map[string]bool{"api": true, "mcp": mcp, "a2a": false}, Exportable: id == "room.list" || id == "message.read" || id == "execution.run.read"})
+		out = append(out, capability{ID: id, MachineAccess: access, Version: "1", Protocols: map[string]bool{"api": true, "mcp": mcp, "a2a": false}, Exportable: id == "room.list" || id == "message.read" || id == "execution.run.read" || id == "execution.evidence.read"})
 	}
 	return out
 }
@@ -86,6 +88,7 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 		case "tools/list":
 			respond(gin.H{"tools": visibleTools(c, []any{
 				toolSchema("run_create", "Create an authorized persistent run; inherited source scopes come from the server.", []string{"action_id", "executor_id", "room_id", "scope_epoch", "goal"}, map[string]any{"action_id": schemaString(), "executor_id": schemaString(), "room_id": schemaString(), "scope_epoch": gin.H{"type": "integer", "minimum": 1}, "parent_run_id": schemaString(), "goal": schemaString()}),
+				toolSchema("run_evidence", "Export complete durable Run actions, raw events and transport facts. Audit remains readable after stop with current all-source membership; execution additionally enforces current executor epochs.", []string{"run_id"}, map[string]any{"run_id": schemaString(), "after": gin.H{"type": "integer", "minimum": 0}, "through": gin.H{"type": "integer", "minimum": 0}, "limit": gin.H{"type": "integer", "minimum": 1, "maximum": 100}, "mode": gin.H{"type": "string", "enum": []string{"audit", "execution"}}}),
 				toolSchema("run_read", "Read the current authorized run and its recorded scope.", []string{"run_id"}, map[string]any{"run_id": schemaString()}),
 				toolSchema("workspace_create", "Create an owned workspace with a durable action receipt.", []string{"action_id", "title"}, map[string]any{"action_id": schemaString(), "title": schemaString()}),
 				toolSchema("room_create", "Create an authorized group for human and Agent members.", []string{"action_id", "workspace_id", "title"}, map[string]any{"action_id": schemaString(), "workspace_id": schemaString(), "title": schemaString(), "members": gin.H{"type": "array", "items": schemaString(), "maxItems": 100}}),
@@ -106,7 +109,7 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 			}
 
 			known := false
-			for _, name := range []string{"identity_read", "room_list", "message_read", "message_send", "workspace_create", "room_create", "room_execution_policy", "run_create", "run_read"} {
+			for _, name := range []string{"identity_read", "room_list", "message_read", "message_send", "workspace_create", "room_create", "room_execution_policy", "run_create", "run_read", "run_evidence"} {
 				if p.Name == name {
 					known = true
 				}
@@ -132,6 +135,9 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 				ParentRunID     string          `json:"parent_run_id"`
 				Goal            string          `json:"goal"`
 				RunID           string          `json:"run_id"`
+				Through         *int64          `json:"through"`
+				Limit           int             `json:"limit"`
+				Mode            string          `json:"mode"`
 				WorkspaceID     string          `json:"workspace_id"`
 				Title           string          `json:"title"`
 				Members         []string        `json:"members"`
@@ -167,6 +173,16 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 					var run store.ExecutionRun
 					run, err = s.CreateExecutionRun(ctx, actor.ID, store.CreateExecutionRunCommand{ActionID: q.ActionID, ExecutorID: q.ExecutorID, RoomID: q.RoomID, ScopeEpoch: *q.ScopeEpoch, ParentRunID: q.ParentRunID, Goal: q.Goal})
 					result = gin.H{"run": run}
+				case "run_evidence":
+					var after int64
+					if len(q.After) > 0 {
+						err = json.Unmarshal(q.After, &after)
+					}
+					if err == nil {
+						result, err = nativeExecutionEvidence(c, s, q.RunID, store.EvidenceQuery{After: after, Through: q.Through, Limit: q.Limit, Mode: q.Mode})
+					} else {
+						err = domain.ErrInvalid
+					}
 				case "run_read":
 					var run store.ExecutionRun
 					run, err = s.GetExecutionRun(ctx, actor.ID, q.RunID)
@@ -285,7 +301,7 @@ func validToolArguments(name string, raw json.RawMessage) bool {
 		"identity_read": "", "room_list": "after run_id", "message_read": "room_id after run_id",
 		"message_send": "room_id action_id content scope_epoch run_id", "workspace_create": "action_id title",
 		"room_create": "action_id workspace_id title members", "room_execution_policy": "action_id room_id expected_version stopped",
-		"run_create": "action_id executor_id room_id scope_epoch parent_run_id goal", "run_read": "run_id",
+		"run_create": "action_id executor_id room_id scope_epoch parent_run_id goal", "run_read": "run_id", "run_evidence": "run_id after through limit mode",
 	}
 	allowed := map[string]bool{}
 	for _, field := range strings.Fields(fields[name]) {
@@ -294,6 +310,14 @@ func validToolArguments(name string, raw json.RawMessage) bool {
 	var args map[string]json.RawMessage
 	if json.Unmarshal(raw, &args) != nil || args == nil {
 		return false
+	}
+	if name == "run_evidence" {
+		if raw, ok := args["limit"]; ok {
+			var n int
+			if json.Unmarshal(raw, &n) != nil || n < 1 || n > 100 {
+				return false
+			}
+		}
 	}
 	for field := range args {
 		if !allowed[field] {

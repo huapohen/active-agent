@@ -1,0 +1,3698 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "wayaglwhxxcs",
+        "level": 1,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "人机 startup 第一阶段交付：商业协作内核、机器执行与双端文档投影",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "content": [
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "isenhylhcsbp",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "整理时间：2026-09-09T04:24:00+08:00，Asia/Shanghai。在线检查的实际发生时间分别列于下文；整理时间不替代验收时间。",
+                  "type": "text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "urwpjnwhxues",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "分支：",
+                  "type": "text"
+                },
+                {
+                  "text": "startup",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "code"
+                    }
+                  ]
+                },
+                {
+                  "text": "。",
+                  "type": "text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "mhubfdceegtg",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "交付范围：新桌面/Web 迁移入口、Go 协作内核、Clerk 机器身份、必选融云 Outbox、持久 Run 与停止检查、doc_free → AFFiNE / Docmost 投影。",
+                  "type": "text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "ukaelhojhkvj",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "状态：本阶段实现已提交；完整商业版本、全量飞书复刻及持续主动执行仍在建设。本文是验收基线，不把阶段通过当作总目标完成。",
+                  "type": "text"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "qnbiqdeargpd",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "1. 提交、蓝图与有效范围",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "content": [
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "rkqbztjjretx",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "仓库 / 内容",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "fuetrobvmesl",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "完整 commit",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "rlgkkmyjazur",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Git 时间",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "brslzmkkzrqk",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "描述",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "jxnxfrkadikp",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "active_agent / 桌面与 Web",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "dtzopcqwkfef",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "71b80f8181fa243b7477ebac0c35c6ce13e2c960",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "ljvizajynyuu",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "2026-09-09T04:11:17+08:00",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "iqhquyutvgrg",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "feat(desktop): introduce Electron React workspace and isolated RongCloud adapter",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "tyzxndtbbgbj",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "active_agent / 协作、执行与文档内核",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "bvhsenecbxzl",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "a9005c01ee059b3f093d877ae1eb13828075d692",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "yfjrjsjmnxwv",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "2026-09-09T04:15:30+08:00",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "ndmpeposhcso",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "feat(core): add Clerk-bound agent runs, RongCloud outbox, and document projections",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "csbknhbtdvuu",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "active_agent / 原阶段基线",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "vmusixdylhqx",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "acee8003c7c55694716778189179ec272da44347",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "ldrpagaorfdq",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "2026-09-09T01:22:28+08:00",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "jjhlklydxaui",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "docs: close equal-rights stage and prepare major-version handoff",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "fabjtdtwcvfv",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "doc_free / 本阶段保持不变",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "imkmdmthovmv",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "dc728ddc99ce3bc7346bb4dc364824bbb32b1101",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "egmarsjcyxle",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "2026-09-09T01:22:28+08:00",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "lwilzxshysrj",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "docs: preserve stage baseline for major-version branch",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "hhmvtkrcndwx",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "本阶段其他专题文档按当时进度记录了“基线 / 尚未提交”。这些历史文字保留；本表提供已提交实现的最终关联，不覆盖旧验收记录。交付文档与发布回执另行提交，避免把文档自己的 commit 伪装成实现 commit。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "zufuaefuwfog",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "依据用户指定的《2026-09-09_人机_从Google分享至Agent原生协作平台_方案演进完整对比与实施蓝图.md》，采用 Electron + React/TypeScript 桌面、React/TypeScript Web、Flutter iOS/Android、Go/Gin、PostgreSQL/pgx/sqlc/goose、Temporal、Eino ADK/DeepAgents 及显式中间件。Clerk 是第一轮方案，Logto + OpenFGA 保留为尚未实施的替换方案；国内优先，海外和鸿蒙暂缓。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "ivuajuldinsu",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "用户在实施会话中明确要求融云必选，覆盖蓝图中 Centrifugo 及融云可选的历史建议。",
+          "type": "text",
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ]
+        },
+        {
+          "text": " 当前 API 启动要求融云配置，服务端 Outbox 只有 ",
+          "type": "text"
+        },
+        {
+          "text": "rongcloud",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": " 提供方。协作正文和授权事实由自有内核管理，融云承担正式外发传输；不能把一般客户端可绕过内核的直接写入当作完成整合。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "hqveupeygewk",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "doc_free 源码和 CRDT 保持原状，新增适配、授权检查和投影在人机仓库实现。文档承担人和 Agent 可共同阅读的成果载体；持久动作与事件用于支持文档可追溯，不能仅凭模型总结宣称外部动作成功。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "zlrjtkcrrpgl",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "2. 用户现在能打开的界面",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "fiyqtxsmrfjm",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "新 Electron 电脑端已打开，窗口名为「人机 · 协作工作空间」，账号 ",
+          "type": "text"
+        },
+        {
+          "text": "huapohen",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": "，显示「原生办公 · 产品共创」及真实旧会话内容。原生窗口检查确认「迁移模式 · 已同步」、消息输入区、",
+          "type": "text"
+        },
+        {
+          "text": "@ 人或 Agent",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": "、Agent 超级入口存在。本阶段没有向真实飞书发送消息。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "iviwnijkarho",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "迁移模式连接原服务 3218；Clerk 商业工作空间入口与之明确分开。浏览器 ",
+          "type": "text"
+        },
+        {
+          "text": "fetch",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": " 的接收者绑定问题已经修复，并有回归测试。Electron/Web 输入没有在此次登录中观察到重复，但这不能证明此前用户反馈的系统级重复输入问题已经全面解决。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "wkuoedirtwik",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "React 新端目前包括消息、会话、置顶、免打扰、Agent 和文档入口的迁移基础。Flutter 原客户端仍保留在 ",
+          "type": "text"
+        },
+        {
+          "text": "apps/office",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": "。本阶段没有将旧 Flutter 的全部页面迁移为 React，也没有完成工作台、设置、管理后台、移动端的全量像素对比。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "yvkrerwbsopw",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "手动启动教程见 ",
+          "type": "text"
+        },
+        {
+          "text": "MANUAL_STARTUP_GUIDE.md",
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "rel": "noopener noreferrer nofollow",
+                "href": "MANUAL_STARTUP_GUIDE.md",
+                "class": null,
+                "title": null,
+                "target": "_blank",
+                "internal": false
+              }
+            }
+          ]
+        },
+        {
+          "text": "；服务与协议说明见 ",
+          "type": "text"
+        },
+        {
+          "text": "协作服务 README",
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "rel": "noopener noreferrer nofollow",
+                "href": "../../../services/collaboration/README.md",
+                "class": null,
+                "title": null,
+                "target": "_blank",
+                "internal": false
+              }
+            }
+          ]
+        },
+        {
+          "text": "。桌面启动需要 Vite 服务；仅关闭开发窗口或进程不会删除数据。已运行的端口不要启动第二份。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "xwaufkoyewqi",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "3. 人和 Agent 的统一事实与动作",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "dzpeuquviimf",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "主体使用稳定的 ",
+          "type": "text"
+        },
+        {
+          "text": "principal_id",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": "，第三方身份通过 ",
+          "type": "text"
+        },
+        {
+          "text": "(issuer, subject)",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": " 映射。Agent 与模型分离；机器 token 验证接收方范围后，还必须命中服务端登记的 executor、Agent 和工作区绑定。客户端声明的 kind、Agent ID 或删除后的来源范围不能成为授权依据。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "mwpettagltdy",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "正式消息、群内序号、动作记录、领域事件和融云 Outbox 在 PostgreSQL 同一事务内提交。动作 ID 在主体范围内持久去重：同一 ID 改对象、改内容、换动作类型会冲突；丢失响应后读取同一回执，不生成第二条消息。重放仍受当前主体、成员与角色约束。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "vmqdkdebcmwg",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "Run 保存执行器、主动人格策略版本、来源群和停止代次。子 Run 从服务端父 Run 继承全部来源，不能借新目标群删掉原群的停止约束。停止、恢复会推进代次；恢复不复活旧 Run。延迟融云外发再次检查所有继承来源、当前成员、执行器和人格策略。已接受的动作事实与外部未知结果分别保留。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "vzbshjrbdolc",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "当前正式机器动作实现为 ",
+          "type": "text"
+        },
+        {
+          "text": "message.send",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": "；注册执行器、建群等部分管理操作已有业务接口，但尚未全部成为机器动作网关能力。",
+          "type": "text"
+        },
+        {
+          "text": "同权是总目标，不能将这项阶段差距解释成永久只给人操作。",
+          "type": "text",
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ]
+        },
+        {
+          "text": " 后续必须用相同角色、授权与回执补全每个业务操作。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "teotvcyvgvna",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "4. 可直接供 Agent 使用的协议",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "pdrzdrjlnzcv",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "GET /v1/capabilities",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": " 描述 12 项实际能力及 API/MCP/A2A 覆盖，包含 ",
+          "type": "text"
+        },
+        {
+          "text": "machine_access",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": "，区分已授权读取、要求 Run、尚缺网关动作和隔离测试能力。动态数据授权仍由 Store 检查，能力声明不授予对象权限。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "content": [
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "rmdsntnlthmc",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "入口",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "eukcjsxzdhkk",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "本阶段真实能力",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "fzoyuifqbwyd",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "尚缺部分",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "dpfutpoayrrj",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "API",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "posfavpbkwat",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "身份、工作区、群、分页消息、停止策略、executor、Agent 策略、Run",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "wnkkvjlspjpr",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "全部办公域、通用导出、所有机器写操作",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "lnestankloxb",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "MCP",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "atwsogbugpqk",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "2025-11-25；人类 9 个工具，机器 6 个工具；与 REST 共享处理器",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "ofiqsyliired",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "其余业务工具、资源/提示能力与部署验收",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "ozuusuntbkhp",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "机器工具",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "xurjutbgkxns",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "run_create",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    },
+                    {
+                      "text": "、",
+                      "type": "text"
+                    },
+                    {
+                      "text": "run_read",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    },
+                    {
+                      "text": "、",
+                      "type": "text"
+                    },
+                    {
+                      "text": "identity_read",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    },
+                    {
+                      "text": "、",
+                      "type": "text"
+                    },
+                    {
+                      "text": "room_list",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    },
+                    {
+                      "text": "、",
+                      "type": "text"
+                    },
+                    {
+                      "text": "message_read",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    },
+                    {
+                      "text": "、",
+                      "type": "text"
+                    },
+                    {
+                      "text": "message_send",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "srystysmfrsc",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "建群、成员、任务、文档等动作网关覆盖",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "axmwkbhnmkjf",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Harness 网关",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "nvwlcwqbuqou",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "binding/check/actions/events；持久范围与事件去重",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "qqivdyqwuhbf",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Run 证据通用导出与自动文档归档",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "akoxlymxedrk",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "A2A / 插件 / 外设",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "gegfaarbwtar",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "本阶段没有声明已实现",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "jaqqldqdwnxv",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "发现、调用、版本化、热替换与真实设备验证",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "ambvejizcavx",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "机器消息必须携带持久 ",
+          "type": "text"
+        },
+        {
+          "text": "run_id",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": " 与 64 位十六进制稳定动作 ID；无 Run 的机器消息拒绝。普通授权历史读取限定 executor 的绑定工作区；显式 Run 的群和消息读取只允许该 Run 的来源范围，并在读取事务内校验当前停止代次，避免先检查、后越权读。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "hxtraipkgvpl",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "5. 真实外部联调结果",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "content": [
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "fdlgujynejxh",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "项目",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "vhdumbjsdgwm",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "已核实证据",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "fvkswzjxqodi",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "本次证据不能证明的内容",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "okdxkhhdbctu",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Clerk M2M",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "umyyduyglfal",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "官方创建的接收方与 worker；有限期限 opaque token 经 Go 线上验证成功",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "yqzlogrdnllh",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "真人全端登录、刷新、国内长期可用性",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "ovrxpqtscgxq",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "融云服务端",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "tqadjxyiigmq",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "03:56:57–03:56:58 +08；3 次身份登记、1 次建群、3 次消息发布均有回执；PG 4/4 Outbox delivered、attempts=1；同 fixture 重启验证无新增外部调用",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "wjclgqiikpqt",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Electron/Web/手机 SDK 实际收包、断线补拉、全通道直接写约束",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "osqxusjtzkks",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "机器 → Run → 动作",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "kdkuqdpbdoej",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "04:07:12–04:07:19 +08；21/21 通过；REST/internal/MCP 相同动作仅一条 PG 消息；伪造、删来源、无 Run、停止与恢复旧代次均被拒绝",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "jhjquveablsu",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "测试管理 CLI 初始化不等于 Clerk 真人管理员闭环；未运行模型",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "pwqypvyykrcv",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "机器读取范围",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "sjpvkqlhkyef",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "04:13:30 +08；真实机器认证的 6/6 检查通过，过时来源 Run 的读取返回 409；另有真实 PG 跨工作区与锁等待竞态测试",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "pmdartpyrrwd",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "全部办公资源的同类覆盖",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "sxzvlmxvnods",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "doc_free 双端投影",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "gyfevcvehtsm",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "03:45:18 +08；69/69 通过；2 个源文档、4 个 AFFiNE/Docmost 投影；标题和正文读回一致，更新复用原外部 ID",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "rebwewluyjok",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "持续自动同步、复杂富文档全保真、生产权限撤销",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "xjlmeptqqfmc",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "机器动作验收新增目标群与消息的两条 Outbox 保持 ",
+          "type": "text"
+        },
+        {
+          "text": "pending",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": "、",
+          "type": "text"
+        },
+        {
+          "text": "attempts=0",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": "，没有宣称融云投递成功。消息 Outbox #6 的旧 child Run 已过时；建群 Outbox #5 未绑定 Run，启动通用 worker 仍可能先外发建群。两项继续保留未派发测试事实，不启动通用 worker，也不手工改为 delivered。外部结果未知时先对账，不把重跑 CLI 或删除 manifest 当作恢复办法。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "raloholstcpi",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "融云客户端普通 token 的供应商直接写入范围尚未完整约束，因此当前默认不为一般主体发放，仅显式隔离测试主体可申请。服务端融云 Outbox 仍是必选链路。正式放开需要实测原始 SDK 的群、消息、撤回及其他写入口；前端不显示按钮不能代替此验收。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "scettqxtbqnb",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "6. doc_free、AFFiNE 和 Docmost",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "ovijlzpdhtqt",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "本阶段集成经过真实源身份及来源群权限检查；投影使用显式目标绑定、持久意图、进程锁、版本与哈希读回。外部创建结果未知时不自动新建第二份。目标内容发生冲突时拒绝盲覆盖。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "content": [
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "xdojqpwzipvi",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "doc_free：",
+                  "type": "text"
+                },
+                {
+                  "text": "25ae13fb",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "code"
+                    }
+                  ]
+                },
+                {
+                  "text": " r3、",
+                  "type": "text"
+                },
+                {
+                  "text": "f6b5ff58",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "code"
+                    }
+                  ]
+                },
+                {
+                  "text": " r2；人和 Agent 均能读取相同当前版本。",
+                  "type": "text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "snndtzurmcpj",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "AFFiNE：既有本机 3010 服务的独立验收工作区，2 个投影。",
+                  "type": "text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "vhzkoqmzbnmt",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "Docmost：本机新隔离实例 3021，2 个投影；原 3020 数据保持原样。旧实例登录未成功，不能说旧实例迁移完成。",
+                  "type": "text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "vimqxkmtckip",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "26 个历史业务文档内容与既有字段保留；25 个整个对象哈希相同，",
+                  "type": "text"
+                },
+                {
+                  "text": "5ddcd4f4",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "code"
+                    }
+                  ]
+                },
+                {
+                  "text": " 仅新增空运行时字段 ",
+                  "type": "text"
+                },
+                {
+                  "text": "applied_operations: {}",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "code"
+                    }
+                  ]
+                },
+                {
+                  "text": "。不将此记录夸大为 26 个整个对象完全相同。",
+                  "type": "text"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "elivysrrzwhr",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "本交付文档会作为新的共享文档发布；该发布与投影的实际 ID、版本、时间及独立读回结果记录在后续发布回执。此处列出的 69/69 是前述双文档合成验收，不提前替新交付文档签收。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "yyogdqbwdsgc",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "7. Harness 和持续主动执行的边界",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "uyrmgkmjerol",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "已构建真实 Eino DeepAgent，并显式配置 Skills、摘要与大工具结果缩减。Temporal 工作流区分规划阶段、独立业务动作、下一阶段与等待；阶段有模型调用、动作数量、时间和总阶段上限，避免规划失败时盲重做已提交业务。内部子 Agent 有独立 trace；每次尝试的证据存储隔离。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "nbaaubwabebq",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "Harness 自动用例使用假模型和 Temporal 测试环境，没有连接真实 Temporal 服务或请求真实大模型。默认关闭 Worker，不因登记 Run 就声称已开始自主工作。真实 Temporal 服务、Worker 强杀恢复、真实模型多阶段执行、事件触发与定时持续调度、文件/代码沙箱及 Run 自动归档到 doc_free ",
+          "type": "text"
+        },
+        {
+          "text": "尚未完成",
+          "type": "text",
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ]
+        },
+        {
+          "text": "。用户要求的“授权后无需人为干预、持续办事并落入人眼可见文档”仍必须作为下一阶段主要交付，不能以当前合成消息测试替代。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "escljpalayxg",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "8. 自动检查与可保留证据",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "cgtwavrkhocv",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "Go 全套最终日志 ",
+          "type": "text"
+        },
+        {
+          "text": "/tmp/renji-startup-full-go-20260909.jsonl",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": " 中，100 个顶层测试与 95 个子测试通过，无失败、无实际测试 skip；5 个 skip 事件是没有测试文件的包。PostgreSQL 测试使用真实本机数据库、独立 schema，并在测试结束后清理。构建、vet 与 SQL 生成后的编译均通过。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "obidswkupxzj",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "Web 22/22、桌面 6/6 自动测试通过，类型检查和 Web 构建通过。本次收尾核对的是此前测试的成功退出日志、验收记录和未变更源码，没有重新运行客户端用例；具体证据可用性见 ",
+          "type": "text"
+        },
+        {
+          "text": "客户端独立审计",
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "rel": "noopener noreferrer nofollow",
+                "href": "STARTUP_CLIENT_EVIDENCE_0425.md",
+                "class": null,
+                "title": null,
+                "target": "_blank",
+                "internal": false
+              }
+            }
+          ]
+        },
+        {
+          "text": "。这些是前端与边界用例，不是全部页面视觉验收或五端生产包验收。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "gvmsnkqntdgc",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "持久脱敏证据见 ",
+          "type": "text"
+        },
+        {
+          "text": "STARTUP_FOUNDATION_EVIDENCE.json",
+          "type": "text",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "rel": "noopener noreferrer nofollow",
+                "href": "STARTUP_FOUNDATION_EVIDENCE.json",
+                "class": null,
+                "title": null,
+                "target": "_blank",
+                "internal": false
+              }
+            }
+          ]
+        },
+        {
+          "text": "，包含顶层与子测试名称、日志哈希、机器读取实测结果和文档投影回执。详细专题见：",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "bulletList",
+      "content": [
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "qgcpymqdvdnt",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "机器执行网关真实验收",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "link",
+                      "attrs": {
+                        "rel": "noopener noreferrer nofollow",
+                        "href": "CLERK_EXECUTION_GATEWAY_REAL_PROBE_0409.md",
+                        "class": null,
+                        "title": null,
+                        "target": "_blank",
+                        "internal": false
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "kgncswezebww",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "融云真实 Outbox 验收",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "link",
+                      "attrs": {
+                        "rel": "noopener noreferrer nofollow",
+                        "href": "RONGCLOUD_OUTBOX_SYNTHETIC_PROBE_0356.md",
+                        "class": null,
+                        "title": null,
+                        "target": "_blank",
+                        "internal": false
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "mexpsoxhgeuo",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "Clerk 机器适配",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "link",
+                      "attrs": {
+                        "rel": "noopener noreferrer nofollow",
+                        "href": "CLERK_MACHINE_AUTH_ADAPTER_0343.md",
+                        "class": null,
+                        "title": null,
+                        "target": "_blank",
+                        "internal": false
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "ubnhvmcnnhbt",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "文档投影实现与证据",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "link",
+                      "attrs": {
+                        "rel": "noopener noreferrer nofollow",
+                        "href": "DOCUMENT_SYNC_FOUNDATION.md",
+                        "class": null,
+                        "title": null,
+                        "target": "_blank",
+                        "internal": false
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "listItem",
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "id": "wkafnekgxifk",
+                "indent": 0,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "Harness 实现与阶段历史",
+                  "type": "text",
+                  "marks": [
+                    {
+                      "type": "link",
+                      "attrs": {
+                        "rel": "noopener noreferrer nofollow",
+                        "href": "HARNESS_FOUNDATION.md",
+                        "class": null,
+                        "title": null,
+                        "target": "_blank",
+                        "internal": false
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "iccyksasczeh",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "9. 与完整蓝图的差距和后续验收",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "content": [
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "wyqokgbqpyju",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "蓝图阶段",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "wtlidbildhhi",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "当前状态",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableHeader",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "epryiyeeioka",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "继续完成的明确结果",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "gtljvdyvslgz",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "A：盘点与契约",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "tguxkwzfyzmd",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "第一轮实现和证据已建立，Clerk 机器路径实测",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "ehyqeaaxbfqa",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "完整功能/平台矩阵与真人认证评估",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "xqicazxugftq",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "B：统一内核",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "vnyeykrdmuwq",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "群/消息/身份/Run/停止/Outbox 已有实际链路",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "egudmnbfhbrf",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "好友、组织、任务/成果、客户端补拉及所有同权操作",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "krcaegjgesbi",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "C：文档",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "iuwkvewihmwf",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "双供应商投影实测",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "vbitjtwhxmub",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "统一云文档操作、ACL 撤销、目录标签、申请与版本界面",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "hnifsshmhhng",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "D/E：主动与监督",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "nqeoduymlkht",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "持久 Run、来源继承、关闸和动作去重已测",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "iktasknakhff",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Temporal/模型持续执行、委派、自动文档档案、监督 UI 与完整竞态",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "rlfmijtedrib",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "F：跨端商业验证",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "rcfotpbzkxnm",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Electron/React 开发入口可打开，Flutter 原端保留",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "ijgvwheuzrkt",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Clerk 与融云移动迁移，Windows/macOS 发行、签名更新及真机弱网/后台",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "wqoywqiweryc",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "G：完整飞书与 Agent 能力",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "behywgbknjwl",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "旧实现保留，新客户端迁移未全量",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "nzxuefzdzcce",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "每页视觉/交互与每个业务域 API/MCP/A2A 同步补齐",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "fxgqhyzswvkm",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "H：国内规模可靠性",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "utecxjirjshh",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "本机小规模合成验证",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "attrs": {
+                "align": null,
+                "colspan": 1,
+                "rowspan": 1,
+                "colwidth": null,
+                "backgroundColor": null,
+                "backgroundColorName": null
+              },
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "id": "nrcjqsaledpq",
+                    "indent": 0,
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "国内部署、检索/百万目录、容量、成本、备份恢复",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "cfobrcxgxyob",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "下一阶段首要闭环：真实人类与数个 Agent 使用独立身份；在授权范围内持续协作、委派和修改文档；人从超级入口停止来源群衍生任务；旧 Run/子任务不能继续发布；人和 Agent 可直接查询执行记录，并在 doc_free、AFFiNE 与 Docmost 看到可核对的成果。随后扩展每个办公能力与平台，不将“所有东西都能 Agent 原生访问”缩成仅消息工具。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "mjcxhxoluwct",
+        "level": 2,
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "10. 本阶段运行保留与回退",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "qyaazvnbwodg",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "本机保留已登录 Electron、Vite 5173、Go API 3318、原服务 3218/1238、独立 PostgreSQL 55434、AFFiNE 3010 与新 Docmost 3021。它们是开发进程/本机服务，没有安装完整生产部署或开机自启。Temporal 与通用 transport-worker 当前不运行。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "hsytmhsxinla",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "凭据保存在 Git 忽略的 ",
+          "type": "text"
+        },
+        {
+          "text": "data/startup",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": "、原 ",
+          "type": "text"
+        },
+        {
+          "text": "data/office",
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ]
+        },
+        {
+          "text": " 及本机私密配置；教程、交付文档与提交不包含完整密码、token、Cookie 或数据库连接串。机器 token 有有效期，不把过期后的请求失败误诊为代码回归。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "hbzybeniohnl",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "text": "新服务与旧数据分开保留。需要回到原界面时，通过旧 Flutter 客户端和原服务查看；不降级新数据库迁移、不删除持久 intent、不重建供应商映射。进入下一阶段前以本表实现 commit 和发布回执作为验收基线。",
+          "type": "text"
+        }
+      ]
+    }
+  ]
+}
