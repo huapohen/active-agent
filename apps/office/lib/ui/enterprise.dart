@@ -12,6 +12,7 @@ import 'business_widgets.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
 import 'enterprise_apps.dart';
+import 'enterprise_console_chrome.dart';
 import 'enterprise_directory.dart';
 import 'enterprise_organizations.dart';
 import 'professional_identity.dart';
@@ -35,9 +36,15 @@ const enterprisePermissions = {
 };
 
 class OfficeEnterprise extends StatefulWidget {
-  const OfficeEnterprise({super.key, required this.state, this.controller});
+  const OfficeEnterprise({
+    super.key,
+    required this.state,
+    this.controller,
+    this.onClose,
+  });
   final OfficeState state;
   final EnterpriseState? controller;
+  final VoidCallback? onClose;
   @override
   State<OfficeEnterprise> createState() => _OfficeEnterpriseState();
 }
@@ -47,27 +54,17 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
       widget.controller ?? EnterpriseState(widget.state);
   int _tab = 0;
   bool _busy = false;
+  bool _mobileCloseStarted = false;
   Timer? _searchTimer;
   final _memberSearch = TextEditingController();
   String? _error;
-  static const _labels = [
-    '企业概览',
-    '成员与组织',
-    '部门管理',
-    '角色与权限',
-    '管理日志',
-    '企业应用',
-    '组织管理',
-  ];
-  static const _icons = [
-    Icons.dashboard_outlined,
-    Icons.people_outline,
-    Icons.account_tree_outlined,
-    Icons.admin_panel_settings_outlined,
-    Icons.history,
-    Icons.apps_outlined,
-    Icons.corporate_fare_outlined,
-  ];
+  static const _labels = enterpriseConsoleLabels;
+
+  void _navigate(int tab) {
+    if (!e.current || !e.can('access_admin')) return;
+    setState(() => _tab = tab);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -186,62 +183,18 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
     animation: e,
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 900;
         if (constraints.maxWidth < 600) return _mobileEnterprise();
+        final wide = constraints.maxWidth >= 760;
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(23, 20, 17, 18),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: selectedColor,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.apartment_outlined,
-                      color: accentColor,
-                      size: 25,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          str(e.enterprise['name'], '企业管理'),
-                          style: const TextStyle(
-                            fontSize: 21,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '管理后台 · ${enterpriseRole(e.membership['role'])}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: mutedColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (e.can('access_admin'))
-                    IconButton(
-                      tooltip: '导出企业管理文档',
-                      onPressed: _busy ? null : _export,
-                      icon: const Icon(Icons.download_outlined),
-                    ),
-                  IconButton(
-                    tooltip: '刷新企业信息',
-                    onPressed: e.loading ? null : e.load,
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ],
-              ),
+            EnterpriseConsoleHeader(
+              enterpriseName: str(e.enterprise['name'], '企业管理'),
+              principalName: str(widget.state.me?['name']),
+              role: enterpriseRole(e.membership['role']),
+              agent: widget.state.me?['kind'] == 'agent',
+              onNavigate: e.current && e.can('access_admin') ? _navigate : null,
+              onRefresh: e.loading ? null : e.load,
+              onExport: e.can('access_admin') && !_busy ? _export : null,
             ),
             const Divider(height: 1),
             if (e.loading) const LinearProgressIndicator(minHeight: 2),
@@ -260,103 +213,99 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                   : Row(
                       children: [
                         if (wide)
-                          Container(
-                            width: 170,
-                            color: const Color(0xfff7f8fa),
-                            padding: const EdgeInsets.fromLTRB(12, 21, 12, 15),
+                          EnterpriseConsoleNavigation(
+                            selected: _tab,
+                            expandedWidth: constraints.maxWidth < 1000
+                                ? 176
+                                : 200,
+                            onSelected: _navigate,
+                          ),
+                        Expanded(
+                          child: ColoredBox(
+                            color: const Color(0xfff5f6f7),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                ...List.generate(
-                                  _labels.length,
-                                  (i) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Material(
-                                      color: _tab == i
-                                          ? selectedColor
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: ListTile(
-                                        dense: true,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              horizontal: 11,
+                                if (!wide)
+                                  SizedBox(
+                                    height: 58,
+                                    child: ListView(
+                                      scrollDirection: Axis.horizontal,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 10,
+                                      ),
+                                      children: List.generate(
+                                        _labels.length,
+                                        (i) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 8,
+                                          ),
+                                          child: ChoiceChip(
+                                            label: Text(
+                                              _labels[i],
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                              ),
                                             ),
-                                        minLeadingWidth: 19,
-                                        leading: Icon(
-                                          _icons[i],
-                                          size: 18,
-                                          color: _tab == i
-                                              ? accentColor
-                                              : mutedColor,
+                                            selected: _tab == i,
+                                            showCheckmark: false,
+                                            onSelected: (_) => _navigate(i),
+                                          ),
                                         ),
-                                        title: Text(
-                                          _labels[i],
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                        onTap: () => setState(() => _tab = i),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const Spacer(),
-                                const Text(
-                                  '当前工作空间\n人和 Agent 按同一角色授权',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: mutedColor,
-                                    height: 1.8,
+                                if (_tab != 0)
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      20,
+                                      15,
+                                      20,
+                                      12,
+                                    ),
+                                    child: Text(
+                                      '${switch (_tab) {
+                                        1 || 2 || 3 || 6 => '组织架构',
+                                        5 => '应用管理',
+                                        _ => '管理记录',
+                                      }}  ›  ${_labels[_tab]}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: mutedColor,
+                                      ),
+                                    ),
+                                  ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      _tab == 0 ? 0 : 12,
+                                      0,
+                                      _tab == 0 ? 0 : 12,
+                                      _tab == 0 ? 0 : 12,
+                                    ),
+                                    child: Material(
+                                      color: _tab == 0
+                                          ? Colors.transparent
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      clipBehavior: Clip.antiAlias,
+                                      child: switch (_tab) {
+                                        0 => _overview(),
+                                        1 => _members(),
+                                        2 => _departments(),
+                                        3 => _roles(),
+                                        5 => OfficeEnterpriseApps(
+                                          controller: e,
+                                        ),
+                                        6 => OfficeOrganizations(controller: e),
+                                        _ => _audit(),
+                                      },
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              if (!wide)
-                                SizedBox(
-                                  height: 60,
-                                  child: ListView(
-                                    scrollDirection: Axis.horizontal,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 12,
-                                    ),
-                                    children: List.generate(
-                                      _labels.length,
-                                      (i) => Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 8,
-                                        ),
-                                        child: ChoiceChip(
-                                          label: Text(
-                                            _labels[i],
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                          selected: _tab == i,
-                                          showCheckmark: false,
-                                          onSelected: (_) =>
-                                              setState(() => _tab = i),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              Expanded(
-                                child: switch (_tab) {
-                                  0 => _overview(),
-                                  1 => _members(),
-                                  2 => _departments(),
-                                  3 => _roles(),
-                                  5 => OfficeEnterpriseApps(controller: e),
-                                  6 => OfficeOrganizations(controller: e),
-                                  _ => _audit(),
-                                },
-                              ),
-                            ],
                           ),
                         ),
                       ],
@@ -368,39 +317,167 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
     ),
   );
 
+  String get _mobileTitle => switch (_tab) {
+    0 => '企业管理',
+    7 => '管理后台',
+    8 => '企业概览',
+    _ => _labels[_tab],
+  };
+
+  void _closeMobileEnterprise() {
+    if (!e.current || _mobileCloseStarted) return;
+    if (widget.onClose != null) {
+      _mobileCloseStarted = true;
+      widget.onClose!();
+    } else if (Navigator.of(context).canPop()) {
+      _mobileCloseStarted = true;
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _mobileInformation(String title, String description) async {
+    if (!e.current || !e.can('access_admin')) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: Text(
+            description,
+            style: const TextStyle(fontSize: 15, height: 1.7),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _mobileEnterprise() => Column(
     children: [
-      SizedBox(
-        height: 56,
-        child: Row(
-          children: [
-            if (_tab != 0)
-              IconButton(
-                tooltip: '返回企业管理',
-                onPressed: () => setState(() => _tab = 0),
-                icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-              )
-            else
-              const SizedBox(width: 48),
-            Expanded(
-              child: Text(
-                _tab == 0 ? '企业管理' : _labels[_tab],
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
+      Material(
+        color: Colors.white,
+        child: SizedBox(
+          key: const ValueKey('enterprise-mobile-header'),
+          width: double.infinity,
+          height: 44,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 90),
+                child: Text(
+                  _mobileTitle,
+                  key: const ValueKey('enterprise-mobile-title'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            IconButton(
-              tooltip: '刷新企业信息',
-              onPressed: e.loading ? null : e.load,
-              icon: const Icon(Icons.refresh, size: 19),
-            ),
-          ],
+              if (_tab != 0)
+                Positioned(
+                  left: 4,
+                  child: IconButton(
+                    tooltip: '返回企业管理',
+                    onPressed: () {
+                      if (e.current) setState(() => _tab = 0);
+                    },
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 19),
+                  ),
+                ),
+              Positioned(
+                right: 10,
+                child: Row(
+                  children: [
+                    SizedBox(
+                      key: const ValueKey('enterprise-mobile-more'),
+                      width: 44,
+                      height: 44,
+                      child: PopupMenuButton<String>(
+                        tooltip: '企业管理更多操作',
+                        icon: const Icon(
+                          Icons.more_horiz,
+                          size: 22,
+                          color: inkColor,
+                        ),
+                        color: Colors.white,
+                        onSelected: (action) {
+                          if (!e.current) return;
+                          switch (action) {
+                            case 'refresh':
+                              e.load();
+                            case 'export':
+                              if (e.can('access_admin')) _export();
+                            case 'console':
+                              _navigate(7);
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'refresh',
+                            enabled: !e.loading,
+                            child: const ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(Icons.refresh, size: 19),
+                              title: Text('刷新企业信息'),
+                            ),
+                          ),
+                          if (e.can('access_admin')) ...[
+                            PopupMenuItem(
+                              value: 'export',
+                              enabled: !_busy,
+                              child: const ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  Icons.download_outlined,
+                                  size: 19,
+                                ),
+                                title: Text('导出企业管理文档'),
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'console',
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  Icons.desktop_windows_outlined,
+                                  size: 19,
+                                ),
+                                title: Text('管理后台'),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      key: const ValueKey('enterprise-mobile-close'),
+                      width: 44,
+                      height: 44,
+                      child: IconButton(
+                        tooltip: '关闭企业管理',
+                        onPressed:
+                            widget.onClose != null ||
+                                Navigator.of(context).canPop()
+                            ? _closeMobileEnterprise
+                            : null,
+                        icon: const Icon(Icons.close, size: 22),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      const Divider(height: 1),
+      const Divider(height: .5, thickness: .5, color: Color(0xfff0f0f0)),
       if (e.loading) const LinearProgressIndicator(minHeight: 2),
       if (_error != null || e.error != null)
         Padding(
@@ -417,10 +494,41 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                 3 => _roles(),
                 5 => OfficeEnterpriseApps(controller: e),
                 6 => OfficeOrganizations(controller: e),
+                7 => _mobileAdminMenu(),
+                8 => _overview(),
                 _ => _audit(),
               },
       ),
     ],
+  );
+
+  Widget _mobileAdminMenu() => Material(
+    color: Colors.white,
+    child: ListView(
+      key: const ValueKey('enterprise-mobile-admin-menu'),
+      children: [
+        for (var i = 0; i < _labels.length; i++)
+          ListTile(
+            key: ValueKey('enterprise-mobile-destination-$i'),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 3,
+            ),
+            leading: Icon(
+              enterpriseConsoleIcons[i],
+              color: accentColor,
+              size: 22,
+            ),
+            title: Text(_labels[i], style: const TextStyle(fontSize: 17)),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: mutedColor,
+              size: 20,
+            ),
+            onTap: () => _navigate(i == 0 ? 8 : i),
+          ),
+      ],
+    ),
   );
 
   Widget _mobileOverview() {
@@ -429,64 +537,92 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
       IconData icon, {
       String? value,
       VoidCallback? onTap,
-      String? tooltip,
-    }) => ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 3),
-      leading: Icon(icon, color: accentColor, size: 21),
-      title: Text(title, style: const TextStyle(fontSize: 13)),
-      subtitle: value == null
-          ? null
-          : Text(
-              value,
-              style: const TextStyle(
-                fontSize: 12,
-                color: mutedColor,
-                height: 1.8,
-              ),
+      Color color = accentColor,
+      bool copy = false,
+      Key? key,
+    }) => Material(
+      color: Colors.white,
+      child: InkWell(
+        key: key,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 52),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 22),
+                const SizedBox(width: 14),
+                Expanded(
+                  flex: value == null ? 1 : 5,
+                  child: Text(title, style: const TextStyle(fontSize: 17)),
+                ),
+                if (value != null) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 6,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontSize: 13, color: mutedColor),
+                    ),
+                  ),
+                ],
+                if (onTap != null) ...[
+                  const SizedBox(width: 10),
+                  Icon(
+                    copy ? Icons.copy_outlined : Icons.chevron_right,
+                    size: copy ? 16 : 20,
+                    color: copy ? accentColor : mutedColor,
+                  ),
+                ],
+              ],
             ),
-      trailing: onTap == null
-          ? null
-          : Icon(
-              tooltip == '复制企业编号' ? Icons.copy_outlined : Icons.chevron_right,
-              size: 18,
-              color: mutedColor,
-            ),
-      onTap: onTap,
+          ),
+        ),
+      ),
     );
-    Widget section(String title, List<Widget> children) => Column(
+    Widget section(String? title, List<Widget> children) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 11, color: mutedColor),
+        if (title != null)
+          Container(
+            color: const Color(0xfff5f6f7),
+            padding: const EdgeInsets.fromLTRB(18, 7, 18, 6),
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 13, color: mutedColor),
+            ),
           ),
-        ),
-        Material(
-          color: Colors.white,
-          child: Column(
-            children: [
-              for (var i = 0; i < children.length; i++) ...[
-                if (i > 0) const Divider(height: 1, indent: 54),
-                children[i],
-              ],
-            ],
-          ),
-        ),
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0)
+            const Divider(
+              height: .5,
+              thickness: .5,
+              color: Color(0xfff0f0f0),
+              indent: 54,
+              endIndent: 18,
+            ),
+          children[i],
+        ],
       ],
     );
-    return ColoredBox(
-      color: const Color(0xfff5f6f8),
+    return Material(
+      color: const Color(0xfff5f6f7),
       child: SingleChildScrollView(
+        key: const ValueKey('enterprise-mobile-home'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            section('企业信息', [
+            const SizedBox(height: 7),
+            section(null, [
               entry(
                 '企业名称',
                 Icons.apartment_outlined,
                 value: str(e.enterprise['name']),
+                color: const Color(0xff65bf61),
                 onTap: e.can('manage_enterprise')
                     ? () => showDialog<void>(
                         context: context,
@@ -496,62 +632,96 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
               ),
               entry(
                 '企业编号',
-                Icons.fingerprint,
+                Icons.badge_outlined,
                 value: str(e.enterprise['id']),
-                tooltip: '复制企业编号',
+                color: const Color(0xff50b8ac),
+                copy: true,
                 onTap: () async {
+                  if (!e.current) return;
                   await Clipboard.setData(
                     ClipboardData(text: str(e.enterprise['id'])),
                   );
-                  if (mounted) notifyOffice(context, '企业编号已复制');
+                  if (mounted && e.current) notifyOffice(context, '企业编号已复制');
                 },
+              ),
+              entry(
+                '企业认证',
+                Icons.verified_user_outlined,
+                value: '未接入',
+                color: const Color(0xff50b8ac),
+                onTap: () => _mobileInformation(
+                  '企业认证',
+                  '当前工作空间尚未接入企业认证服务。企业管理员角色与企业认证是不同能力，本页面不代表企业已认证。',
+                ),
+              ),
+              entry(
+                '更多企业信息',
+                Icons.article_outlined,
+                onTap: () => _mobileInformation(
+                  '更多企业信息',
+                  '${str(e.enterprise['name'])}\n企业编号：${str(e.enterprise['id'])}\n创建时间：${fullOfficeTime(e.enterprise['created_at'], context: context)}\n最近更新：${fullOfficeTime(e.enterprise['updated_at'], context: context)}\n\n人类成员 ${str(e.counts['humans'], '—')} · Agent 成员 ${str(e.counts['agents'], '—')}',
+                ),
               ),
             ]),
             section('通讯录', [
               entry(
-                '成员与组织',
-                Icons.people_outline,
-                value:
-                    '${e.counts['humans'] ?? 0} 位人类成员 · ${e.counts['agents'] ?? 0} 位 Agent',
-                onTap: () => setState(() => _tab = 1),
+                '成员与部门',
+                Icons.account_tree_outlined,
+                key: const ValueKey('enterprise-mobile-members'),
+                color: const Color(0xff53bfad),
+                onTap: () => _navigate(1),
               ),
               if (e.can('manage_members'))
-                entry('添加成员', Icons.person_add_alt, onTap: () => _editMember()),
-              entry(
-                '部门管理',
-                Icons.account_tree_outlined,
-                onTap: () => setState(() => _tab = 2),
-              ),
-              entry(
-                '组织管理',
-                Icons.corporate_fare_outlined,
-                onTap: () => setState(() => _tab = 6),
-              ),
-            ]),
-            section('权限与应用', [
-              entry(
-                '角色与权限',
-                Icons.admin_panel_settings_outlined,
-                onTap: () => setState(() => _tab = 3),
-              ),
-              entry(
-                '企业应用',
-                Icons.apps_outlined,
-                onTap: () => setState(() => _tab = 5),
-              ),
-              if (e.can('view_audit'))
                 entry(
-                  '管理日志',
-                  Icons.history,
-                  onTap: () => setState(() => _tab = 4),
+                  '添加企业成员',
+                  Icons.group_add_outlined,
+                  onTap: () => _editMember(),
                 ),
               entry(
-                '导出企业管理文档',
-                Icons.download_outlined,
-                onTap: _busy ? null : _export,
+                '关联组织',
+                Icons.corporate_fare_outlined,
+                color: const Color(0xff9166e8),
+                onTap: () => _navigate(6),
               ),
             ]),
-            const SizedBox(height: 24),
+            section('企业信息', [
+              entry(
+                '管理员权限',
+                Icons.admin_panel_settings_outlined,
+                color: const Color(0xffefa245),
+                onTap: () => _navigate(3),
+              ),
+            ]),
+            section('使用帮助', [
+              entry(
+                '帮助中心',
+                Icons.business_center_outlined,
+                onTap: () => _mobileInformation(
+                  '企业管理帮助',
+                  '成员与部门：管理人类和 Agent 的资料、账号状态与部门归属。\n\n管理员权限：查看当前企业角色的真实权限范围。\n\n管理后台：进入企业应用、组织目录和管理日志。人类和 Agent 使用同一套企业管理权限。',
+                ),
+              ),
+              entry(
+                '在线客服',
+                Icons.headset_mic_outlined,
+                value: '未接入',
+                color: const Color(0xfff36b76),
+                onTap: () => _mobileInformation(
+                  '在线客服',
+                  '当前工作空间尚未配置在线客服服务。可先查看帮助中心；企业管理权限与账号问题请联系当前企业管理员。',
+                ),
+              ),
+            ]),
+            section('更多管理功能', [
+              entry(
+                '管理后台',
+                Icons.desktop_windows_outlined,
+                key: const ValueKey('enterprise-mobile-console'),
+                color: const Color(0xff9166e8),
+                onTap: () => _navigate(7),
+              ),
+            ]),
+            const SizedBox(height: 28),
           ],
         ),
       ),
@@ -586,146 +756,249 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
       ),
     ],
   );
-  Widget _overview() => ListView(
-    padding: const EdgeInsets.all(24),
-    children: [
-      Row(
-        children: [
-          const Expanded(
-            child: Text(
-              '企业概览',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+  Widget _overview() => LayoutBuilder(
+    builder: (context, constraints) {
+      final columns = constraints.maxWidth >= 1040
+          ? 3
+          : constraints.maxWidth >= 600
+          ? 2
+          : 1;
+      final cardWidth =
+          (constraints.maxWidth - 32 - (columns - 1) * 12) / columns;
+      Widget action(String label, IconData icon, int tab) => ListTile(
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, size: 20, color: accentColor),
+        title: Text(label, style: const TextStyle(fontSize: 13)),
+        trailing: const Icon(Icons.chevron_right, size: 17, color: mutedColor),
+        onTap: () => _navigate(tab),
+      );
+      Widget statistic(String label, String value, {String? detail}) =>
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 12, color: mutedColor),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
+                ),
+                if (detail != null)
+                  Text(
+                    detail,
+                    style: const TextStyle(fontSize: 11, color: mutedColor),
+                  ),
+              ],
             ),
-          ),
-          if (e.can('manage_enterprise'))
-            TextButton.icon(
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (context) => _EnterpriseProfile(controller: e),
+          );
+      Widget panel(String title, List<Widget> children) => SizedBox(
+        width: cardWidth,
+        child: BusinessCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              icon: const Icon(Icons.edit_outlined, size: 16),
-              label: const Text('编辑企业信息'),
-            ),
-        ],
-      ),
-      const SizedBox(height: 22),
-      LayoutBuilder(
-        builder: (context, constraints) => Wrap(
-          spacing: 14,
-          runSpacing: 14,
-          children:
-              [
-                    ('成员总数', 'members', Icons.people_outline),
-                    ('人类成员', 'humans', Icons.person_outline),
-                    ('Agent 成员', 'agents', Icons.auto_awesome_outlined),
-                    ('部门', 'departments', Icons.account_tree_outlined),
-                  ]
-                  .map(
-                    (item) => SizedBox(
-                      width: constraints.maxWidth > 700
-                          ? (constraints.maxWidth - 42) / 4
-                          : (constraints.maxWidth - 14) / 2,
-                      child: BusinessCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(item.$3, color: accentColor, size: 22),
-                            const SizedBox(height: 15),
-                            Text(
-                              str(e.counts[item.$2], '0'),
-                              style: const TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              item.$1,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: mutedColor,
-                              ),
-                            ),
-                          ],
+              const SizedBox(height: 16),
+              ...children,
+            ],
+          ),
+        ),
+      );
+      return ListView(
+        key: const ValueKey('enterprise-overview-dashboard'),
+        padding: const EdgeInsets.all(16),
+        children: [
+          BusinessCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        initial(str(e.enterprise['name'])),
+                        style: const TextStyle(
+                          fontSize: 23,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                  )
-                  .toList(),
-        ),
-      ),
-      const SizedBox(height: 25),
-      BusinessCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '组织状态',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 17),
-            Wrap(
-              spacing: 25,
-              runSpacing: 14,
-              children: [
-                Text('正常成员 ${str(e.counts['active'], '0')}'),
-                Text('已停用 ${str(e.counts['disabled'], '0')}'),
-                Text('所有者 ${str(e.counts['owners'], '0')}'),
-                Text('管理员 ${str(e.counts['admins'], '0')}'),
-              ],
-            ),
-            const Divider(height: 32),
-            Text(
-              '创建时间：${fullOfficeTime(e.enterprise['created_at'], context: context)}\n最近更新：${fullOfficeTime(e.enterprise['updated_at'], context: context)}',
-              style: const TextStyle(
-                fontSize: 11,
-                color: mutedColor,
-                height: 1.9,
-              ),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 22),
-      BusinessCard(
-        color: const Color(0xfff6f8ff),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '当前管理身份',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                PersonAvatar(
-                  name: str(widget.state.me?['name']),
-                  agent: widget.state.me?['kind'] == 'agent',
-                  size: 37,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            str(e.enterprise['name']),
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          SelectableText(
+                            '企业编号：${str(e.enterprise['id'])}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: mutedColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (e.can('manage_enterprise'))
+                      TextButton.icon(
+                        onPressed: () => showDialog<void>(
+                          context: context,
+                          builder: (_) => _EnterpriseProfile(controller: e),
+                        ),
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: const Text('编辑企业信息'),
+                      ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+                const Divider(height: 32),
+                Row(
+                  children: [
+                    statistic('组织总人数', str(e.counts['members'], '—')),
+                    statistic('部门数', str(e.counts['departments'], '—')),
+                    statistic('企业所有者', str(e.counts['owners'], '—')),
+                    statistic('管理员', str(e.counts['admins'], '—')),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xfff5f7fa),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
                   child: Text(
-                    '${str(widget.state.me?['name'])} · ${enterpriseRole(e.membership['role'])}',
-                    style: const TextStyle(fontSize: 13),
+                    '人类成员 ${str(e.counts['humans'], '—')}  ·  Agent 成员 ${str(e.counts['agents'], '—')}  ·  按同一企业角色授权',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xff646a73),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            const Text(
-              '管理员可管理普通成员和部门。企业所有者可分配管理角色；至少保留一名有效所有者。',
-              style: TextStyle(fontSize: 11, color: mutedColor, height: 1.8),
-            ),
-          ],
-        ),
-      ),
-    ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              panel('成员与组织', [
+                Row(
+                  children: [
+                    statistic('正常成员', str(e.counts['active'], '—')),
+                    statistic('已停用', str(e.counts['disabled'], '—')),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                action('成员与组织', Icons.people_outline, 1),
+                action('部门管理', Icons.account_tree_outlined, 2),
+                action('组织管理', Icons.corporate_fare_outlined, 6),
+              ]),
+              panel('应用管理', [
+                const Text(
+                  '管理已接入应用的实际可用范围。人和 Agent 使用相同的应用策略。',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: mutedColor,
+                    height: 1.7,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                action('企业应用', Icons.apps_outlined, 5),
+                const Divider(height: 24),
+                Text(
+                  '最近更新：${fullOfficeTime(e.enterprise['updated_at'], context: context)}',
+                  style: const TextStyle(fontSize: 11, color: mutedColor),
+                ),
+              ]),
+              panel('当前管理身份', [
+                Row(
+                  children: [
+                    PersonAvatar(
+                      name: str(widget.state.me?['name']),
+                      agent: widget.state.me?['kind'] == 'agent',
+                      size: 36,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            str(widget.state.me?['name']),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            enterpriseRole(e.membership['role']),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: mutedColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                action('角色与权限', Icons.admin_panel_settings_outlined, 3),
+                if (e.can('view_audit')) action('管理日志', Icons.history, 4),
+                const Text(
+                  '至少保留一名有效企业所有者。',
+                  style: TextStyle(fontSize: 11, color: mutedColor),
+                ),
+              ]),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '创建时间：${fullOfficeTime(e.enterprise['created_at'], context: context)}',
+            style: const TextStyle(fontSize: 11, color: mutedColor),
+          ),
+        ],
+      );
+    },
   );
   Widget _members() => LayoutBuilder(
     builder: (context, constraints) {
-      final showTree = constraints.maxWidth >= 750;
-      return Row(
+      final showTree = constraints.maxWidth >= 600;
+      final content = Row(
         children: [
           if (showTree) _departmentTree(),
           Expanded(
@@ -737,17 +1010,17 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                   ),
                   child: SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(22, 21, 22, 15),
+                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  '成员与组织',
-                                  style: TextStyle(
-                                    fontSize: 19,
+                                  str(e.enterprise['name'], '成员与组织'),
+                                  style: const TextStyle(
+                                    fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -763,7 +1036,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 12),
                           TextField(
                             controller: _memberSearch,
                             decoration: const InputDecoration(
@@ -784,8 +1057,12 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                             runSpacing: 10,
                             children: [
                               SizedBox(
-                                width: 145,
+                                width: showTree ? 120 : 145,
                                 child: DropdownButtonFormField<String>(
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: inkColor,
+                                  ),
                                   key: ValueKey(
                                     'member-status-${e.memberStatus}',
                                   ),
@@ -823,8 +1100,12 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                                 ),
                               ),
                               SizedBox(
-                                width: 145,
+                                width: showTree ? 120 : 145,
                                 child: DropdownButtonFormField<String>(
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: inkColor,
+                                  ),
                                   key: ValueKey('member-role-${e.memberRole}'),
                                   isExpanded: true,
                                   initialValue: e.memberRole,
@@ -860,8 +1141,12 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                                 ),
                               ),
                               SizedBox(
-                                width: 145,
+                                width: showTree ? 120 : 145,
                                 child: DropdownButtonFormField<String>(
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: inkColor,
+                                  ),
                                   key: ValueKey(
                                     'member-organization-${e.memberOrganization}',
                                   ),
@@ -900,8 +1185,12 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                               ),
                               if (!showTree)
                                 SizedBox(
-                                  width: 145,
+                                  width: showTree ? 120 : 145,
                                   child: DropdownButtonFormField<String>(
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: inkColor,
+                                    ),
                                     key: ValueKey(
                                       'member-department-${e.memberDepartment}',
                                     ),
@@ -941,7 +1230,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                           Text(
                             '共 ${e.memberTotal} 位成员${e.memberDepartment == null ? '' : ' · 仅展示部门直属成员'}',
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               color: mutedColor,
                             ),
                           ),
@@ -960,9 +1249,13 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                           icon: Icons.people_outline,
                         )
                       : LayoutBuilder(
-                          builder: (context, box) => box.maxWidth >= 600
+                          builder: (context, box) =>
+                              showTree || box.maxWidth >= 600
                               ? _memberTable()
                               : ListView(
+                                  key: const ValueKey(
+                                    'enterprise-members-list',
+                                  ),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 20,
                                   ),
@@ -979,12 +1272,12 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                                             leading: PersonAvatar(
                                               name: str(member['name']),
                                               agent: member['kind'] == 'agent',
-                                              size: 34,
+                                              size: 44,
                                             ),
                                             title: Text(
                                               str(member['name']),
                                               style: const TextStyle(
-                                                fontSize: 13,
+                                                fontSize: 17,
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
@@ -995,7 +1288,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                                                 Text(
                                                   '${enterpriseRole(member['role'])} · ${enterpriseStatus(member['status'])}${member['kind'] == 'agent' ? ' · Agent' : ''}',
                                                   style: const TextStyle(
-                                                    fontSize: 10,
+                                                    fontSize: 13,
                                                     color: mutedColor,
                                                     height: 1.8,
                                                   ),
@@ -1036,12 +1329,58 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
           ),
         ],
       );
+      return Theme(
+        data: Theme.of(context).copyWith(
+          inputDecorationTheme: Theme.of(context).inputDecorationTheme.copyWith(
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(5),
+              borderSide: const BorderSide(color: Color(0xffdee0e3)),
+            ),
+            labelStyle: const TextStyle(fontSize: 12, color: mutedColor),
+          ),
+        ),
+        child: Column(
+          children: [
+            if (constraints.maxWidth >= 600) ...[
+              Container(
+                key: const ValueKey('enterprise-members-header'),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+                alignment: Alignment.centerLeft,
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '成员与组织',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      '管理人类与 Agent 的账号状态、部门归属、职业和组织信息',
+                      style: TextStyle(fontSize: 12, color: mutedColor),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+            ],
+            Expanded(child: content),
+          ],
+        ),
+      );
     },
   );
   Widget _departmentTree() => Container(
-    width: 195,
+    width: 210,
     decoration: const BoxDecoration(
-      color: Color(0xfffafbfc),
+      color: Colors.white,
       border: Border(right: BorderSide(color: borderColor)),
     ),
     child: Column(
@@ -1081,20 +1420,20 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
     scrollDirection: Axis.horizontal,
     child: SingleChildScrollView(
       child: DataTable(
-        headingRowHeight: 43,
-        dataRowMinHeight: 60,
-        dataRowMaxHeight: 65,
+        headingRowHeight: 42,
+        dataRowMinHeight: 56,
+        dataRowMaxHeight: 66,
         columnSpacing: 20,
-        horizontalMargin: 20,
-        headingRowColor: const WidgetStatePropertyAll(Color(0xfffafbfc)),
+        horizontalMargin: 18,
+        headingRowColor: const WidgetStatePropertyAll(Color(0xfff5f6f7)),
         columns: const [
-          DataColumn(label: Text('姓名', style: TextStyle(fontSize: 11))),
-          DataColumn(label: Text('账号状态', style: TextStyle(fontSize: 11))),
-          DataColumn(label: Text('管理角色', style: TextStyle(fontSize: 11))),
-          DataColumn(label: Text('部门', style: TextStyle(fontSize: 11))),
-          DataColumn(label: Text('职业与职位', style: TextStyle(fontSize: 11))),
-          DataColumn(label: Text('任职组织', style: TextStyle(fontSize: 11))),
-          DataColumn(label: Text('操作', style: TextStyle(fontSize: 11))),
+          DataColumn(label: Text('姓名', style: TextStyle(fontSize: 13))),
+          DataColumn(label: Text('账号状态', style: TextStyle(fontSize: 13))),
+          DataColumn(label: Text('管理角色', style: TextStyle(fontSize: 13))),
+          DataColumn(label: Text('部门', style: TextStyle(fontSize: 13))),
+          DataColumn(label: Text('职业与职位', style: TextStyle(fontSize: 13))),
+          DataColumn(label: Text('任职组织', style: TextStyle(fontSize: 13))),
+          DataColumn(label: Text('操作', style: TextStyle(fontSize: 13))),
         ],
         rows: e.members
             .map(
@@ -1119,12 +1458,12 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                                 str(member['name']),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 12),
+                                style: const TextStyle(fontSize: 14),
                               ),
                               Text(
                                 member['kind'] == 'agent' ? 'Agent' : '成员',
                                 style: const TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 11,
                                   color: mutedColor,
                                 ),
                               ),
@@ -1139,7 +1478,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                     Text(
                       enterpriseStatus(member['status']),
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 13,
                         color: member['status'] == 'active'
                             ? const Color(0xff299a6a)
                             : mutedColor,
@@ -1149,7 +1488,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                   DataCell(
                     Text(
                       enterpriseRole(member['role']),
-                      style: const TextStyle(fontSize: 11),
+                      style: const TextStyle(fontSize: 13),
                     ),
                   ),
                   DataCell(
@@ -1159,7 +1498,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                         str(member['department_name'], '未分配'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11),
+                        style: const TextStyle(fontSize: 13),
                       ),
                     ),
                   ),
@@ -1173,7 +1512,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                         ].where((v) => v.isNotEmpty).join('\n'),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11, height: 1.8),
+                        style: const TextStyle(fontSize: 13, height: 1.8),
                       ),
                     ),
                   ),
@@ -1191,7 +1530,7 @@ class _OfficeEnterpriseState extends State<OfficeEnterprise> {
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11),
+                          style: const TextStyle(fontSize: 13),
                         ),
                       ),
                     ),

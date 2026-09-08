@@ -1,11 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../office_state.dart' hide Json;
 import 'office_theme.dart';
-import 'professional_identity.dart';
 
 Future<String?> showOfficeProfileMenu(
   BuildContext context,
@@ -14,14 +12,16 @@ Future<String?> showOfficeProfileMenu(
 }) => showDialog<String>(
   context: context,
   useSafeArea: false,
-  barrierColor: Colors.black26,
+  barrierColor: MediaQuery.sizeOf(context).width < 760
+      ? Colors.black26
+      : Colors.transparent,
   builder: (context) {
     final size = MediaQuery.sizeOf(context);
     final mobile = size.width < 760;
     final panel = Material(
       color: Colors.white,
-      elevation: 12,
-      borderRadius: BorderRadius.circular(mobile ? 0 : 12),
+      elevation: 6,
+      borderRadius: BorderRadius.circular(mobile ? 0 : 8),
       child: OfficeProfilePanel(state: state),
     );
     if (mobile) {
@@ -37,11 +37,13 @@ Future<String?> showOfficeProfileMenu(
     return Stack(
       children: [
         Positioned(
-          left: anchor.left.clamp(12, math.max(12, size.width - 350)),
-          top: math.min(anchor.bottom + 8, 100),
-          width: 326,
+          left: anchor.right.clamp(12, math.max(12, size.width - 332)),
+          top: anchor.top.clamp(12, math.max(12, size.height - 200)),
+          width: 318,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: size.height - 125),
+            constraints: BoxConstraints(
+              maxHeight: math.max(120, size.height - anchor.top - 12),
+            ),
             child: panel,
           ),
         ),
@@ -153,16 +155,30 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
     if (MediaQuery.sizeOf(context).width < 760) {
       return _mobile(identity, organization, role, status);
     }
-    Widget action(String label, IconData icon, String value) => ListTile(
-      dense: true,
-      leading: Icon(icon, size: 20, color: mutedColor),
-      title: Text(label, style: const TextStyle(fontSize: 13)),
-      trailing: const Icon(Icons.chevron_right, size: 18, color: mutedColor),
+    Widget action(String label, String value, {IconData? trailing}) => InkWell(
       onTap: () => _open(value),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 38),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 14, height: 1.3),
+                ),
+              ),
+              if (trailing != null) Icon(trailing, size: 16, color: mutedColor),
+            ],
+          ),
+        ),
+      ),
     );
     return SingleChildScrollView(
+      key: const ValueKey('desktop-profile-layout'),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -170,103 +186,122 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      '我的',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: '关闭我的面板',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, size: 18),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  PersonAvatar(
-                    name: str(identity['name']),
-                    agent: identity['kind'] == 'agent',
-                    size: 52,
+                  InkWell(
+                    onTap: () => _open('card'),
+                    child: PersonAvatar(
+                      name: str(identity['name']),
+                      agent: identity['kind'] == 'agent',
+                      size: 56,
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          str(identity['name']),
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        InkWell(
+                          onTap: () => _open('card'),
+                          child: Text(
+                            str(identity['name']),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              height: 1.3,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-                      IdentityBadge(agent: identity['kind'] == 'agent'),
-                    ],
-                  ),
-                  if (organization.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5),
-                      child: Text(
-                        organization,
-                        style: const TextStyle(fontSize: 12, color: mutedColor),
-                      ),
-                    ),
-                  if (role.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5),
-                      child: Text(
-                        '$role${status.isEmpty ? '' : ' · $status'}',
-                        style: const TextStyle(fontSize: 12, color: mutedColor),
-                      ),
-                    ),
-                  if (str(state.accountInfo['username']).isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5),
-                      child: Text(
-                        '账号：${state.accountInfo['username']}',
-                        style: const TextStyle(fontSize: 11, color: mutedColor),
-                      ),
-                    ),
-                  ProfessionalIdentity(
-                    person: {...identity}..remove('organization_name'),
-                  ),
-                  TextButton.icon(
-                    onPressed: () async {
-                      if (!_currentIdentity) return;
-                      await Clipboard.setData(
-                        ClipboardData(text: _principalId),
-                      );
-                      if (context.mounted && _currentIdentity) {
-                        notifyOffice(context, '当前身份 ID 已复制');
-                      }
-                    },
-                    icon: const Icon(Icons.copy_outlined, size: 14),
-                    label: const Text(
-                      '复制身份 ID',
-                      style: TextStyle(fontSize: 11),
+                        if (organization.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Tooltip(
+                              message: organization,
+                              child: Text(
+                                organization,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: mutedColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (str(state.accountInfo['username']).isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text(
+                              '账号：${state.accountInfo['username']}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: mutedColor,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 6),
+                        OutlinedButton(
+                          onPressed: () => _open('status'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(54, 24),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            side: const BorderSide(color: accentColor),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          child: const Text(
+                            '+ 状态',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 18),
-            action('我的账号与设备', Icons.manage_accounts_outlined, 'account'),
-            action('设置', Icons.settings_outlined, 'settings'),
-            action('工作台', Icons.grid_view_rounded, 'workbench'),
-            if (state.canManageEnterprise)
-              action('企业管理', Icons.apartment_outlined, 'enterprise'),
-            const Divider(height: 18),
-            action('退出当前身份', Icons.logout, 'logout'),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: InkWell(
+                onTap: () => _open('card'),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xfff5f6f7),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    role.isEmpty
+                        ? '查看我的工作身份'
+                        : '$role${status.isEmpty ? '' : ' · $status'}',
+                    style: const TextStyle(fontSize: 12, color: mutedColor),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            action('我的个人名片', 'card'),
+            action('我的账号与设备', 'account'),
+            action('登录更多账号', 'switch'),
+            const Divider(height: 18, indent: 20, endIndent: 20),
+            action('帮助与客服', 'help', trailing: Icons.open_in_new),
+            action('Agent 同事', 'agents', trailing: Icons.auto_awesome),
+            action('设置', 'settings'),
+            action('工作台', 'workbench'),
+            if (state.canManageEnterprise) action('企业管理', 'enterprise'),
+            action('退出当前身份', 'logout'),
           ],
         ),
       ),

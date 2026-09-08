@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../office_state.dart' hide Json;
 import 'business_widgets.dart';
@@ -32,6 +33,12 @@ class _OfficeSettingsState extends State<OfficeSettings> {
   late int _tab;
   late final OfficeSettingsSession _session;
   final _accountUpdates = ValueNotifier<int>(0);
+  final _desktopScroll = ScrollController();
+  final _desktopViewport = GlobalKey();
+  final _desktopAnchors = List.generate(16, (_) => GlobalKey());
+  bool _wasWide = false;
+  int? _scrollingTo;
+  int _scrollRequest = 0;
   bool _accountBusy = false;
   String? _accountError;
   OfficeState get s => widget.state;
@@ -50,7 +57,7 @@ class _OfficeSettingsState extends State<OfficeSettings> {
     '邮箱',
     '视频会议',
     '任务',
-    '网络诊断',
+    '内部设置',
     '实验室',
     '软件更新',
     '关于人机',
@@ -83,16 +90,70 @@ class _OfficeSettingsState extends State<OfficeSettings> {
   @override
   void initState() {
     super.initState();
-    _tab = widget.initialTab;
+    _tab = widget.initialTab.clamp(-1, _labels.length - 1);
     _session = OfficeSettingsSession(s);
+    _desktopScroll.addListener(_trackDesktopSection);
     _loadAccount();
   }
 
   @override
   void dispose() {
+    _scrollRequest++;
+    _desktopScroll.dispose();
     _accountUpdates.dispose();
     _session.dispose();
     super.dispose();
+  }
+
+  void _selectTab(int tab) {
+    if (!_session.valid) return;
+    setState(() => _tab = tab);
+    if (_wasWide) _scrollToSection(tab);
+  }
+
+  void _scrollToSection(int tab, {bool animate = true}) {
+    if (!_session.valid || !_wasWide || !_desktopScroll.hasClients) return;
+    final target = _desktopAnchors[tab].currentContext?.findRenderObject();
+    if (target == null || !target.attached) return;
+    final viewport = RenderAbstractViewport.of(target);
+    final position = _desktopScroll.position;
+    final offset = viewport
+        .getOffsetToReveal(target, 0)
+        .offset
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    final request = ++_scrollRequest;
+    _scrollingTo = tab;
+    if (!animate) {
+      _desktopScroll.jumpTo(offset);
+      _scrollingTo = null;
+      return;
+    }
+    _desktopScroll
+        .animateTo(
+          offset,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+        )
+        .whenComplete(() {
+          if (mounted && request == _scrollRequest) _scrollingTo = null;
+        });
+  }
+
+  void _trackDesktopSection() {
+    if (!_session.valid || !_wasWide || _scrollingTo != null) return;
+    final viewport = _desktopViewport.currentContext?.findRenderObject();
+    if (viewport is! RenderBox || !viewport.attached) return;
+    var visible = 0;
+    for (var index = 0; index < _desktopAnchors.length; index++) {
+      final section = _desktopAnchors[index].currentContext?.findRenderObject();
+      if (section is! RenderBox || !section.attached) continue;
+      if (section.localToGlobal(Offset.zero, ancestor: viewport).dy <= 36) {
+        visible = index;
+      } else {
+        break;
+      }
+    }
+    if (_tab != visible) setState(() => _tab = visible);
   }
 
   Future<void> _loadAccount({bool report = false}) async {
@@ -127,7 +188,9 @@ class _OfficeSettingsState extends State<OfficeSettings> {
     title: title,
     value: value,
     unavailable: true,
-    onTap: () => showOfficeSettingStatus(context, title, explanation),
+    onTap: () {
+      if (_session.valid) showOfficeSettingStatus(context, title, explanation);
+    },
   );
   Widget _section(bool mobile, String? title, List<Widget> children) =>
       OfficeSettingsSection(mobile: mobile, title: title, children: children);
@@ -196,8 +259,8 @@ class _OfficeSettingsState extends State<OfficeSettings> {
         ),
       ]),
     ] else ...[
-      _section(false, '外观', [
-        _padded(const OfficeAppearancePreview()),
+      _section(false, '主题模式', [
+        const OfficeAppearancePreview(desktop: true),
         _unsupported('主题色', '当前使用人机蓝色。自定义主题色尚未接入；选择主题色不会改变当前界面。', value: '人机蓝'),
       ]),
       _section(false, '会话显示模式', [_padded(_alignment())]),
@@ -227,17 +290,23 @@ class _OfficeSettingsState extends State<OfficeSettings> {
     _section(mobile, mobile ? null : '时间显示', [
       SwitchListTile(
         key: const ValueKey('settings-time-format'),
+        minTileHeight: mobile ? 52 : null,
+        activeTrackColor: accentColor,
+        activeThumbColor: Colors.white,
         title: Text(
           '24 小时制',
           style: TextStyle(fontSize: mobile ? OfficeMobileType.title : 14),
         ),
-        subtitle: Text(
-          values['time_format'] == '12h' ? '例如：下午 2:30' : '例如：14:30',
-          style: TextStyle(
-            fontSize: mobile ? OfficeMobileType.secondary : 11,
-            color: mutedColor,
-          ),
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        subtitle: mobile
+            ? null
+            : Text(
+                values['time_format'] == '12h' ? '例如：下午 2:30' : '例如：14:30',
+                style: TextStyle(
+                  fontSize: mobile ? OfficeMobileType.secondary : 11,
+                  color: mutedColor,
+                ),
+              ),
         value: values['time_format'] != '12h',
         onChanged: editable
             ? (value) => _session.save({'time_format': value ? '24h' : '12h'})
@@ -247,9 +316,8 @@ class _OfficeSettingsState extends State<OfficeSettings> {
     _section(mobile, mobile ? null : '连接与存储', [
       OfficeSettingsRow(
         title: '网络诊断',
-        description: '检查当前账号服务连接',
-        onTap: () =>
-            mobile ? _subpage('网络诊断', _diagnostics) : setState(() => _tab = 11),
+        description: mobile ? null : '检查当前账号服务连接',
+        onTap: () => mobile ? _subpage('网络诊断', _diagnostics) : _selectTab(11),
       ),
       if (!mobile)
         _unsupported(
@@ -257,19 +325,41 @@ class _OfficeSettingsState extends State<OfficeSettings> {
           '当前附件由系统下载或打开流程处理。自定义默认下载位置尚未接入。',
           value: '由系统管理',
         ),
-      _unsupported('缓存清理', '当前没有可列出容量并安全删除的离线缓存管理服务。此处不会清除聊天记录、共同文档或账号数据。'),
+      if (!mobile)
+        _unsupported('缓存清理', '当前没有可列出容量并安全删除的离线缓存管理服务。此处不会清除聊天记录、共同文档或账号数据。'),
     ]),
+    if (mobile)
+      _section(true, null, [
+        SizedBox(
+          height: 52,
+          child: TextButton(
+            onPressed: () => showOfficeSettingStatus(
+              context,
+              '缓存清理',
+              '当前没有可列出容量并安全删除的离线缓存管理服务。此处不会清除聊天记录、共同文档或账号数据。',
+            ),
+            child: const Text(
+              '缓存清理',
+              style: TextStyle(fontSize: 17, color: inkColor),
+            ),
+          ),
+        ),
+      ]),
     if (widget.onNavigation != null)
       _section(mobile, '常用功能', [
         OfficeSettingsRow(
           title: '编辑底栏',
           description: '增减和排序手机常用功能',
-          onTap: widget.onNavigation,
+          onTap: () {
+            if (_session.valid) widget.onNavigation?.call();
+          },
         ),
       ]),
   ];
 
   Widget _previewToggle() => SwitchListTile(
+    activeTrackColor: accentColor,
+    activeThumbColor: Colors.white,
     title: Text(
       '会话列表显示消息预览',
       style: TextStyle(
@@ -314,7 +404,9 @@ class _OfficeSettingsState extends State<OfficeSettings> {
       ),
       OfficeSettingsRow(
         title: s.accountInfo['username'] == null ? '设置账号密码' : '修改账号密码',
-        onTap: () => showOfficeAccountEditor(context, s),
+        onTap: () {
+          if (_session.valid) showOfficeAccountEditor(context, s);
+        },
       ),
     ]),
     _section(mobile, '登录会话', [
@@ -348,21 +440,98 @@ class _OfficeSettingsState extends State<OfficeSettings> {
               : null,
         ),
     ]),
-    if (widget.onEnterprise != null)
+    if (widget.onEnterprise != null && s.canManageEnterprise)
       _section(mobile, '企业管理', [
         OfficeSettingsRow(
           title: '打开企业管理后台',
           icon: Icons.apartment_outlined,
-          onTap: widget.onEnterprise,
+          onTap: () {
+            if (_session.valid && s.canManageEnterprise) {
+              widget.onEnterprise?.call();
+            }
+          },
         ),
       ]),
     _section(mobile, null, [
       OfficeSettingsRow(
         title: '退出当前身份',
         icon: Icons.logout,
-        onTap: s.disconnect,
+        onTap: () {
+          if (_session.valid) s.disconnect();
+        },
       ),
     ]),
+  ];
+
+  List<Widget> _desktopAccount() => [
+    Row(
+      children: [
+        PersonAvatar(
+          name: str(s.me?['name']),
+          agent: s.me?['kind'] == 'agent',
+          size: 36,
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(str(s.me?['name']), style: const TextStyle(fontSize: 14)),
+              const SizedBox(height: 3),
+              Text(
+                str(s.accountInfo['username'], '尚未设置登录账号'),
+                style: const TextStyle(fontSize: 12, color: mutedColor),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+    const SizedBox(height: 20),
+    Tooltip(
+      message: '开机启动服务尚未接入，当前不会修改系统登录项。',
+      child: Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: Checkbox(value: false, onChanged: null),
+          ),
+          SizedBox(width: 8),
+          Flexible(child: Text('开机时自动启动人机', style: TextStyle(fontSize: 14))),
+          SizedBox(width: 8),
+          Text('尚未接入', style: TextStyle(fontSize: 12, color: mutedColor)),
+        ],
+      ),
+    ),
+    const SizedBox(height: 28),
+    const Text(
+      '账号与安全',
+      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+    ),
+    const SizedBox(height: 3),
+    const Text(
+      '管理登录账号、密码和有效登录会话，保护你的账号安全。',
+      style: TextStyle(fontSize: 12, color: mutedColor, height: 1.5),
+    ),
+    const SizedBox(height: 10),
+    Align(
+      alignment: Alignment.centerLeft,
+      child: FilledButton.icon(
+        key: const ValueKey('settings-account-security-entry'),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 28),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+          textStyle: const TextStyle(fontSize: 13),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        onPressed: () =>
+            _subpage('账号安全中心', () => Column(children: _account(true))),
+        icon: const Icon(Icons.verified_user_outlined, size: 15),
+        label: const Text('前往账号安全中心'),
+      ),
+    ),
   ];
 
   Future<void> _revoke(String id) async {
@@ -410,7 +579,9 @@ class _OfficeSettingsState extends State<OfficeSettings> {
     icon: Icons.open_in_new,
     onTap: widget.onOpenModule == null
         ? null
-        : () => widget.onOpenModule!(route),
+        : () {
+            if (_session.valid) widget.onOpenModule!(route);
+          },
   );
 
   List<Widget> _moduleSettings(int tab, bool mobile) => switch (tab) {
@@ -487,27 +658,61 @@ class _OfficeSettingsState extends State<OfficeSettings> {
     _ => [],
   };
 
+  List<Widget> _mobilePrivacy() => [
+    _section(true, null, [
+      _unsupported('添加我的方式', '账号添加方式和可搜索范围尚未接入可配置服务。实际访问仍遵守工作空间与会话成员权限。'),
+      _unsupported('谁可直接与我单聊', '直接发起单聊的隐私偏好尚未接入。实际会话成员权限仍由服务端检查。'),
+    ]),
+    _section(true, null, [
+      _unsupported('对外展示的时区', '对外展示个人时区的偏好尚未接入。日程按当前设备时区展示。'),
+    ]),
+    const Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Text(
+        '个人时区展示服务尚未接入。',
+        style: TextStyle(fontSize: 12, color: mutedColor),
+      ),
+    ),
+    _section(true, null, [
+      _unsupported('对方查看我的手机号时通知我', '手机号查看通知服务尚未接入。此处不会开启或伪造通知。'),
+    ]),
+    _section(true, null, [_unsupported('屏蔽名单', '个人屏蔽名单服务尚未接入，当前不能添加或读取屏蔽关系。')]),
+    _section(true, null, [
+      _unsupported(
+        '我的数据驻留地',
+        '数据实际驻留位置取决于所连接服务的部署配置。当前没有经过验证的驻留地资料。',
+        value: '未提供',
+      ),
+    ]),
+    _section(true, '消息隐私', [_previewToggle()]),
+  ];
+
   List<Widget> _contents(int tab, bool mobile) {
     if ([6, 7, 8, 9, 10].contains(tab)) return _moduleSettings(tab, mobile);
     return switch (tab) {
-      0 => _account(mobile),
+      0 => mobile ? _account(true) : _desktopAccount(),
       1 => _general(mobile),
-      2 => [
-        _section(mobile, '消息隐私', [
-          _previewToggle(),
-          _unsupported(
-            '搜索与发现权限',
-            '账号可搜索范围与外部联系人隐私偏好尚未接入；当前实际访问仍遵守工作空间和会话成员权限。',
-          ),
-        ]),
-      ],
+      2 =>
+        mobile
+            ? _mobilePrivacy()
+            : [
+                _section(mobile, '消息隐私', [
+                  _previewToggle(),
+                  _unsupported(
+                    '搜索与发现权限',
+                    '账号可搜索范围与外部联系人隐私偏好尚未接入；当前实际访问仍遵守工作空间和会话成员权限。',
+                  ),
+                ]),
+              ],
       3 => [
         _section(mobile, '消息效率', [
           OfficeSettingsRow(
             title: '消息分组',
             description: '按未读、@我与自定义分组筛选工作会话',
             value: widget.onMessageGroups == null ? '当前不可用' : null,
-            onTap: widget.onMessageGroups,
+            onTap: () {
+              if (_session.valid) widget.onMessageGroups?.call();
+            },
           ),
           _unsupported('会话滑动操作', '自定义会话左右滑动行为尚未接入，置顶与免打扰可在会话详情中设置。'),
           _unsupported('语音消息自动转文字', '语音消息自动转写服务尚未接入。'),
@@ -569,10 +774,7 @@ class _OfficeSettingsState extends State<OfficeSettings> {
             title: '暂无可启用的实验功能',
             description: '已接入的原生能力可在人机 Agent 分类中管理。',
           ),
-          OfficeSettingsRow(
-            title: 'Agent 与插件',
-            onTap: () => setState(() => _tab = 15),
-          ),
+          OfficeSettingsRow(title: 'Agent 与插件', onTap: () => _selectTab(15)),
         ]),
       ],
       13 => [
@@ -611,25 +813,95 @@ class _OfficeSettingsState extends State<OfficeSettings> {
   }
 
   Widget _mobileIndex() => ListView(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
     children: [
+      _section(true, null, [
+        for (final tab in [0, 1])
+          OfficeSettingsRow(title: _labels[tab], onTap: () => _selectTab(tab)),
+      ]),
+      _section(true, null, [
+        OfficeSettingsRow(
+          title: '通知',
+          value: '尚未接入系统推送',
+          onTap: () => _selectTab(4),
+        ),
+      ]),
+      const Padding(
+        padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Text(
+          '在线会话消息正常更新，系统推送服务尚未接入。',
+          style: TextStyle(fontSize: 12, color: mutedColor),
+        ),
+      ),
+      _section(true, null, [
+        for (final tab in [2, 7, 8, 9, 10, 3])
+          OfficeSettingsRow(title: _labels[tab], onTap: () => _selectTab(tab)),
+      ]),
+      _section(true, null, [
+        _unsupported('与第三方共享个人信息清单', '个人信息共享清单服务尚未接入，当前页面不能提供实际对外共享记录。'),
+        _unsupported('已收集个人信息清单', '个人信息收集清单服务尚未接入，当前页面不能提供完整的个人信息收集明细。'),
+      ]),
       for (final group in [
-        [0, 1],
-        [4],
-        [2, 7, 8, 9, 10, 3],
+        [11, 12],
         [6, 5],
         [15],
-        [11, 12],
         [13, 14],
       ])
         _section(true, group.first == 15 ? '人机 Agent' : null, [
           for (final tab in group)
             OfficeSettingsRow(
               title: _labels[tab],
-              onTap: () => setState(() => _tab = tab),
+              onTap: () => _selectTab(tab),
             ),
         ]),
     ],
+  );
+
+  Widget _desktopDocument() => LayoutBuilder(
+    builder: (context, constraints) => Scrollbar(
+      key: _desktopViewport,
+      controller: _desktopScroll,
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        key: const ValueKey('settings-desktop-document'),
+        controller: _desktopScroll,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var index = 0; index < _labels.length; index++)
+              Padding(
+                key: _desktopAnchors[index],
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+                child: Column(
+                  key: ValueKey('settings-section-$index'),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      index == 0 ? '我的账号' : _label(index, false),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 26),
+                    ..._contents(index, false),
+                    if (index == 0) const SizedBox(height: 32),
+                    const Divider(height: 1),
+                  ],
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: OfficeSettingsFeedback(session: _session),
+            ),
+            if (_accountError != null) BusinessError(_accountError),
+            SizedBox(
+              height: (constraints.maxHeight - 120).clamp(0, double.infinity),
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 
   @override
@@ -639,14 +911,24 @@ class _OfficeSettingsState extends State<OfficeSettings> {
       builder: (context, constraints) {
         final wide = constraints.maxWidth > 720;
         final tab = _tab < 0 ? 0 : _tab;
+        if (wide != _wasWide) {
+          _scrollRequest++;
+          _scrollingTo = null;
+        }
+        if (wide && !_wasWide) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _wasWide) _scrollToSection(tab, animate: false);
+          });
+        }
+        _wasWide = wide;
         return Material(
           color: wide ? Colors.white : const Color(0xfff5f6f8),
           child: Column(
             children: [
               Material(
-                color: Colors.white,
+                color: wide ? Colors.white : const Color(0xfff5f6f8),
                 child: SizedBox(
-                  height: wide ? 70 : 54,
+                  height: wide ? 54 : 44,
                   child: Row(
                     children: [
                       if (!wide && (_tab >= 0 || widget.onClose != null))
@@ -655,7 +937,7 @@ class _OfficeSettingsState extends State<OfficeSettings> {
                           onPressed: _tab >= 0
                               ? () => setState(() => _tab = -1)
                               : widget.onClose,
-                          icon: const Icon(Icons.chevron_left),
+                          icon: const Icon(Icons.chevron_left, size: 26),
                         ),
                       if (wide) const SizedBox(width: 24),
                       Expanded(
@@ -663,7 +945,7 @@ class _OfficeSettingsState extends State<OfficeSettings> {
                           wide || _tab < 0 ? '设置' : _labels[tab],
                           textAlign: wide ? TextAlign.start : TextAlign.center,
                           style: TextStyle(
-                            fontSize: wide ? 23 : 17,
+                            fontSize: wide ? 20 : 17,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -674,12 +956,24 @@ class _OfficeSettingsState extends State<OfficeSettings> {
                           onPressed: widget.onClose,
                           icon: const Icon(Icons.close),
                         ),
-                      const SizedBox(width: 16),
+                      SizedBox(
+                        width: wide
+                            ? 16
+                            : (_tab >= 0 || widget.onClose != null ? 48 : 16),
+                      ),
                     ],
                   ),
                 ),
               ),
-              const Divider(height: 1),
+              if (wide) const Divider(height: 1),
+              if (wide &&
+                  (_session.error != null ||
+                      _session.conflict ||
+                      !_session.state.connected))
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: OfficeSettingsFeedback(session: _session),
+                ),
               Expanded(
                 child: !_session.valid
                     ? const Center(child: Text('工作身份已变更，请关闭后重新打开设置。'))
@@ -689,11 +983,14 @@ class _OfficeSettingsState extends State<OfficeSettings> {
                         children: [
                           if (wide)
                             Material(
-                              color: const Color(0xfff7f8fa),
+                              color: const Color(0xfff5f6f7),
                               child: SizedBox(
-                                width: 208,
+                                width: 240,
                                 child: ListView(
-                                  padding: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 12,
+                                  ),
                                   children: [
                                     for (
                                       var index = 0;
@@ -718,15 +1015,20 @@ class _OfficeSettingsState extends State<OfficeSettings> {
                                         ),
                                       Material(
                                         color: tab == index
-                                            ? selectedColor
+                                            ? const Color(0xffdce3f9)
                                             : Colors.transparent,
                                         borderRadius: BorderRadius.circular(6),
                                         child: ListTile(
+                                          key: ValueKey(
+                                            'settings-category-$index',
+                                          ),
+                                          minTileHeight: 47,
                                           dense: true,
                                           contentPadding:
                                               const EdgeInsets.symmetric(
-                                                horizontal: 12,
+                                                horizontal: 20,
                                               ),
+                                          horizontalTitleGap: 10,
                                           leading: Icon(
                                             _icons[index],
                                             size: 18,
@@ -734,15 +1036,16 @@ class _OfficeSettingsState extends State<OfficeSettings> {
                                                 ? accentColor
                                                 : mutedColor,
                                           ),
-                                          minLeadingWidth: 19,
+                                          minLeadingWidth: 18,
                                           title: Text(
                                             _label(index, false),
                                             style: const TextStyle(
-                                              fontSize: 12,
+                                              fontSize: 14,
                                             ),
                                           ),
-                                          onTap: () =>
-                                              setState(() => _tab = index),
+                                          selected: tab == index,
+                                          selectedColor: accentColor,
+                                          onTap: () => _selectTab(index),
                                         ),
                                       ),
                                     ],
@@ -751,28 +1054,27 @@ class _OfficeSettingsState extends State<OfficeSettings> {
                               ),
                             ),
                           Expanded(
-                            child: ListView(
-                              key: ValueKey('settings-page-$tab'),
-                              padding: EdgeInsets.all(wide ? 28 : 16),
-                              children: [
-                                if (wide) ...[
-                                  Text(
-                                    _label(tab, false),
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
+                            child: wide
+                                ? _desktopDocument()
+                                : ListView(
+                                    key: ValueKey('settings-page-$tab'),
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      10,
+                                      16,
+                                      16,
                                     ),
+                                    children: [
+                                      ..._contents(tab, true),
+                                      OfficeSettingsFeedback(session: _session),
+                                      if (_accountError != null)
+                                        BusinessError(_accountError),
+                                      if (_accountBusy && [0, 11].contains(tab))
+                                        const LinearProgressIndicator(
+                                          minHeight: 2,
+                                        ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 26),
-                                ],
-                                ..._contents(tab, !wide),
-                                OfficeSettingsFeedback(session: _session),
-                                if (_accountError != null)
-                                  BusinessError(_accountError),
-                                if (_accountBusy && [0, 11].contains(tab))
-                                  const LinearProgressIndicator(minHeight: 2),
-                              ],
-                            ),
                           ),
                         ],
                       ),

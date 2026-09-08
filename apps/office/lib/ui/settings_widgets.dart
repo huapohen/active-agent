@@ -39,7 +39,14 @@ class OfficeSettingsSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (var i = 0; i < children.length; i++) ...[
-                if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
+                if (i > 0)
+                  Divider(
+                    height: mobile ? 0.5 : 1,
+                    thickness: mobile ? 0.5 : null,
+                    color: mobile ? const Color(0xfff0f0f0) : null,
+                    indent: 16,
+                    endIndent: mobile ? 0 : 16,
+                  ),
                 children[i],
               ],
             ],
@@ -67,7 +74,12 @@ class OfficeSettingsRow extends StatelessWidget {
   final bool unavailable;
   @override
   Widget build(BuildContext context) => ListTile(
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+    minTileHeight: MediaQuery.sizeOf(context).width < 760 ? 52 : null,
+    minVerticalPadding: MediaQuery.sizeOf(context).width < 760 ? 0 : null,
+    contentPadding: EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: MediaQuery.sizeOf(context).width < 760 ? 0 : 3,
+    ),
     leading: icon == null ? null : Icon(icon, size: 20, color: mutedColor),
     title: Text(
       title,
@@ -373,88 +385,232 @@ class OfficeFontSizePreview extends StatelessWidget {
 }
 
 class OfficeAppearancePreview extends StatelessWidget {
-  const OfficeAppearancePreview({super.key});
+  const OfficeAppearancePreview({super.key, this.desktop = false});
+  final bool desktop;
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        '当前外观：浅色',
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 14,
-        runSpacing: 14,
-        children: [
-          for (final dark in [false, true])
-            SizedBox(
-              width: 140,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    height: 94,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: dark
-                          ? const Color(0xff252a34)
-                          : const Color(0xfff4f6fa),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: dark ? borderColor : accentColor,
-                      ),
-                    ),
+  Widget build(BuildContext context) => desktop
+      ? _desktop()
+      : Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '当前外观：浅色',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 14,
+              runSpacing: 14,
+              children: [
+                for (final dark in [false, true])
+                  SizedBox(
+                    width: 140,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 60,
-                          height: 7,
-                          color: dark
-                              ? Colors.white54
-                              : const Color(0xffccd2de),
-                        ),
-                        const SizedBox(height: 14),
-                        Container(
-                          width: 96,
-                          height: 19,
+                          height: 94,
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: dark
-                                ? const Color(0xff3d4350)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(4),
+                                ? const Color(0xff252a34)
+                                : const Color(0xfff4f6fa),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: dark ? borderColor : accentColor,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 7,
+                                color: dark
+                                    ? Colors.white54
+                                    : const Color(0xffccd2de),
+                              ),
+                              const SizedBox(height: 14),
+                              Container(
+                                width: 96,
+                                height: 19,
+                                decoration: BoxDecoration(
+                                  color: dark
+                                      ? const Color(0xff3d4350)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Container(
+                                  width: 70,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: accentColor,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Container(
-                            width: 70,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: accentColor,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
+                        Text(
+                          dark ? '深色预览 · 尚未接入' : '浅色 · 当前使用',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: mutedColor,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    dark ? '深色预览 · 尚未接入' : '浅色 · 当前使用',
-                    style: const TextStyle(fontSize: 11, color: mutedColor),
-                  ),
-                ],
-              ),
+              ],
             ),
-        ],
+            const SizedBox(height: 16),
+            const Text(
+              '深色模式、跟随系统和自定义主题色尚未接入；当前使用浅色界面与人机蓝色。',
+              style: TextStyle(fontSize: 12, color: mutedColor, height: 1.7),
+            ),
+          ],
+        );
+
+  Widget _desktop() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Tooltip(
+        message: '跟随系统尚未接入，当前界面使用浅色。',
+        child: Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: Checkbox(value: false, onChanged: null),
+            ),
+            SizedBox(width: 7),
+            Text('跟随系统', style: TextStyle(fontSize: 14)),
+          ],
+        ),
       ),
-      const SizedBox(height: 16),
-      const Text(
-        '深色模式、跟随系统和自定义主题色尚未接入；当前使用浅色界面与人机蓝色。',
-        style: TextStyle(fontSize: 12, color: mutedColor, height: 1.7),
+      const Padding(
+        padding: EdgeInsets.only(left: 25, top: 4, bottom: 14),
+        child: Text(
+          '主题自动切换尚未接入；当前使用浅色界面。',
+          style: TextStyle(fontSize: 12, color: mutedColor),
+        ),
+      ),
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth < 504
+              ? ((constraints.maxWidth - 24) / 2).clamp(140.0, 240.0)
+              : 240.0;
+          return Wrap(
+            spacing: 24,
+            runSpacing: 16,
+            children: [
+              for (final dark in [false, true])
+                Semantics(
+                  label: dark ? '深色模式尚未接入' : '当前使用浅色模式',
+                  child: Container(
+                    width: width,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: borderColor),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 82,
+                          padding: const EdgeInsets.all(14),
+                          color: dark ? const Color(0xff171717) : Colors.white,
+                          child: Column(
+                            children: [
+                              for (var row = 0; row < 2; row++) ...[
+                                if (row > 0) const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: dark
+                                            ? const Color(0xff555555)
+                                            : const Color(0xffeff0f1),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: FractionallySizedBox(
+                                          widthFactor: row == 0 ? 1 : .62,
+                                          child: Container(
+                                            height: 21,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(3),
+                                              color: row == 0
+                                                  ? (dark
+                                                        ? const Color(
+                                                            0xff494949,
+                                                          )
+                                                        : const Color(
+                                                            0xffeff0f1,
+                                                          ))
+                                                  : (dark
+                                                        ? const Color(
+                                                            0xff2b61bb,
+                                                          )
+                                                        : const Color(
+                                                            0xffd1e3ff,
+                                                          )),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 9,
+                          ),
+                          color: dark ? Colors.white : const Color(0xfff0f4ff),
+                          child: Row(
+                            children: [
+                              Icon(
+                                dark
+                                    ? Icons.radio_button_off
+                                    : Icons.radio_button_checked,
+                                size: 18,
+                                color: dark ? mutedColor : accentColor,
+                              ),
+                              const SizedBox(width: 7),
+                              Expanded(
+                                child: Text(
+                                  dark ? '深色预览 · 尚未接入' : '浅色 · 当前使用',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     ],
   );

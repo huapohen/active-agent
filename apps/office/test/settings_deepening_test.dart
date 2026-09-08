@@ -186,7 +186,7 @@ void main() {
         tab: 1,
         close: () => closed++,
       );
-      expect(find.text('账号与安全'), findsOneWidget);
+      expect(find.byKey(const ValueKey('settings-category-0')), findsOneWidget);
       expect(find.text('浅色 · 当前使用'), findsOneWidget);
       await tapSetting(tester, find.text('消息气泡左右分布'));
       expect(state.writes.single['message_alignment'], 'split');

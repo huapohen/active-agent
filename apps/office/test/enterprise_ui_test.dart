@@ -317,12 +317,21 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('协作研究工作空间'), findsOneWidget);
+      expect(find.text('协作研究工作空间'), findsWidgets);
       expect(tester.takeException(), isNull);
       for (final label in ['成员与组织', '部门管理', '角色与权限', '管理日志', '企业应用']) {
         if (size.width < 600 &&
             find.byTooltip('返回企业管理').evaluate().isNotEmpty) {
           await tester.tap(find.byTooltip('返回企业管理'));
+          await tester.pumpAndSettle();
+        }
+        if (size.width < 600) {
+          final console = find.byKey(
+            const ValueKey('enterprise-mobile-console'),
+          );
+          await tester.ensureVisible(console);
+          await tester.pumpAndSettle();
+          await tester.tap(console);
           await tester.pumpAndSettle();
         }
         final tab = find.text(label).first;
@@ -333,6 +342,16 @@ void main() {
       }
       if (size.width < 600) {
         await tester.tap(find.byTooltip('返回企业管理'));
+        await tester.pumpAndSettle();
+      }
+      if (size.width < 600) {
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('enterprise-mobile-console')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('enterprise-mobile-console')),
+        );
         await tester.pumpAndSettle();
       }
       final roleTab = find.text('角色与权限').first;

@@ -47,6 +47,8 @@ class _OfficeShellState extends State<OfficeShell> {
   int _nav = 0, _settingsTab = -1;
   int _beforeSettingsNav = 0;
   bool _beforeSettingsRoomOpen = false;
+  int _beforeEnterpriseNav = 0;
+  bool _beforeEnterpriseRoomOpen = false;
   final _meetingsKey = GlobalKey<OfficeMeetingsState>();
   final _calendarKey = GlobalKey<OfficeCalendarState>();
   final _approvalsKey = GlobalKey<OfficeApprovalsState>();
@@ -401,6 +403,10 @@ class _OfficeShellState extends State<OfficeShell> {
         )) {
       unawaited(s.recordWorkbenchVisit(app.id).catchError((Object _) {}));
     }
+    if (value == 13 && _nav != 13) {
+      _beforeEnterpriseNav = _nav;
+      _beforeEnterpriseRoomOpen = _roomOpen;
+    }
     if (value == 11 && _nav != 11) {
       _beforeSettingsNav = _nav;
       _beforeSettingsRoomOpen = _roomOpen;
@@ -429,6 +435,18 @@ class _OfficeShellState extends State<OfficeShell> {
           if (mounted) notifyOffice(context, friendlyError(e));
         }),
       );
+    }
+  }
+
+  void _closeEnterprise() {
+    final settingsParent = _beforeSettingsNav;
+    final settingsRoomOpen = _beforeSettingsRoomOpen;
+    _changeNav(_beforeEnterpriseNav);
+    // Returning to settings must retain its original parent, not the console.
+    _beforeSettingsNav = settingsParent;
+    _beforeSettingsRoomOpen = settingsRoomOpen;
+    if (_beforeEnterpriseRoomOpen && s.selectedRoomId != null) {
+      setState(() => _roomOpen = true);
     }
   }
 
@@ -858,6 +876,7 @@ class _OfficeShellState extends State<OfficeShell> {
               bottomNavigationBar:
                   mobile &&
                       _nav != 11 &&
+                      _nav != 13 &&
                       !(_roomOpen && _nav == 0) &&
                       !(_nav == 6 && _media.activeMeeting != null)
                   ? NavigationBar(
@@ -1252,7 +1271,9 @@ class _OfficeShellState extends State<OfficeShell> {
   }
 
   Widget _mobile() {
-    if (_nav == 11) return Material(color: Colors.white, child: _main(true));
+    if (_nav == 11 || _nav == 13) {
+      return Material(color: Colors.white, child: _main(true));
+    }
     if (!_navAvailable) {
       return Material(color: Colors.white, child: _main(true));
     }
@@ -1493,7 +1514,7 @@ class _OfficeShellState extends State<OfficeShell> {
       case 12:
         return _more();
       case 13:
-        return OfficeEnterprise(state: s);
+        return OfficeEnterprise(state: s, onClose: onBack ?? _closeEnterprise);
       case 14:
         return OfficeMinutes(key: _minutesKey, state: s);
       default:

@@ -269,7 +269,7 @@ void main() {
         await tester.tap(find.byTooltip('我的与设置').first);
         await tester.pumpAndSettle();
         if (admin) {
-          expect(find.text('我的'), findsOneWidget);
+          expect(find.byKey(const ValueKey('desktop-profile-layout')), findsOneWidget);
           expect(find.text('真实协作企业'), findsOneWidget);
           expect(find.text('账号：test.member'), findsOneWidget);
         } else {

@@ -220,7 +220,11 @@ Future<EnterpriseState> mountDirectory(
     ),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('成员与组织').first);
+  await tester.tap(
+    size.width < 600
+        ? find.byKey(const ValueKey('enterprise-mobile-members'))
+        : find.text('成员与组织').first,
+  );
   await tester.pumpAndSettle();
   addTearDown(() async {
     await tester.pumpWidget(const SizedBox.shrink());
@@ -377,6 +381,16 @@ void main() {
             'profession': '协作研究',
             'job_title': '方案负责人',
           });
+          if (find.text(oldName).evaluate().isEmpty) {
+            await tester.scrollUntilVisible(
+              find.text(oldName),
+              120,
+              scrollable: find.descendant(
+                of: find.byKey(const ValueKey('enterprise-members-list')),
+                matching: find.byType(Scrollable),
+              ),
+            );
+          }
           await tester.ensureVisible(find.text(oldName).first);
           await tester.pumpAndSettle();
           expect(find.text(oldName).first.hitTestable(), findsOneWidget);
@@ -438,6 +452,12 @@ void main() {
       expect(state.memberTotal, 1);
       await tester.tap(find.byTooltip('返回企业管理'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('enterprise-mobile-console')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('enterprise-mobile-console')));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('部门管理'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('体验设计'));
@@ -459,6 +479,7 @@ void main() {
       final office = DirectoryOffice(kind: 'agent');
       await mountDirectory(tester, office, const Size(390, 844));
       await tester.ensureVisible(find.text('张同学'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('张同学'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('编辑成员资料'));
@@ -596,6 +617,7 @@ void main() {
       await tester.tap(memberButton('关闭成员详情'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('张同学'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('张同学'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('编辑成员资料'));
