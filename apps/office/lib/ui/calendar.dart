@@ -48,8 +48,9 @@ class OfficeCalendarState extends State<OfficeCalendar> {
   final Set<String> _hiddenRooms = {};
   bool _onlyMine = false;
   String _calendarQuery = '';
+  double _hourHeight = 48;
   late final ScrollController _timelineScroll = ScrollController(
-    initialScrollOffset: math.max(0, DateTime.now().hour - 5) * 48.0,
+    initialScrollOffset: math.max(0, DateTime.now().hour - 5) * _hourHeight,
   );
   OfficeState get s => widget.state;
   DateTime _day(DateTime date) => DateTime(date.year, date.month, date.day);
@@ -116,7 +117,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_timelineScroll.hasClients) return;
-      final target = math.max(0, now.hour - 3) * 48.0;
+      final target = math.max(0, now.hour - 3) * _hourHeight;
       _timelineScroll.jumpTo(
         target.clamp(0.0, _timelineScroll.position.maxScrollExtent),
       );
@@ -176,6 +177,140 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
+  Future<Set<String>?> _chooseAttendees(
+    _CalendarIdentity identity,
+    String roomId,
+    Set<String> selected,
+    bool Function() sourceCurrent,
+  ) async {
+    var query = '';
+    String? error;
+    final values = {...selected};
+    bool current() => mounted && identity.current(s) && sourceCurrent();
+    return showDialog<Set<String>>(
+      context: context,
+      builder: (dialogContext) => AnimatedBuilder(
+        animation: s,
+        builder: (_, _) => StatefulBuilder(
+          builder: (context, change) {
+            if (!current()) {
+              return AlertDialog(
+                title: const Text('参与者选择已过期'),
+                content: const Text('当前身份或日程权限已改变，请关闭后重新打开。'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('关闭'),
+                  ),
+                ],
+              );
+            }
+            final people = officeRoomPeople(s, roomId)
+                .where(
+                  (p) =>
+                      '${str(p['name'])} ${p['kind'] == 'agent' ? 'Agent' : ''}'
+                          .toLowerCase()
+                          .contains(query.toLowerCase()),
+                )
+                .toList();
+            final media = MediaQuery.of(context);
+            return AlertDialog(
+              scrollable: media.size.height - media.viewInsets.bottom < 500,
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              title: const Text('选择参与者'),
+              content: SizedBox(
+                width: 480,
+                height: 390,
+                child: Column(
+                  children: [
+                    TextField(
+                      key: const ValueKey('calendar-attendee-search'),
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: '搜索人或 Agent',
+                        hintStyle: TextStyle(fontSize: 16),
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      style: const TextStyle(fontSize: 16),
+                      onChanged: (value) => change(() => query = value),
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: people.length,
+                        itemBuilder: (_, i) {
+                          final person = people[i], id = personId(person);
+                          return CheckboxListTile(
+                            key: ValueKey('calendar-attendee-$id'),
+                            value: values.contains(id),
+                            contentPadding: EdgeInsets.zero,
+                            controlAffinity: ListTileControlAffinity.trailing,
+                            secondary: PersonAvatar(
+                              name: str(person['name']),
+                              agent: person['kind'] == 'agent',
+                              size: 36,
+                            ),
+                            title: Text(
+                              '${str(person['name'])}${person['kind'] == 'agent' ? ' · Agent' : ''}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            onChanged: (checked) {
+                              if (!current()) return;
+                              change(() {
+                                checked == true
+                                    ? values.add(id)
+                                    : values.remove(id);
+                                error = null;
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    if (error != null)
+                      Text(
+                        error!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  key: const ValueKey('calendar-attendee-confirm'),
+                  onPressed: () {
+                    if (!current()) return;
+                    final allowed = officeRoomPeople(
+                      s,
+                      roomId,
+                    ).map(personId).toSet();
+                    if (values.any((id) => !allowed.contains(id))) {
+                      change(() {
+                        values.retainAll(allowed);
+                        error = '部分成员已离开会话，请确认剩余参与者。';
+                      });
+                      return;
+                    }
+                    Navigator.pop(dialogContext, {...values});
+                  },
+                  child: Text('确定（${values.length}）'),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _edit([Json? event, DateTime? initial]) async {
     final identity = _CalendarIdentity(s);
     final selectedRoom = s.selectedRoomId;
@@ -203,6 +338,9 @@ class OfficeCalendarState extends State<OfficeCalendar> {
           DateTime.now().hour + 1,
         );
     var end = _time(event?['ends_at']) ?? start.add(const Duration(hours: 1));
+    final previewScroll = ScrollController(
+      initialScrollOffset: math.max(0, start.hour - 2) * 48.0,
+    );
     final attendees = (event?['attendee_ids'] as List? ?? [identity.principal])
         .map((p) => p.toString())
         .where((p) => p.isNotEmpty)
@@ -218,6 +356,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     late final DialogRoute<void> route;
     route = DialogRoute<void>(
       context: context,
+      useSafeArea: MediaQuery.sizeOf(context).width >= 700,
       builder: (dialogContext) => AnimatedBuilder(
         animation: s,
         builder: (_, _) => StatefulBuilder(
@@ -253,6 +392,21 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                   end = value;
                 }
               });
+              if (beginning) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!context.mounted ||
+                      !current() ||
+                      !previewScroll.hasClients) {
+                    return;
+                  }
+                  previewScroll.jumpTo(
+                    (math.max(0, start.hour - 2) * 48.0).clamp(
+                      0.0,
+                      previewScroll.position.maxScrollExtent,
+                    ),
+                  );
+                });
+              }
             }
 
             Future<void> save() async {
@@ -341,48 +495,83 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                   ),
                 ),
                 const SizedBox(height: 25),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.people_outline,
-                      size: 20,
-                      color: mutedColor,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '参与成员',
-                        style: TextStyle(fontSize: mobile ? 16 : 14),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: officeRoomPeople(s, roomId)
-                      .map(
-                        (p) => FilterChip(
-                          label: Text(
-                            '${str(p['name'])}${p['kind'] == 'agent' ? ' · Agent' : ''}',
-                            style: TextStyle(fontSize: mobile ? 14 : 13),
-                          ),
-                          selected: attendees.contains(personId(p)),
-                          onSelected: busy
-                              ? null
-                              : (selected) {
-                                  if (!current()) return;
-                                  change(() {
-                                    selected
-                                        ? attendees.add(personId(p))
-                                        : attendees.remove(personId(p));
-                                  });
-                                },
-                          side: const BorderSide(color: borderColor),
+                InkWell(
+                  key: const ValueKey('calendar-attendee-entry'),
+                  onTap: busy
+                      ? null
+                      : () async {
+                          if (!current()) return;
+                          final selected = await _chooseAttendees(
+                            identity,
+                            roomId,
+                            attendees,
+                            current,
+                          );
+                          if (selected == null ||
+                              !context.mounted ||
+                              !current()) {
+                            return;
+                          }
+                          change(() {
+                            attendees.clear();
+                            attendees.addAll(selected);
+                          });
+                        },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.people_outline,
+                          size: 20,
+                          color: mutedColor,
                         ),
-                      )
-                      .toList(),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                attendees.isEmpty
+                                    ? '添加参与者'
+                                    : '参与者 · ${attendees.length}',
+                                style: TextStyle(
+                                  fontSize: mobile ? 16 : 14,
+                                  height: 1.2,
+                                  color: mutedColor,
+                                ),
+                              ),
+                              if (attendees.isNotEmpty) ...[
+                                const SizedBox(height: 5),
+                                Text(
+                                  attendees
+                                      .map((id) {
+                                        final p = officeRoomPeople(s, roomId)
+                                            .where((p) => personId(p) == id)
+                                            .firstOrNull;
+                                        return '${str(p?['name'], '工作成员')}${p?['kind'] == 'agent' ? ' · Agent' : ''}';
+                                      })
+                                      .join('、'),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: mobile ? 15 : 13,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.chevron_right,
+                          size: 20,
+                          color: mutedColor,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const Divider(height: 35),
                 if (mobile)
@@ -574,6 +763,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                             end,
                             title.text,
                             event?['id'] as String?,
+                            previewScroll,
                           ),
                         ),
                       ],
@@ -623,6 +813,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     );
     await Navigator.of(context, rootNavigator: true).push(route);
     await route.completed;
+    previewScroll.dispose();
     title.dispose();
     note.dispose();
     location.dispose();
@@ -633,11 +824,12 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     DateTime end,
     String title,
     String? editingId,
+    ScrollController scroll,
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
         child: Text(
           '${start.month}月${start.day}日 · 当天安排',
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
@@ -645,50 +837,25 @@ class OfficeCalendarState extends State<OfficeCalendar> {
       ),
       const Divider(height: 1),
       Expanded(
-        child: ListView(
-          padding: const EdgeInsets.all(18),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xffeaf0ff),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title.isEmpty ? '当前日程草稿' : title,
-                    style: const TextStyle(fontSize: 14, color: accentColor),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${officeHourMinute(start, context: context)} – ${officeHourMinute(end, context: context)}',
-                    style: const TextStyle(fontSize: 13, color: mutedColor),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            ..._onDay(start, filtered: false)
-                .where((e) => e['id'] != editingId)
-                .map(
-                  (e) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        str(e['title']),
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      subtitle: Text(
-                        '${clockText(e['starts_at'], context: context)} – ${clockText(e['ends_at'], context: context)}',
-                      ),
-                    ),
-                  ),
-                ),
-          ],
+        child: _timeline(
+          [_day(start)],
+          desktop: true,
+          scrollController: scroll,
+          allowEditing: false,
+          previewEvents: [
+            ..._onDay(
+              start,
+              filtered: false,
+            ).where((e) => e['id'] != editingId),
+            if (end.isAfter(start))
+              {
+                'id': 'draft-preview',
+                '_draft': true,
+                'title': title.isEmpty ? '未保存日程' : '草稿 · $title',
+                'starts_at': start.toUtc().toIso8601String(),
+                'ends_at': end.toUtc().toIso8601String(),
+              },
+          ]..sort((a, b) => str(a['starts_at']).compareTo(str(b['starts_at']))),
         ),
       ),
     ],
@@ -1058,6 +1225,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     builder: (_, _) => LayoutBuilder(
       builder: (context, constraints) {
         final desktop = constraints.maxWidth > 650;
+        _hourHeight = desktop ? 48 : 52;
         final view =
             _chosenView ??
             (desktop ? _CalendarView.week : _CalendarView.threeDay);
@@ -1786,9 +1954,12 @@ class OfficeCalendarState extends State<OfficeCalendar> {
   Widget _timeline(
     List<DateTime> days, {
     required bool desktop,
+    ScrollController? scrollController,
+    List<Json>? previewEvents,
+    bool allowEditing = true,
   }) => LayoutBuilder(
     builder: (context, constraints) {
-      const hourHeight = 48.0;
+      final hourHeight = desktop ? 48.0 : 52.0;
       final axisWidth = desktop ? 54.0 : 44.0;
       final totalWidth = math.max(
         constraints.maxWidth,
@@ -1826,7 +1997,9 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                       (day) => SizedBox(
                         width: width,
                         child: InkWell(
-                          onTap: () => setState(() => _selected = day),
+                          onTap: allowEditing
+                              ? () => setState(() => _selected = day)
+                              : null,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -1859,8 +2032,12 @@ class OfficeCalendarState extends State<OfficeCalendar> {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  key: const ValueKey('calendar-timeline-scroll'),
-                  controller: _timelineScroll,
+                  key: ValueKey(
+                    allowEditing
+                        ? 'calendar-timeline-scroll'
+                        : 'calendar-draft-timeline-scroll',
+                  ),
+                  controller: scrollController ?? _timelineScroll,
                   child: SizedBox(
                     height: 24 * hourHeight,
                     child: Row(
@@ -1888,7 +2065,14 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                           ),
                         ),
                         ...days.map(
-                          (day) => _dayColumn(day, width, hourHeight, desktop),
+                          (day) => _dayColumn(
+                            day,
+                            width,
+                            hourHeight,
+                            desktop,
+                            entries: previewEvents,
+                            allowEditing: allowEditing,
+                          ),
                         ),
                       ],
                     ),
@@ -1906,9 +2090,11 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     DateTime day,
     double width,
     double hourHeight,
-    bool desktop,
-  ) {
-    final events = _onDay(day), lanes = <int>[], counts = <int>[];
+    bool desktop, {
+    List<Json>? entries,
+    bool allowEditing = true,
+  }) {
+    final events = entries ?? _onDay(day), lanes = <int>[], counts = <int>[];
     final laneEnds = <DateTime>[];
     var groupStart = 0;
     DateTime? groupEnd;
@@ -1945,10 +2131,14 @@ class OfficeCalendarState extends State<OfficeCalendar> {
               24,
               (hour) => InkWell(
                 key: ValueKey(
-                  'calendar-slot-${day.year}-${day.month}-${day.day}-$hour',
+                  '${allowEditing ? 'calendar-slot' : 'calendar-preview-slot'}-${day.year}-${day.month}-${day.day}-$hour',
                 ),
-                onTap: () =>
-                    _edit(null, DateTime(day.year, day.month, day.day, hour)),
+                onTap: allowEditing
+                    ? () => _edit(
+                        null,
+                        DateTime(day.year, day.month, day.day, hour),
+                      )
+                    : null,
                 child: Container(
                   height: hourHeight,
                   decoration: const BoxDecoration(
@@ -1990,8 +2180,10 @@ class OfficeCalendarState extends State<OfficeCalendar> {
               width: math.max(1, (width - 4) / count - 2),
               height: height,
               child: InkWell(
-                key: ValueKey('calendar-event-${event['id']}-${day.day}'),
-                onTap: () => _detail(event),
+                key: ValueKey(
+                  '${allowEditing ? 'calendar-event' : 'calendar-preview-event'}-${event['id']}-${day.day}',
+                ),
+                onTap: allowEditing ? () => _detail(event) : null,
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
@@ -2017,7 +2209,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                       ),
                       if (height > 45)
                         Text(
-                          '${clockText(event['starts_at'], context: context)} – ${clockText(event['ends_at'], context: context)}',
+                          '${officeHourMinute(start, context: context)} – ${officeHourMinute(end, context: context)}',
                           maxLines: 1,
                           overflow: TextOverflow.clip,
                           style: const TextStyle(

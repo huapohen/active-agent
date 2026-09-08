@@ -302,6 +302,75 @@ void main() {
     }
   }
 
+  for (final scale in [1.0, 1.3]) {
+    testWidgets(
+      'desktop upcoming meetings retain real status in compact two-line rows at $scale',
+      (tester) async {
+        final state = MeetingFixture(), media = MeetingMediaFixture();
+        state.meetings = [
+          {...state.meetings.first, 'status': 'active', 'participant_count': 3},
+          {
+            ...state.meetings.first,
+            'id': 'meeting-second',
+            'title': '第二场真实标题',
+            'status': 'scheduled',
+          },
+        ];
+        await mountMeetings(tester, state, media, width: 1036, scale: scale);
+        final first = tester.getRect(
+          find.byKey(const ValueKey('meeting-record-meeting-future')),
+        );
+        final second = tester.getRect(
+          find.byKey(const ValueKey('meeting-record-meeting-second')),
+        );
+        expect(
+          first.height,
+          inInclusiveRange(scale == 1 ? 68.0 : 78.0, scale == 1 ? 71.0 : 82.0),
+        );
+        expect(second.top - first.bottom, closeTo(1, .1));
+        expect(find.byTooltip(RegExp('进行中 · 当前在线 3 个会话')), findsOneWidget);
+        expect(
+          find.textContaining('进行中 · 当前在线 3 个会话', findRichText: true),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('meeting-record-meeting-future')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<TextField>(
+                find.byKey(const ValueKey('meeting-join-id-input')),
+              )
+              .controller!
+              .text,
+          'meeting-future',
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'mobile join reserves measured lower margin and input-preview gap',
+    (tester) async {
+      final state = MeetingFixture(), media = MeetingMediaFixture();
+      await mountMeetings(tester, state, media, width: 402);
+      await tester.tap(entry('加入会议'));
+      await tester.pumpAndSettle();
+      final input = tester.getRect(
+        find.byKey(const ValueKey('meeting-join-id-input')),
+      );
+      final preview = tester.getRect(
+        find.byKey(const ValueKey('meeting-join-idle-preview')),
+      );
+      final join = tester.getRect(find.byType(FilledButton));
+      expect(preview.top - input.bottom, 30);
+      expect(820 - join.bottom, 42);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('join submits real ID once and closing preview never joins', (
     tester,
   ) async {
@@ -345,6 +414,52 @@ void main() {
       expect(media.joins, ['meeting-created']);
     },
   );
+
+  for (final scale in [1.0, 1.3]) {
+    testWidgets(
+      '320 wide create can select a long document title with a long room name at $scale',
+      (tester) async {
+        final state = MeetingFixture(), media = MeetingMediaFixture();
+        const longRoom = '人机原生办公协作平台跨端界面与协议联合验收工作讨论群';
+        const longTitle = '2026年9月会议纪要：人和 Agent 同权协作平台移动端与桌面端全部页面功能对照和后续执行方案';
+        state.rooms.single['name'] = longRoom;
+        state.allDocuments = [
+          {'id': 'document-long', 'title': longTitle, 'room_id': 'room-a'},
+          {'id': 'document-second', 'title': '第二份会议资料', 'room_id': 'room-a'},
+        ];
+        await mountMeetings(tester, state, media, width: 320, scale: scale);
+        await tester.tap(entry('发起会议'));
+        await tester.pumpAndSettle();
+        final selector = find.byKey(
+          const ValueKey('meeting-document-selector'),
+        );
+        expect(tester.takeException(), isNull);
+        await tester.ensureVisible(selector);
+        await tester.tap(selector);
+        await tester.pumpAndSettle();
+        final option = find.byKey(
+          const ValueKey('meeting-document-option-document-long'),
+        );
+        await tester.ensureVisible(option);
+        expect(tester.takeException(), isNull);
+        final menuTitle = tester.widget<Text>(
+          find.descendant(of: option, matching: find.byType(Text)),
+        );
+        expect(menuTitle.data, longTitle);
+        expect(menuTitle.maxLines, isNull);
+        await tester.tap(option);
+        await tester.pumpAndSettle();
+        expect(find.byTooltip(longTitle), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.text('发起并加入'));
+        await tester.pumpAndSettle();
+        expect(state.creates.single['document_id'], 'document-long');
+        expect(state.creates.single['room_id'], 'room-a');
+        expect(media.joins, ['meeting-created']);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   for (final label in ['发起会议', '预约会议', '加入会议']) {
     testWidgets('old $label route cannot dispatch after A to B to A', (

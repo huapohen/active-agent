@@ -120,6 +120,8 @@ Future<GlobalKey<OfficeCalendarState>> mountCalendar(
   double width = 1100,
   double height = 800,
   double scale = 1,
+  bool? use24,
+  EdgeInsets? safePadding,
   List<String>? meetings,
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -133,8 +135,11 @@ Future<GlobalKey<OfficeCalendarState>> mountCalendar(
     MaterialApp(
       theme: officeTheme(),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(scale)),
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(scale),
+          alwaysUse24HourFormat: use24,
+          padding: safePadding,
+        ),
         child: child!,
       ),
       home: Scaffold(
@@ -266,7 +271,11 @@ void main() {
           );
           await openEditor(tester, key);
           expect(find.text('添加主题'), findsOneWidget);
-          expect(find.text('日程 Agent · Agent'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('calendar-attendee-entry')),
+            findsOneWidget,
+          );
+          expect(find.byType(FilterChip), findsNothing);
           expect(find.text('保存'), findsOneWidget);
           await tester.tap(find.text('取消'));
           await tester.pumpAndSettle();
@@ -306,8 +315,16 @@ void main() {
           find.byKey(const ValueKey('calendar-event-title')),
           '共同交付',
         );
-        await tester.tap(find.text('日程 Agent · Agent'));
-        await tester.tap(find.text('策划同事'));
+        await tester.tap(find.byKey(const ValueKey('calendar-attendee-entry')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('calendar-attendee-agent')));
+        await tester.tap(
+          find.byKey(const ValueKey('calendar-attendee-colleague')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('calendar-attendee-confirm')),
+        );
+        await tester.pumpAndSettle();
         state.selectedRoomId = 'room-b';
         await tester.tap(find.text('保存'));
         await tester.pumpAndSettle();
@@ -600,7 +617,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      final expected = (now.hour < 3 ? 0 : now.hour - 3) * 48.0;
+      final expected = (now.hour < 3 ? 0 : now.hour - 3) * 52.0;
       expect(
         scroll.offset,
         closeTo(expected.clamp(0.0, scroll.position.maxScrollExtent), 1),
@@ -715,4 +732,296 @@ void main() {
       }
     }
   }
+  testWidgets(
+    'mobile hour grid uses reference spacing while desktop retains 48',
+    (tester) async {
+      final state = CalendarFixture();
+      await mountCalendar(tester, state, width: 402);
+      final now = DateTime.now();
+      final slot = find.byKey(
+        ValueKey('calendar-slot-${now.year}-${now.month}-${now.day}-13'),
+      );
+      expect(tester.getSize(slot).height, 52);
+    },
+  );
+  for (final scale in [1.0, 1.3]) {
+    testWidgets(
+      '100 colleagues stay compact at 320 / $scale and the source picker searches actual Agents',
+      (tester) async {
+        final state = CalendarFixture();
+        final people = List<Json>.generate(
+          100,
+          (i) => i == 0
+              ? state.me!
+              : {
+                  'id': 'person-$i',
+                  'name': '同事${i.toString().padLeft(3, '0')}',
+                  'kind': i.isOdd ? 'agent' : 'human',
+                },
+        );
+        state.principals = people;
+        state.libraryRooms = state.rooms
+            .map((r) => {...r, 'members': people})
+            .toList();
+        state.detail = {'room': state.rooms.first, 'members': people};
+        final key = await mountCalendar(
+          tester,
+          state,
+          width: 320,
+          scale: scale,
+        );
+        await openEditor(tester, key);
+        final entry = find.byKey(const ValueKey('calendar-attendee-entry'));
+        expect(tester.getSize(entry).height, lessThan(90));
+        expect(find.textContaining('同事099'), findsNothing);
+        await tester.tap(entry);
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('calendar-attendee-search')),
+          '099',
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('calendar-attendee-person-99')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('calendar-attendee-person-98')),
+          findsNothing,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('calendar-attendee-person-99')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('calendar-attendee-confirm')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.textContaining('同事099 · Agent'), findsOneWidget);
+        expect(tester.getSize(entry).height, lessThan(100));
+        await tester.tap(find.text('取消'));
+        await tester.pumpAndSettle();
+        expect(state.created, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+  testWidgets(
+    'participant picker rejects stale identity callbacks and hides old member data',
+    (tester) async {
+      final state = CalendarFixture();
+      final key = await mountCalendar(tester, state);
+      await openEditor(tester, key);
+      await tester.tap(find.byKey(const ValueKey('calendar-attendee-entry')));
+      await tester.pumpAndSettle();
+      final confirm = tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey('calendar-attendee-confirm')),
+          )
+          .onPressed!;
+      state.generation++;
+      confirm();
+      state.changed();
+      await tester.pumpAndSettle();
+      expect(find.text('参与者选择已过期'), findsOneWidget);
+      expect(find.text('日程 Agent · Agent'), findsNothing);
+      expect(state.created, isEmpty);
+      await tester.tap(find.text('关闭').last);
+      await tester.pumpAndSettle();
+      expect(find.text('日程草稿已过期'), findsOneWidget);
+    },
+  );
+  testWidgets(
+    'desktop draft preview has a separate read-only real timeline and never saves on cancellation',
+    (tester) async {
+      final state = CalendarFixture();
+      final key = await mountCalendar(tester, state);
+      await openEditor(tester, key);
+      final now = DateTime.now();
+      final preview = find.byKey(
+        const ValueKey('calendar-draft-timeline-scroll'),
+      );
+      expect(preview, findsOneWidget);
+      expect(
+        find.byKey(ValueKey('calendar-preview-event-early-${now.day}')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(ValueKey('calendar-preview-event-normal-${now.day}')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(ValueKey('calendar-preview-event-draft-preview-${now.day}')),
+        findsOneWidget,
+      );
+      final source = tester
+          .widget<SingleChildScrollView>(
+            find.byKey(const ValueKey('calendar-timeline-scroll')),
+          )
+          .controller;
+      final draft = tester.widget<SingleChildScrollView>(preview).controller;
+      expect(identical(source, draft), isFalse);
+      final slot = tester.widget<InkWell>(
+        find.byKey(
+          ValueKey(
+            'calendar-preview-slot-${now.year}-${now.month}-${now.day}-13',
+          ),
+        ),
+      );
+      expect(slot.onTap, isNull);
+      await tester.enterText(
+        find.byKey(const ValueKey('calendar-event-title')),
+        '预览草稿',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('草稿 · 预览草稿'), findsOneWidget);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(state.created, isEmpty);
+      expect(state.updated, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  for (final keyboardHeight in [0.0, 180.0]) {
+    testWidgets(
+      '100-person picker at 320 x 420 / 130% remains usable with keyboard $keyboardHeight',
+      (tester) async {
+        final state = CalendarFixture();
+        final people = List<Json>.generate(
+          100,
+          (i) => i == 0
+              ? state.me!
+              : {
+                  'id': 'person-$i',
+                  'name': '同事${i.toString().padLeft(3, '0')}',
+                  'kind': i.isOdd ? 'agent' : 'human',
+                },
+        );
+        state.principals = people;
+        state.libraryRooms = state.rooms
+            .map((r) => {...r, 'members': people})
+            .toList();
+        state.detail = {'room': state.rooms.first, 'members': people};
+        final key = await mountCalendar(
+          tester,
+          state,
+          width: 320,
+          height: 420,
+          scale: 1.3,
+        );
+        await openEditor(tester, key);
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('calendar-attendee-entry')),
+        );
+        await tester.tap(find.byKey(const ValueKey('calendar-attendee-entry')));
+        await tester.pumpAndSettle();
+        tester.view.viewInsets = FakeViewPadding(bottom: keyboardHeight);
+        addTearDown(tester.view.resetViewInsets);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        final confirm = find.byKey(const ValueKey('calendar-attendee-confirm'));
+        expect(
+          tester.getRect(confirm).bottom,
+          lessThanOrEqualTo(420 - keyboardHeight),
+        );
+        await tester.tap(confirm);
+        await tester.pumpAndSettle();
+        expect(find.text('选择参与者'), findsNothing);
+        expect(state.created, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+  for (final use24 in [true, false]) {
+    testWidgets(
+      'non-today ordinary and draft cards show a time range respecting ${use24 ? '24' : '12'}-hour settings',
+      (tester) async {
+        final state = CalendarFixture();
+        final now = DateTime.now();
+        final other = DateTime(
+          now.year,
+          now.month,
+          now.day + (now.weekday % 7 == 0 ? 1 : -(now.weekday % 7)),
+        );
+        final event = {
+          ...state.calendarEvents.first,
+          'id': 'other-day',
+          'starts_at': DateTime(
+            other.year,
+            other.month,
+            other.day,
+            20,
+          ).toUtc().toIso8601String(),
+          'ends_at': DateTime(
+            other.year,
+            other.month,
+            other.day,
+            21,
+          ).toUtc().toIso8601String(),
+        };
+        state.calendarEvents = [event];
+        final key = await mountCalendar(tester, state, use24: use24);
+        final expected = use24 ? '20:00 – 21:00' : '下午 8:00 – 下午 9:00';
+        final card = find.byKey(
+          ValueKey('calendar-event-other-day-${other.day}'),
+        );
+        expect(
+          find.descendant(of: card, matching: find.text(expected)),
+          findsOneWidget,
+        );
+        unawaited(key.currentState!.openEvent(event));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('编辑日程'));
+        await tester.pumpAndSettle();
+        final draft = find.byKey(
+          ValueKey('calendar-preview-event-draft-preview-${other.day}'),
+        );
+        expect(
+          find.descendant(of: draft, matching: find.text(expected)),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: draft,
+            matching: find.text(
+              '${other.month}/${other.day} – ${other.month}/${other.day}',
+            ),
+          ),
+          findsNothing,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+  testWidgets(
+    'mobile editor white surface covers status and home areas while content respects safe padding',
+    (tester) async {
+      final state = CalendarFixture();
+      final key = await mountCalendar(
+        tester,
+        state,
+        width: 402,
+        height: 800,
+        safePadding: const EdgeInsets.only(top: 44, bottom: 34),
+      );
+      await openEditor(tester, key);
+      final dialog = find.byType(Dialog);
+      final material = find
+          .descendant(of: dialog, matching: find.byType(Material))
+          .first;
+      expect(tester.getRect(material).top, 0);
+      expect(tester.getRect(material).bottom, 800);
+      expect(tester.widget<Dialog>(dialog).backgroundColor, Colors.white);
+      final safe = find.descendant(of: dialog, matching: find.byType(SafeArea));
+      final content = find
+          .descendant(of: safe, matching: find.byType(Column))
+          .first;
+      expect(tester.getRect(content).top, 44);
+      expect(tester.getRect(content).bottom, 766);
+      expect(
+        tester.getRect(find.widgetWithText(TextButton, '取消')).top,
+        greaterThanOrEqualTo(44),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

@@ -58,6 +58,27 @@ class SearchLayoutState extends LayoutOfficeState {
   Future<void> selectRoom(String id) async => openedRoom = id;
 }
 
+class SearchOutcomeState extends SearchLayoutState {
+  SearchOutcomeState({required this.truncated});
+  final bool truncated;
+  bool failSearch = false;
+
+  @override
+  Future<void> search(
+    String query, {
+    String type = 'all',
+    String? roomId,
+    String? authorId,
+    String? after,
+    String? before,
+  }) async {
+    if (failSearch) throw StateError('Synthetic search failure');
+    searchResults = [];
+    searchTruncated = truncated;
+    notifyListeners();
+  }
+}
+
 void main() {
   test(
     'Search sends encoded structural filters and preserves server truncation',
@@ -117,6 +138,94 @@ void main() {
   );
 
   test(
+    'Empty searches preserve only an explicit server truncation flag',
+    () async {
+      final poll = Completer<http.Response>();
+      Json response = {'results': [], 'truncated': true};
+      final state = SearchTransportState(
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/presence')) return poll.future;
+          if (request.url.path.endsWith('/me')) {
+            return http.Response(
+              jsonEncode({
+                'principal': {'id': 'test-member'},
+              }),
+              200,
+            );
+          }
+          return http.Response(jsonEncode(response), 200);
+        }),
+      );
+      await state.connect('https://office.example', 'synthetic-search-token');
+      await state.search('absent');
+      expect(state.searchResults, isEmpty);
+      expect(state.searchTruncated, isTrue);
+      for (final next in <Json>[
+        {'results': [], 'truncated': false},
+        {'results': []},
+        {'results': [], 'truncated': 'true'},
+        {'results': [], 'has_more': true},
+      ]) {
+        response = next;
+        await state.search('absent');
+        expect(state.searchResults, isEmpty);
+        expect(state.searchTruncated, isFalse);
+      }
+      state.dispose();
+      poll.complete(http.Response('{}', 200));
+    },
+  );
+
+  for (final truncated in [false, true]) {
+    testWidgets(
+      'Empty search distinguishes completed and bounded scans ($truncated)',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(1512, 982);
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final state = SearchOutcomeState(truncated: truncated);
+        addTearDown(state.dispose);
+        await tester.pumpWidget(ActiveOfficeApp(state: state));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byWidgetPredicate(
+            (w) => w is TextField && w.decoration?.hintText == '搜索',
+          ),
+        );
+        await tester.pumpAndSettle();
+        final input = find.byWidgetPredicate(
+          (w) => w is TextField && w.decoration?.hintText == '搜索人、Agent 和工作内容',
+        );
+        await tester.enterText(input, 'qiye');
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pumpAndSettle();
+        expect(find.textContaining('结果较多'), findsNothing);
+        expect(
+          find.textContaining('本次搜索范围已达上限'),
+          truncated ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.text('已搜索范围内没有匹配内容'),
+          truncated ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.text('没有找到匹配内容'),
+          truncated ? findsNothing : findsOneWidget,
+        );
+        state.failSearch = true;
+        await tester.enterText(input, 'next query');
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pumpAndSettle();
+        expect(find.text('搜索暂时无法完成'), findsOneWidget);
+        expect(find.textContaining('本次搜索范围已达上限'), findsNothing);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
+
+  test(
     'Date ranges include entire local end date and remove incompatible filters',
     () {
       final filters = OfficeSearchFilters(
@@ -156,7 +265,7 @@ void main() {
       await tester.enterText(input, '工作');
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
-      expect(find.textContaining('当前只展示部分匹配项'), findsOneWidget);
+      expect(find.textContaining('本次搜索范围已达上限'), findsOneWidget);
       final searchDomains = find.ancestor(
         of: find.widgetWithText(ChoiceChip, '文档'),
         matching: find.byType(ListView),

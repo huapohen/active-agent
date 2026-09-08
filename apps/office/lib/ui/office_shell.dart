@@ -2195,11 +2195,14 @@ class _OfficeShellState extends State<OfficeShell> {
             ],
           ),
         ),
-        if (!_searching && _globalQuery.trim().isNotEmpty && s.searchTruncated)
+        if (!_searching &&
+            _searchError == null &&
+            _globalQuery.trim().isNotEmpty &&
+            s.searchTruncated)
           const Padding(
             padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: Text(
-              '结果较多，当前只展示部分匹配项。请增加关键词或筛选条件。',
+              '本次搜索范围已达上限，可能还有未检索内容。请增加关键词或筛选条件。',
               style: TextStyle(fontSize: 11, color: mutedColor),
             ),
           ),
@@ -2220,8 +2223,8 @@ class _OfficeShellState extends State<OfficeShell> {
                   icon: Icons.search_off_outlined,
                 )
               : results.isEmpty
-              ? const EmptyOffice(
-                  title: '没有找到匹配内容',
+              ? EmptyOffice(
+                  title: s.searchTruncated ? '已搜索范围内没有匹配内容' : '没有找到匹配内容',
                   subtitle: '试试其他关键词或切换分类。',
                   icon: Icons.search,
                 )

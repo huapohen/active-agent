@@ -376,6 +376,7 @@ class OfficeMeetingHome extends StatelessWidget {
     final meta =
         '${clockText(start, date: true, context: context)} · '
         '${meeting['duration_minutes'] ?? 30} 分钟';
+    if (desktop && !history) return _upcomingDesktopRow(context, meeting, meta);
     return InkWell(
       key: ValueKey('meeting-record-${meeting['id']}'),
       onTap: busy ? null : () => onOpen(meeting),
@@ -440,6 +441,77 @@ class OfficeMeetingHome extends StatelessWidget {
       ),
     );
   }
+
+  Widget _upcomingDesktopRow(BuildContext context, Json meeting, String meta) {
+    final active = meeting['status'] == 'active';
+    final status = active
+        ? ' · 进行中 · 当前在线 ${meeting['participant_count'] ?? 0} 个会话'
+        : '';
+    final complete = '${str(meeting['title'])}\n$meta$status';
+    return Tooltip(
+      message: complete,
+      child: InkWell(
+        key: ValueKey('meeting-record-${meeting['id']}'),
+        onTap: busy ? null : () => onOpen(meeting),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xffe4eafe),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(
+                  Icons.videocam_outlined,
+                  size: 20,
+                  color: Color(0xff4f79e6),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      str(meeting['title']),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14, height: 1.3),
+                    ),
+                    const SizedBox(height: 5),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: meta),
+                          if (active)
+                            TextSpan(
+                              text: status,
+                              style: const TextStyle(color: Color(0xff35a16b)),
+                            ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 1.3,
+                        color: mutedColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.login, size: 18, color: mutedColor),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class OfficeMeetingJoinPreview extends StatelessWidget {
@@ -472,7 +544,7 @@ class OfficeMeetingJoinPreview extends StatelessWidget {
                   desktop ? 30 : 16,
                   10,
                   desktop ? 30 : 16,
-                  20,
+                  desktop ? 20 : 42,
                 ),
                 child: Column(
                   children: [
@@ -518,7 +590,7 @@ class OfficeMeetingJoinPreview extends StatelessWidget {
                         },
                       ),
                     ),
-                    SizedBox(height: desktop ? 38 : 20),
+                    SizedBox(height: desktop ? 38 : 30),
                     Expanded(
                       child: Container(
                         key: const ValueKey('meeting-join-idle-preview'),

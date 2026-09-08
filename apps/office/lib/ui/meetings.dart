@@ -205,7 +205,30 @@ class OfficeMeetingsState extends State<OfficeMeetings> {
                           const SizedBox(height: 16),
                           if (documents.isNotEmpty) ...[
                             DropdownButtonFormField<String>(
+                              key: const ValueKey('meeting-document-selector'),
                               initialValue: '',
+                              isExpanded: true,
+                              itemHeight: null,
+                              menuMaxHeight: 300,
+                              selectedItemBuilder: (context) => [
+                                const Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text('暂不关联'),
+                                ),
+                                ...documents.map(
+                                  (doc) => Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Tooltip(
+                                      message: str(doc['title']),
+                                      child: Text(
+                                        str(doc['title']),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                               decoration: const InputDecoration(
                                 labelText: '关联会议文档',
                               ),
@@ -217,10 +240,17 @@ class OfficeMeetingsState extends State<OfficeMeetings> {
                                 ...documents.map(
                                   (doc) => DropdownMenuItem(
                                     value: str(doc['id']),
-                                    child: Text(
-                                      str(doc['title']),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    child: Padding(
+                                      key: ValueKey(
+                                        'meeting-document-option-${doc['id']}',
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
+                                      child: Text(
+                                        str(doc['title']),
+                                        softWrap: true,
+                                      ),
                                     ),
                                   ),
                                 ),
