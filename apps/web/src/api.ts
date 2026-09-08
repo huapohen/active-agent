@@ -139,7 +139,16 @@ export class LegacyClient extends HttpClient {
   async preferences(roomId: string, values: { pinned?: boolean; muted?: boolean; read_seq?: number }, signal?: AbortSignal) { await this.request(`/rooms/${encodeURIComponent(roomId)}/preferences`, 'PATCH', values, signal); }
   async createRoom(title: string, signal?: AbortSignal) { return room((await this.request('/rooms', 'POST', { name: title }, signal)).room); }
   async direct(principalId: string, signal?: AbortSignal) { return room((await this.request('/rooms/direct', 'POST', { principal_id: principalId }, signal)).room); }
-  async documents(signal?: AbortSignal): Promise<Document[]> { return list((await this.request('/library', 'GET', undefined, signal)).documents).map(d => ({ id: text(d.id), roomId: text(d.room_id), title: text(d.title, text(d.name, '未命名文档')), revision: number(d.revision), updatedAt: text(d.updated_at) })); }
+  async documents(signal?: AbortSignal): Promise<Document[]> {
+    return list((await this.request('/library', 'GET', undefined, signal)).documents).map(d => {
+      // The authorized library returns room_ids, including documents shared in
+      // several rooms. Use only a server-returned context; never invent one.
+      const roomIds = Array.isArray(d.room_ids) ? d.room_ids.filter((id): id is string => typeof id === 'string' && id.length > 0) : [];
+      const date = typeof d.updated_at === 'number' ? new Date(d.updated_at) : null;
+      const updatedAt = date && Number.isFinite(date.getTime()) ? date.toISOString() : text(d.updated_at);
+      return { id: text(d.id), roomId: text(d.room_id) || roomIds[0] || '', title: text(d.title, text(d.name, '未命名文档')), revision: number(d.revision), updatedAt };
+    });
+  }
   async events(after: number, signal?: AbortSignal): Promise<EventPage> { const result = await this.request(`/events?after=${after}&wait=20`, 'GET', undefined, signal); return { cursor: number(result.cursor, after), changed: list(result.events).length > 0, resetRequired: result.reset_required === true }; }
 }
 

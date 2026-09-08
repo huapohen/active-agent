@@ -75,6 +75,19 @@ describe('credential and domain boundary', () => {
     expect(message({ ...sent, receipt_summary: { known: false, read_count: null, eligible_count: null } }).receipt).toBeUndefined();
     expect(message({ ...sent, receipt_summary: { known: true, read_count: 2, eligible_count: 3 } }).receipt).toEqual({ read: 2, total: 3 });
   });
+  it('opens the server-authorized library room_ids context and preserves epoch update times', async () => {
+    const fetcher = vi.fn(async () => json({ documents: [
+      { id: 'shared', title: '共享交付', room_ids: ['room-a', 'room-b'], revision: 1, updated_at: 1788899408121 },
+      { id: 'old-shape', room_id: 'room-c', updated_at: '2026-09-09T00:00:00Z' },
+      { id: 'unlinked', room_ids: [null, 9, ''], updated_at: 1e100 },
+    ] }));
+    const client = new LegacyClient('http://127.0.0.1:3218', async () => 'session', fetcher);
+    const docs = await client.documents();
+    expect(docs[0]).toMatchObject({ id: 'shared', roomId: 'room-a', updatedAt: '2026-09-08T20:30:08.121Z' });
+    expect(docs[1]).toMatchObject({ roomId: 'room-c', updatedAt: '2026-09-09T00:00:00Z' });
+    expect(docs[2]).toMatchObject({ roomId: '', updatedAt: '' });
+    expect(fetcher.mock.calls).toHaveLength(1);
+  });
   it('rejects malformed message sequence, rather than inventing a timestamp or ordering', () => {
     expect(() => message({ ...sent, seq: '4' })).toThrow(ApiError);
     expect(message({ ...sent, created_at: undefined }).createdAt).toBe('');
