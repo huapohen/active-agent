@@ -1,0 +1,449 @@
+[
+  {
+    "path": "$.children[3].children[0].children[0].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[3].children[0].children[1].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[3].children[0].children[2].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[3].children[0].children[3].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[3].children[1].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[1].children[1].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[1].children[1].children[0].children[0].text",
+    "source": "71b80f8181fa243b7477ebac0c35c6ce13e2c960",
+    "target": "`71b80f8181fa243b7477ebac0c35c6ce13e2c960`"
+  },
+  {
+    "path": "$.children[3].children[1].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[1].children[2].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[1].children[2].children[0].children[0].text",
+    "source": "2026-09-09T04:11:17+08:00",
+    "target": "`2026-09-09T04:11:17+08:00`"
+  },
+  {
+    "path": "$.children[3].children[1].children[3].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[1].children[3].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[1].children[3].children[0].children[0].text",
+    "source": "feat(desktop): introduce Electron React workspace and isolated RongCloud adapter",
+    "target": "`feat(desktop): introduce Electron React workspace and isolated RongCloud adapter`"
+  },
+  {
+    "path": "$.children[3].children[2].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[2].children[1].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[2].children[1].children[0].children[0].text",
+    "source": "a9005c01ee059b3f093d877ae1eb13828075d692",
+    "target": "`a9005c01ee059b3f093d877ae1eb13828075d692`"
+  },
+  {
+    "path": "$.children[3].children[2].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[2].children[2].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[2].children[2].children[0].children[0].text",
+    "source": "2026-09-09T04:15:30+08:00",
+    "target": "`2026-09-09T04:15:30+08:00`"
+  },
+  {
+    "path": "$.children[3].children[2].children[3].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[2].children[3].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[2].children[3].children[0].children[0].text",
+    "source": "feat(core): add Clerk-bound agent runs, RongCloud outbox, and document projections",
+    "target": "`feat(core): add Clerk-bound agent runs, RongCloud outbox, and document projections`"
+  },
+  {
+    "path": "$.children[3].children[3].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[3].children[1].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[3].children[1].children[0].children[0].text",
+    "source": "acee8003c7c55694716778189179ec272da44347",
+    "target": "`acee8003c7c55694716778189179ec272da44347`"
+  },
+  {
+    "path": "$.children[3].children[3].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[3].children[2].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[3].children[2].children[0].children[0].text",
+    "source": "2026-09-09T01:22:28+08:00",
+    "target": "`2026-09-09T01:22:28+08:00`"
+  },
+  {
+    "path": "$.children[3].children[3].children[3].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[3].children[3].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[3].children[3].children[0].children[0].text",
+    "source": "docs: close equal-rights stage and prepare major-version handoff",
+    "target": "`docs: close equal-rights stage and prepare major-version handoff`"
+  },
+  {
+    "path": "$.children[3].children[4].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[4].children[1].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[4].children[1].children[0].children[0].text",
+    "source": "dc728ddc99ce3bc7346bb4dc364824bbb32b1101",
+    "target": "`dc728ddc99ce3bc7346bb4dc364824bbb32b1101`"
+  },
+  {
+    "path": "$.children[3].children[4].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[4].children[2].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[4].children[2].children[0].children[0].text",
+    "source": "2026-09-09T01:22:28+08:00",
+    "target": "`2026-09-09T01:22:28+08:00`"
+  },
+  {
+    "path": "$.children[3].children[4].children[3].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[3].children[4].children[3].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[3].children[4].children[3].children[0].children[0].text",
+    "source": "docs: preserve stage baseline for major-version branch",
+    "target": "`docs: preserve stage baseline for major-version branch`"
+  },
+  {
+    "path": "$.children[20].children[0].children[0].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[20].children[0].children[1].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[20].children[0].children[2].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children.length",
+    "source": 11,
+    "target": 1
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[0].marks[0]",
+    "source": {
+      "type": "code"
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[0].text",
+    "source": "run_create",
+    "target": "`run_create`、`run_read`、`identity_read`、`room_list`、`message_read`、`message_send`"
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[1]",
+    "source": {
+      "type": "text",
+      "text": "、",
+      "marks": []
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[2]",
+    "source": {
+      "type": "text",
+      "text": "run_read",
+      "marks": [
+        {
+          "type": "code"
+        }
+      ]
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[3]",
+    "source": {
+      "type": "text",
+      "text": "、",
+      "marks": []
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[4]",
+    "source": {
+      "type": "text",
+      "text": "identity_read",
+      "marks": [
+        {
+          "type": "code"
+        }
+      ]
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[5]",
+    "source": {
+      "type": "text",
+      "text": "、",
+      "marks": []
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[6]",
+    "source": {
+      "type": "text",
+      "text": "room_list",
+      "marks": [
+        {
+          "type": "code"
+        }
+      ]
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[7]",
+    "source": {
+      "type": "text",
+      "text": "、",
+      "marks": []
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[8]",
+    "source": {
+      "type": "text",
+      "text": "message_read",
+      "marks": [
+        {
+          "type": "code"
+        }
+      ]
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[9]",
+    "source": {
+      "type": "text",
+      "text": "、",
+      "marks": []
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[20].children[3].children[1].children[0].children[10]",
+    "source": {
+      "type": "text",
+      "text": "message_send",
+      "marks": [
+        {
+          "type": "code"
+        }
+      ]
+    },
+    "target": {
+      "$missing": true
+    }
+  },
+  {
+    "path": "$.children[23].children[0].children[0].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[23].children[0].children[1].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[23].children[0].children[2].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[39].children[0].children[0].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[39].children[0].children[1].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[39].children[0].children[2].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  }
+]

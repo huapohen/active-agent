@@ -1,0 +1,586 @@
+{
+  "schema": "renji.docmost.structure-audit.v1",
+  "checkedAt": "2026-09-08T20:39:27.243Z",
+  "readOnly": true,
+  "sourcePath": "/Users/lwblx/huapohen/agent/execute/enterprise_work/active_agent/docs/startup/2026-09-09/STARTUP_FOUNDATION_DELIVERY_0424.md",
+  "targetPath": "/Users/lwblx/huapohen/agent/execute/enterprise_work/active_agent/output/startup-stage-publication-20260909-0418/docmost-new-document-structure.json",
+  "sourceSha256": "34b76dcae212510d4035348e30e77e399311a1a43c3eb53633d64765558ca8c2",
+  "targetSha256": "02c8b3107ed302ed765f19eb7bf1dbd108f4e16c5fef75da6385fdbb0c880f10",
+  "parser": {
+    "name": "marked",
+    "version": "18.0.11",
+    "gfm": true,
+    "breaks": false
+  },
+  "requestedDocumentStructureEqual": true,
+  "structureDifferenceCount": 0,
+  "fullLinkBehaviorEqual": false,
+  "fullDifferenceCount": 27,
+  "sourceCanonicalSha256": "2abdc9b04e24736d890a292d333db25c1d1fc86bcdd0cc1b6aca81b6336ffb44",
+  "targetCanonicalSha256": "2abdc9b04e24736d890a292d333db25c1d1fc86bcdd0cc1b6aca81b6336ffb44",
+  "sourceStats": {
+    "nodes": {
+      "doc": 1,
+      "heading": 11,
+      "text": 195,
+      "bulletList": 3,
+      "listItem": 13,
+      "paragraph": 120,
+      "table": 4,
+      "tableRow": 25,
+      "tableHeader": 13,
+      "tableCell": 67
+    },
+    "marks": {
+      "code": 39,
+      "bold": 3,
+      "link": 9
+    },
+    "textCodePoints": 6456,
+    "headings": [
+      {
+        "path": "$.children[0]",
+        "level": 1
+      },
+      {
+        "path": "$.children[2]",
+        "level": 2
+      },
+      {
+        "path": "$.children[8]",
+        "level": 2
+      },
+      {
+        "path": "$.children[13]",
+        "level": 2
+      },
+      {
+        "path": "$.children[18]",
+        "level": 2
+      },
+      {
+        "path": "$.children[22]",
+        "level": 2
+      },
+      {
+        "path": "$.children[26]",
+        "level": 2
+      },
+      {
+        "path": "$.children[30]",
+        "level": 2
+      },
+      {
+        "path": "$.children[33]",
+        "level": 2
+      },
+      {
+        "path": "$.children[38]",
+        "level": 2
+      },
+      {
+        "path": "$.children[41]",
+        "level": 2
+      }
+    ],
+    "tables": [
+      {
+        "path": "$.children[3]",
+        "rowCount": 5,
+        "rowWidths": [
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "headerCellCounts": [
+          4,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "path": "$.children[20]",
+        "rowCount": 6,
+        "rowWidths": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "headerCellCounts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "path": "$.children[23]",
+        "rowCount": 6,
+        "rowWidths": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "headerCellCounts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "path": "$.children[39]",
+        "rowCount": 8,
+        "rowWidths": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "headerCellCounts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "links": [
+      {
+        "path": "$.children[12].children[1]",
+        "text": "MANUAL_STARTUP_GUIDE.md",
+        "href": "MANUAL_STARTUP_GUIDE.md",
+        "title": null
+      },
+      {
+        "path": "$.children[12].children[3]",
+        "text": "协作服务 README",
+        "href": "../../../services/collaboration/README.md",
+        "title": null
+      },
+      {
+        "path": "$.children[35].children[1]",
+        "text": "客户端独立审计",
+        "href": "STARTUP_CLIENT_EVIDENCE_0425.md",
+        "title": null
+      },
+      {
+        "path": "$.children[36].children[1]",
+        "text": "STARTUP_FOUNDATION_EVIDENCE.json",
+        "href": "STARTUP_FOUNDATION_EVIDENCE.json",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[0].children[0].children[0]",
+        "text": "机器执行网关真实验收",
+        "href": "CLERK_EXECUTION_GATEWAY_REAL_PROBE_0409.md",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[1].children[0].children[0]",
+        "text": "融云真实 Outbox 验收",
+        "href": "RONGCLOUD_OUTBOX_SYNTHETIC_PROBE_0356.md",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[2].children[0].children[0]",
+        "text": "Clerk 机器适配",
+        "href": "CLERK_MACHINE_AUTH_ADAPTER_0343.md",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[3].children[0].children[0]",
+        "text": "文档投影实现与证据",
+        "href": "DOCUMENT_SYNC_FOUNDATION.md",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[4].children[0].children[0]",
+        "text": "Harness 实现与阶段历史",
+        "href": "HARNESS_FOUNDATION.md",
+        "title": null
+      }
+    ]
+  },
+  "targetStats": {
+    "nodes": {
+      "doc": 1,
+      "heading": 11,
+      "text": 195,
+      "bulletList": 3,
+      "listItem": 13,
+      "paragraph": 120,
+      "table": 4,
+      "tableRow": 25,
+      "tableHeader": 13,
+      "tableCell": 67
+    },
+    "marks": {
+      "code": 39,
+      "bold": 3,
+      "link": 9
+    },
+    "textCodePoints": 6456,
+    "headings": [
+      {
+        "path": "$.children[0]",
+        "level": 1
+      },
+      {
+        "path": "$.children[2]",
+        "level": 2
+      },
+      {
+        "path": "$.children[8]",
+        "level": 2
+      },
+      {
+        "path": "$.children[13]",
+        "level": 2
+      },
+      {
+        "path": "$.children[18]",
+        "level": 2
+      },
+      {
+        "path": "$.children[22]",
+        "level": 2
+      },
+      {
+        "path": "$.children[26]",
+        "level": 2
+      },
+      {
+        "path": "$.children[30]",
+        "level": 2
+      },
+      {
+        "path": "$.children[33]",
+        "level": 2
+      },
+      {
+        "path": "$.children[38]",
+        "level": 2
+      },
+      {
+        "path": "$.children[41]",
+        "level": 2
+      }
+    ],
+    "tables": [
+      {
+        "path": "$.children[3]",
+        "rowCount": 5,
+        "rowWidths": [
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "headerCellCounts": [
+          4,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "path": "$.children[20]",
+        "rowCount": 6,
+        "rowWidths": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "headerCellCounts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "path": "$.children[23]",
+        "rowCount": 6,
+        "rowWidths": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "headerCellCounts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "path": "$.children[39]",
+        "rowCount": 8,
+        "rowWidths": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "headerCellCounts": [
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "links": [
+      {
+        "path": "$.children[12].children[1]",
+        "text": "MANUAL_STARTUP_GUIDE.md",
+        "href": "MANUAL_STARTUP_GUIDE.md",
+        "title": null
+      },
+      {
+        "path": "$.children[12].children[3]",
+        "text": "协作服务 README",
+        "href": "../../../services/collaboration/README.md",
+        "title": null
+      },
+      {
+        "path": "$.children[35].children[1]",
+        "text": "客户端独立审计",
+        "href": "STARTUP_CLIENT_EVIDENCE_0425.md",
+        "title": null
+      },
+      {
+        "path": "$.children[36].children[1]",
+        "text": "STARTUP_FOUNDATION_EVIDENCE.json",
+        "href": "STARTUP_FOUNDATION_EVIDENCE.json",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[0].children[0].children[0]",
+        "text": "机器执行网关真实验收",
+        "href": "CLERK_EXECUTION_GATEWAY_REAL_PROBE_0409.md",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[1].children[0].children[0]",
+        "text": "融云真实 Outbox 验收",
+        "href": "RONGCLOUD_OUTBOX_SYNTHETIC_PROBE_0356.md",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[2].children[0].children[0]",
+        "text": "Clerk 机器适配",
+        "href": "CLERK_MACHINE_AUTH_ADAPTER_0343.md",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[3].children[0].children[0]",
+        "text": "文档投影实现与证据",
+        "href": "DOCUMENT_SYNC_FOUNDATION.md",
+        "title": null
+      },
+      {
+        "path": "$.children[37].children[4].children[0].children[0]",
+        "text": "Harness 实现与阶段历史",
+        "href": "HARNESS_FOUNDATION.md",
+        "title": null
+      }
+    ]
+  },
+  "generatedBlockIds": 131,
+  "platformLinkAttributes": [
+    {
+      "path": "$.content[12].content[1].marks[0]",
+      "href": "MANUAL_STARTUP_GUIDE.md",
+      "target": "_blank",
+      "rel": "noopener noreferrer nofollow",
+      "class": null,
+      "internal": false
+    },
+    {
+      "path": "$.content[12].content[3].marks[0]",
+      "href": "../../../services/collaboration/README.md",
+      "target": "_blank",
+      "rel": "noopener noreferrer nofollow",
+      "class": null,
+      "internal": false
+    },
+    {
+      "path": "$.content[35].content[1].marks[0]",
+      "href": "STARTUP_CLIENT_EVIDENCE_0425.md",
+      "target": "_blank",
+      "rel": "noopener noreferrer nofollow",
+      "class": null,
+      "internal": false
+    },
+    {
+      "path": "$.content[36].content[1].marks[0]",
+      "href": "STARTUP_FOUNDATION_EVIDENCE.json",
+      "target": "_blank",
+      "rel": "noopener noreferrer nofollow",
+      "class": null,
+      "internal": false
+    },
+    {
+      "path": "$.content[37].content[0].content[0].content[0].marks[0]",
+      "href": "CLERK_EXECUTION_GATEWAY_REAL_PROBE_0409.md",
+      "target": "_blank",
+      "rel": "noopener noreferrer nofollow",
+      "class": null,
+      "internal": false
+    },
+    {
+      "path": "$.content[37].content[1].content[0].content[0].marks[0]",
+      "href": "RONGCLOUD_OUTBOX_SYNTHETIC_PROBE_0356.md",
+      "target": "_blank",
+      "rel": "noopener noreferrer nofollow",
+      "class": null,
+      "internal": false
+    },
+    {
+      "path": "$.content[37].content[2].content[0].content[0].marks[0]",
+      "href": "CLERK_MACHINE_AUTH_ADAPTER_0343.md",
+      "target": "_blank",
+      "rel": "noopener noreferrer nofollow",
+      "class": null,
+      "internal": false
+    },
+    {
+      "path": "$.content[37].content[3].content[0].content[0].marks[0]",
+      "href": "DOCUMENT_SYNC_FOUNDATION.md",
+      "target": "_blank",
+      "rel": "noopener noreferrer nofollow",
+      "class": null,
+      "internal": false
+    },
+    {
+      "path": "$.content[37].content[4].content[0].content[0].marks[0]",
+      "href": "HARNESS_FOUNDATION.md",
+      "target": "_blank",
+      "rel": "noopener noreferrer nofollow",
+      "class": null,
+      "internal": false
+    }
+  ],
+  "mutationControls": [
+    {
+      "name": "heading level",
+      "detected": true,
+      "firstDifference": "$.children[0].level",
+      "differenceCount": 1
+    },
+    {
+      "name": "paragraph boundary",
+      "detected": true,
+      "firstDifference": "$.children[1].children[0].children[0].children[0].children",
+      "differenceCount": 6
+    },
+    {
+      "name": "list item ancestry",
+      "detected": true,
+      "firstDifference": "$.children[1].children[0].children[0].children",
+      "differenceCount": 9
+    },
+    {
+      "name": "table header to body cell",
+      "detected": true,
+      "firstDifference": "$.children[3].children[0].children[0].type",
+      "differenceCount": 1
+    },
+    {
+      "name": "table cell ordering",
+      "detected": true,
+      "firstDifference": "$.children[3].children[0].children[0].children[0].children[0].text",
+      "differenceCount": 2
+    },
+    {
+      "name": "extra empty table header row",
+      "detected": true,
+      "firstDifference": "$.children[3].children.length",
+      "differenceCount": 35
+    },
+    {
+      "name": "one code point changed",
+      "detected": true,
+      "firstDifference": "$.children[0].children[0].text",
+      "differenceCount": 1
+    },
+    {
+      "name": "bold mark removed",
+      "detected": true,
+      "firstDifference": "$.children[6].children[0].marks.length",
+      "differenceCount": 2
+    },
+    {
+      "name": "inline code mark removed",
+      "detected": true,
+      "firstDifference": "$.children[1].children[1].children[0].children[1].marks.length",
+      "differenceCount": 2
+    },
+    {
+      "name": "link destination changed",
+      "detected": true,
+      "firstDifference": "$.children[12].children[1].marks[0].href",
+      "differenceCount": 1
+    }
+  ],
+  "method": [
+    "Nested node/row/cell/list ancestry compared recursively; no flattened-text equality.",
+    "Every text code point and order is exact; no trimming, Unicode normalization or whitespace folding.",
+    "Heading levels, table header/body cells, row and column order, span/alignment/style attributes and bold/code/link href/title retained.",
+    "Only adjacent text nodes with identical marks coalesced; no cross-block merging.",
+    "Markdown block separators do not create blank paragraphs; actual target empty paragraphs remain compared.",
+    "Generated block IDs inventoried separately; source has no equivalent identity IDs.",
+    "Link target/rel/class/internal browser/platform attributes also compared in full canonical output. Markdown leaves them unspecified (null).",
+    "Unsupported Markdown/ProseMirror node types, entities or marks fail closed rather than disappear."
+  ],
+  "limits": [
+    "This verifies these captured files only, not a fresh authenticated server read or browser screenshot.",
+    "Relative href preservation does not prove links resolve in the published application.",
+    "No pixel layout, font metrics or end-to-end target navigation acceptance.",
+    "No journal status change and no publication verified flag written."
+  ]
+}

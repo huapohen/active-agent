@@ -1,0 +1,64 @@
+{
+  "recorded_at": "2026-09-09T04:48:23+08:00",
+  "canonical_doc_free_id": "a74679d5",
+  "canonical_revision": 1,
+  "source_git_commit": "bd78b7db263c439c3163263f9c77215ca6a1c8a2",
+  "source_file_sha256": "34b76dcae212510d4035348e30e77e399311a1a43c3eb53633d64765558ca8c2",
+  "artifacts": [
+    {
+      "artifact": "publication-source.canonical.json",
+      "captured_source": "output/startup-docmost-structure-audit-20260909/source.canonical.json",
+      "bytes": 93867,
+      "sha256": "2abdc9b04e24736d890a292d333db25c1d1fc86bcdd0cc1b6aca81b6336ffb44"
+    },
+    {
+      "artifact": "publication-docmost.canonical.json",
+      "captured_source": "output/startup-docmost-structure-audit-20260909/docmost.canonical.json",
+      "bytes": 93867,
+      "sha256": "2abdc9b04e24736d890a292d333db25c1d1fc86bcdd0cc1b6aca81b6336ffb44"
+    },
+    {
+      "artifact": "publication-affine.canonical.json",
+      "captured_source": "output/startup-affine-structure-audit-20260909/affine.canonical.json",
+      "bytes": 90279,
+      "sha256": "9d7be279d5b08e914a424f47bf03d715de808e8b0e94d2ec0ab754100dc4c3d8"
+    },
+    {
+      "artifact": "docmost-structure-summary.json",
+      "captured_source": "output/startup-docmost-structure-audit-20260909/summary.json",
+      "bytes": 14701,
+      "sha256": "726d59026271f8f357d9df844f0a0488a9481d4d827d0dae6636ffe4c3d27d5d"
+    },
+    {
+      "artifact": "docmost-platform-link-diff.json",
+      "captured_source": "output/startup-docmost-structure-audit-20260909/full-link-behavior.diff.json",
+      "bytes": 3495,
+      "sha256": "b7fe2c37a42d5fe518267d1fd2b2c7fa8e8294b0ea97271860754f8f92d688b6"
+    },
+    {
+      "artifact": "affine-structure-summary.json",
+      "captured_source": "output/startup-affine-structure-audit-20260909/summary.json",
+      "bytes": 31424,
+      "sha256": "2d3d606fa8332eaba062a3f5c70fb801a9125546f8a310023897812c8c50ac5a"
+    },
+    {
+      "artifact": "affine-structure-diff.json",
+      "captured_source": "output/startup-affine-structure-audit-20260909/structure.diff.json",
+      "bytes": 11137,
+      "sha256": "39cf47640ffdcf723884fd9828c8e292122c60867c4ee83c0c8a3ceff0e8f72c"
+    },
+    {
+      "artifact": "affine-native-http-receipt.json",
+      "captured_source": "output/startup-stage-publication-20260909-0418/affine-http-native-snapshot-receipt.json",
+      "bytes": 992,
+      "sha256": "f35a581355aad7021f729b135a00a68d883990b95b7ef426378c2bc65f98bf29"
+    },
+    {
+      "artifact": "docmost-version-fence.json",
+      "captured_source": "output/startup-stage-publication-20260909-0418/docmost-native-markdown-version-fence.json",
+      "bytes": 1817,
+      "sha256": "639363db5f1d00729072a19c954f19dcbb72a15df1535fab98b7e7a17005fbf3"
+    }
+  ],
+  "interpretation": "Docmost required native content structure matches, platform link behavior differs. AFFiNE native tables differ. Both Markdown export readback hashes fail. No journal has been promoted or rewritten."
+}

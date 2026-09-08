@@ -2,6 +2,8 @@
 
 `startup` 分支使用 Go/Gin、PostgreSQL/pgx/sqlc/goose、Clerk 和**必选的融云**。Temporal 管理持久执行流程；Eino DeepAgents 管理有界规划，业务动作仍由协作内核授权和提交。当前是可执行的迁移阶段，不能当作完整商业发布。
 
+阶段验收入口：[实现与测试交付](../../docs/startup/2026-09-09/STARTUP_FOUNDATION_DELIVERY_0424.md)、[手动启动教程](../../docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md)、[实际发布与格式差异](../../docs/startup/2026-09-09/STARTUP_FOUNDATION_PUBLICATION_RECEIPT_0443.md)、[云文档目录原生修复](../../docs/startup/2026-09-09/LIBRARY_CONTEXT_NATIVE_FIX_0445.md)。复杂交付文档已在两个目标创建，但本次保真验收未通过：AFFiNE 表格语义与单元格代码格式存在缺口，两端 Markdown 导出均有结构差异。已保留原目标 ID 和未知回执，未通过重建或放宽哈希将它们签收为成功。
+
 ## 启动本机服务
 
 在项目根目录打开终端。现有本机配置保存在 Git 忽略的 `data/startup`，这些文件中的凭据不复制到教程、聊天记录或提交。首次部署参考本目录 `.env.example`，将真实值放入部署环境的私密配置。
