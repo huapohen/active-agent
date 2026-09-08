@@ -7,42 +7,50 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/huapohen/active-agent/services/collaboration/internal/domain"
+	"github.com/huapohen/active-agent/services/collaboration/internal/emoji"
 	"github.com/huapohen/active-agent/services/collaboration/internal/store"
 )
 
 // This registry describes implemented protocol coverage, never desired scope.
 // Dynamic object authorization still runs on every operation in Store.
 type capability struct {
-	ID            string          `json:"id"`
-	Version       string          `json:"version"`
-	Protocols     map[string]bool `json:"protocols"`
-	Exportable    bool            `json:"exportable"`
-	MachineAccess string          `json:"machine_access"`
+	ID                string          `json:"id"`
+	Version           string          `json:"version"`
+	Protocols         map[string]bool `json:"protocols"`
+	Exportable        bool            `json:"exportable"`
+	MachineAccess     string          `json:"machine_access"`
+	Available         bool            `json:"available"`
+	UnavailableReason string          `json:"unavailable_reason,omitempty"`
 }
 
-func registry() []capability {
+func registry(cfg config) []capability {
 	out := []capability{}
-	for _, id := range []string{"identity.read", "workspace.create", "room.list", "room.create", "message.read", "message.send", "room.execution_policy", "transport.session", "executor.register", "agent.execution_policy", "execution.run.create", "execution.run.read", "execution.evidence.read"} {
+	for _, id := range []string{"identity.read", "workspace.create", "room.list", "room.create", "message.read", "message.send", "message.reply", "message.reaction.set", "message.reaction.read", "emoji.read", "room.execution_policy", "transport.session", "executor.register", "agent.execution_policy", "execution.run.create", "execution.run.read", "execution.evidence.read"} {
 		mcp := id != "transport.session" && id != "executor.register" && id != "agent.execution_policy"
 		access := "authenticated"
 		switch id {
 		case "execution.evidence.read":
 			access = "all_source_audit_or_live_execution"
-		case "message.send":
+		case "message.send", "message.reply", "message.reaction.set":
 			access = "run_required"
 		case "workspace.create", "room.create", "room.execution_policy", "executor.register", "agent.execution_policy":
 			access = "gateway_action_pending"
 		case "transport.session":
 			access = "isolated_test_only"
 		}
-		out = append(out, capability{ID: id, MachineAccess: access, Version: "1", Protocols: map[string]bool{"api": true, "mcp": mcp, "a2a": false}, Exportable: id == "room.list" || id == "message.read" || id == "execution.run.read" || id == "execution.evidence.read"})
+		entry := capability{ID: id, MachineAccess: access, Version: "1", Protocols: map[string]bool{"api": true, "mcp": mcp, "a2a": false}, Available: true, Exportable: id == "room.list" || id == "message.read" || id == "message.reaction.read" || id == "emoji.read" || id == "execution.run.read" || id == "execution.evidence.read"}
+		if cfg.emoji == nil && (id == "message.reaction.set" || id == "emoji.read") {
+			entry.Available = false
+			entry.UnavailableReason = "emoji_catalog_unavailable"
+		}
+		out = append(out, entry)
 	}
 	return out
 }
-func mountNative(v1 *gin.RouterGroup, s *store.Store) {
+func mountNative(v1 *gin.RouterGroup, s *store.Store, cfg config) {
 	v1.GET("/mcp", func(c *gin.Context) { c.Header("Allow", "POST"); c.Status(405) })
 	v1.GET("/capabilities", func(c *gin.Context) {
-		c.JSON(200, gin.H{"schema": "renji.capabilities.v1", "capabilities": registry()})
+		c.JSON(200, gin.H{"schema": "renji.capabilities.v1", "capabilities": registry(cfg)})
 	})
 	v1.POST("/mcp", func(c *gin.Context) {
 		var req struct {
@@ -86,7 +94,7 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 		case "ping":
 			respond(gin.H{})
 		case "tools/list":
-			respond(gin.H{"tools": visibleTools(c, []any{
+			respond(gin.H{"tools": visibleTools(c, cfg, []any{
 				toolSchema("run_create", "Create an authorized persistent run; inherited source scopes come from the server.", []string{"action_id", "executor_id", "room_id", "scope_epoch", "goal"}, map[string]any{"action_id": schemaString(), "executor_id": schemaString(), "room_id": schemaString(), "scope_epoch": gin.H{"type": "integer", "minimum": 1}, "parent_run_id": schemaString(), "goal": schemaString()}),
 				toolSchema("run_evidence", "Export complete durable Run actions, raw events and transport facts. Audit remains readable after stop with current all-source membership; execution additionally enforces current executor epochs.", []string{"run_id"}, map[string]any{"run_id": schemaString(), "after": gin.H{"type": "integer", "minimum": 0}, "through": gin.H{"type": "integer", "minimum": 0}, "limit": gin.H{"type": "integer", "minimum": 1, "maximum": 100}, "mode": gin.H{"type": "string", "enum": []string{"audit", "execution"}}}),
 				toolSchema("run_read", "Read the current authorized run and its recorded scope.", []string{"run_id"}, map[string]any{"run_id": schemaString()}),
@@ -95,8 +103,13 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 				toolSchema("room_execution_policy", "Stop or resume Agent execution as a current room owner or admin. Replay preserves the original receipt.", []string{"room_id", "action_id", "expected_version", "stopped"}, map[string]any{"room_id": schemaString(), "action_id": schemaString(), "expected_version": gin.H{"type": "integer", "minimum": 1}, "stopped": gin.H{"type": "boolean"}}),
 				gin.H{"name": "identity_read", "description": "Read the authenticated Renji identity.", "inputSchema": gin.H{"type": "object", "properties": gin.H{}, "additionalProperties": false}},
 				gin.H{"name": "room_list", "description": "List currently authorized rooms; paginate with after.", "inputSchema": gin.H{"type": "object", "properties": gin.H{"after": gin.H{"type": "string"}, "run_id": schemaString()}}},
-				gin.H{"name": "message_read", "description": "Export authorized messages in sequence order; paginate after.", "inputSchema": gin.H{"type": "object", "required": []string{"room_id"}, "properties": gin.H{"room_id": gin.H{"type": "string"}, "after": gin.H{"type": "integer", "minimum": 0}, "run_id": schemaString()}}},
-				gin.H{"name": "message_send", "description": "Send using the same permission, epoch and idempotency gate as the UI.", "inputSchema": gin.H{"type": "object", "required": []string{"room_id", "action_id", "content"}, "properties": gin.H{"room_id": gin.H{"type": "string"}, "action_id": gin.H{"type": "string"}, "content": gin.H{"type": "string"}, "scope_epoch": gin.H{"type": "integer"}, "run_id": schemaString()}}},
+				toolSchema("message_read", "Export authorized messages in ascending sequence order. Default after=0 exports forward; before=0 selects the latest page, positive before excludes that sequence. after and before are mutually exclusive.", []string{"room_id"}, map[string]any{"room_id": schemaString(), "after": gin.H{"type": "integer", "minimum": 0}, "before": gin.H{"type": "integer", "minimum": 0}, "limit": gin.H{"type": "integer", "minimum": 1, "maximum": 100}, "run_id": schemaString()}),
+				toolSchema("message_send", "Send or reply through the same permission, epoch and idempotency gate as the UI. reply_to must name an authorized message in the same room.", []string{"room_id", "action_id", "content"}, map[string]any{"room_id": schemaString(), "action_id": schemaString(), "content": schemaString(), "scope_epoch": gin.H{"type": "integer", "minimum": 1}, "reply_to": schemaString(), "run_id": schemaString()}),
+				toolSchema("message_get", "Read one currently authorized canonical message, including reply metadata and reactions.", []string{"room_id", "message_id"}, map[string]any{"room_id": schemaString(), "message_id": schemaString(), "run_id": schemaString()}),
+				toolSchema("message_reaction_set", "Set this identity's reaction to an explicit active state using a stable action ID; never toggle. Requires an available emoji catalog.", []string{"room_id", "message_id", "action_id", "emoji", "active"}, map[string]any{"room_id": schemaString(), "message_id": schemaString(), "action_id": schemaString(), "emoji": schemaString(), "active": gin.H{"type": "boolean"}, "scope_epoch": gin.H{"type": "integer", "minimum": 1}, "run_id": schemaString()}),
+				toolSchema("message_reaction_read", "Read current reaction aggregates under this identity's room and run authorization. Fence pagination using expected_version.", []string{"room_id", "message_id"}, map[string]any{"room_id": schemaString(), "message_id": schemaString(), "after": schemaString(), "limit": gin.H{"type": "integer", "minimum": 1, "maximum": 50}, "expected_version": gin.H{"type": "integer", "minimum": 0}, "run_id": schemaString()}),
+				toolSchema("emoji_list", "Search the configured local emoji snapshot. Images use authenticated API paths. Optional run_id enforces current machine source scopes before and after reading.", []string{}, map[string]any{"q": schemaString(), "category": schemaString(), "offset": gin.H{"type": "integer", "minimum": 0}, "limit": gin.H{"type": "integer", "minimum": 1, "maximum": 200}, "revision": schemaString(), "run_id": schemaString()}),
+				toolSchema("emoji_get", "Read one exact stable emoji ID from the configured local snapshot; no invented IDs or remote asset lookup.", []string{"id"}, map[string]any{"id": schemaString(), "run_id": schemaString()}),
 			})})
 		case "tools/call":
 			var p struct {
@@ -109,7 +122,7 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 			}
 
 			known := false
-			for _, name := range []string{"identity_read", "room_list", "message_read", "message_send", "workspace_create", "room_create", "room_execution_policy", "run_create", "run_read", "run_evidence"} {
+			for _, name := range []string{"identity_read", "room_list", "message_read", "message_send", "message_get", "message_reaction_set", "message_reaction_read", "emoji_list", "emoji_get", "workspace_create", "room_create", "room_execution_policy", "run_create", "run_read", "run_evidence"} {
 				if p.Name == name {
 					known = true
 				}
@@ -130,20 +143,30 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 				return
 			}
 			var q struct {
-				RoomID          string          `json:"room_id"`
-				ExecutorID      string          `json:"executor_id"`
-				ParentRunID     string          `json:"parent_run_id"`
-				Goal            string          `json:"goal"`
-				RunID           string          `json:"run_id"`
-				Through         *int64          `json:"through"`
-				Limit           int             `json:"limit"`
-				Mode            string          `json:"mode"`
-				WorkspaceID     string          `json:"workspace_id"`
-				Title           string          `json:"title"`
-				Members         []string        `json:"members"`
-				ExpectedVersion int64           `json:"expected_version"`
-				Stopped         *bool           `json:"stopped"`
-				After           json.RawMessage `json:"after"`
+				RoomID                  string          `json:"room_id"`
+				ExecutorID              string          `json:"executor_id"`
+				ParentRunID             string          `json:"parent_run_id"`
+				Goal                    string          `json:"goal"`
+				RunID                   string          `json:"run_id"`
+				Through                 *int64          `json:"through"`
+				Limit                   int             `json:"limit"`
+				Mode                    string          `json:"mode"`
+				WorkspaceID             string          `json:"workspace_id"`
+				Title                   string          `json:"title"`
+				Members                 []string        `json:"members"`
+				ExpectedVersion         int64           `json:"expected_version"`
+				Stopped                 *bool           `json:"stopped"`
+				After                   json.RawMessage `json:"after"`
+				Before                  *int64          `json:"before"`
+				MessageID               string          `json:"message_id"`
+				Emoji                   string          `json:"emoji"`
+				Active                  *bool           `json:"active"`
+				ExpectedReactionVersion *int64          `json:"-"`
+				ID                      string          `json:"id"`
+				Q                       string          `json:"q"`
+				Category                string          `json:"category"`
+				Offset                  int             `json:"offset"`
+				Revision                string          `json:"revision"`
 				domain.SendMessage
 			}
 			err := json.Unmarshal(p.Arguments, &q)
@@ -236,6 +259,17 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 						err = domain.ErrInvalid
 					}
 				case "message_read":
+					if q.Limit == 0 {
+						q.Limit = 100
+					}
+					if q.Before != nil {
+						if !validID(q.RoomID) || *q.Before < 0 || len(q.After) != 0 {
+							err = domain.ErrInvalid
+							break
+						}
+						result, err = beforeMessagePage(c, s, q.RoomID, *q.Before, q.Limit, q.RunID)
+						break
+					}
 					var after int64
 					if len(q.After) > 0 {
 						err = json.Unmarshal(q.After, &after)
@@ -243,9 +277,9 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 					if err == nil && validID(q.RoomID) && after >= 0 {
 						messages, e := nativeMessages(c, s, q.RoomID, after, q.RunID)
 						err = e
-						more := len(messages) > 100
+						more := len(messages) > q.Limit
 						if more {
-							messages = messages[:100]
+							messages = messages[:q.Limit]
 						}
 						next := after
 						if len(messages) > 0 {
@@ -260,6 +294,50 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store) {
 						err = domain.ErrInvalid
 					} else {
 						result, err = nativeSend(c, s, q.RoomID, q.SendMessage, q.RunID)
+					}
+				case "message_get":
+					var m domain.Message
+					m, err = nativeMessage(c, s, q.RoomID, q.MessageID, q.RunID)
+					result = gin.H{"message": m}
+				case "message_reaction_set":
+					if cfg.emoji == nil {
+						err = errEmojiUnavailable
+						break
+					}
+					result, err = nativeReactionSet(c, s, q.RoomID, q.MessageID, reactionCommand{ActionID: q.ActionID, Emoji: q.Emoji, Active: q.Active, ScopeEpoch: q.ScopeEpoch, RunID: q.RunID})
+				case "message_reaction_read":
+					var after string
+					if len(q.After) > 0 {
+						err = json.Unmarshal(q.After, &after)
+					}
+					var fields map[string]json.RawMessage
+					_ = json.Unmarshal(p.Arguments, &fields)
+					if raw, ok := fields["expected_version"]; ok {
+						var n int64
+						if json.Unmarshal(raw, &n) != nil || n < 0 {
+							err = domain.ErrInvalid
+						} else {
+							q.ExpectedReactionVersion = &n
+						}
+					}
+					if err != nil {
+						err = domain.ErrInvalid
+						break
+					}
+					result, err = nativeReactionRead(c, s, q.RoomID, q.MessageID, q.RunID, store.ReactionQuery{After: after, Limit: q.Limit, ExpectedVersion: q.ExpectedReactionVersion})
+				case "emoji_list", "emoji_get":
+					if err = authorizeEmojiRun(c, s, q.RunID); err != nil {
+						break
+					}
+					if p.Name == "emoji_list" {
+						result, err = emojiPage(ctx, cfg.emoji, emoji.Query{Q: q.Q, Category: q.Category, Offset: q.Offset, Limit: q.Limit, Revision: q.Revision})
+					} else {
+						var entry emoji.Entry
+						entry, err = emojiEntry(ctx, cfg.emoji, q.ID)
+						result = gin.H{"entry": entry}
+					}
+					if err == nil {
+						err = authorizeEmojiRun(c, s, q.RunID)
 					}
 				default:
 					err = domain.ErrInvalid
@@ -293,13 +371,15 @@ func rpcID(raw json.RawMessage) bool {
 }
 func schemaString() gin.H { return gin.H{"type": "string"} }
 func toolSchema(name, description string, required []string, properties map[string]any) gin.H {
-	return gin.H{"name": name, "description": description, "inputSchema": gin.H{"type": "object", "required": required, "properties": properties, "additionalProperties": false}}
+	return gin.H{"name": name, "description": description, "inputSchema": gin.H{"type": "object", "required": required, "properties": gin.H(properties), "additionalProperties": false}}
 }
 
 func validToolArguments(name string, raw json.RawMessage) bool {
 	fields := map[string]string{
-		"identity_read": "", "room_list": "after run_id", "message_read": "room_id after run_id",
-		"message_send": "room_id action_id content scope_epoch run_id", "workspace_create": "action_id title",
+		"identity_read": "", "room_list": "after run_id", "message_read": "room_id after before limit run_id",
+		"message_send": "room_id action_id content scope_epoch run_id reply_to", "workspace_create": "action_id title",
+		"message_get": "room_id message_id run_id", "message_reaction_set": "room_id message_id action_id emoji active scope_epoch run_id",
+		"message_reaction_read": "room_id message_id after limit expected_version run_id", "emoji_list": "q category offset limit revision run_id", "emoji_get": "id run_id",
 		"room_create": "action_id workspace_id title members", "room_execution_policy": "action_id room_id expected_version stopped",
 		"run_create": "action_id executor_id room_id scope_epoch parent_run_id goal", "run_read": "run_id", "run_evidence": "run_id after through limit mode",
 	}
@@ -311,10 +391,48 @@ func validToolArguments(name string, raw json.RawMessage) bool {
 	if json.Unmarshal(raw, &args) != nil || args == nil {
 		return false
 	}
-	if name == "run_evidence" {
+	if name == "run_evidence" || name == "message_read" || name == "message_reaction_read" || name == "emoji_list" {
 		if raw, ok := args["limit"]; ok {
 			var n int
-			if json.Unmarshal(raw, &n) != nil || n < 1 || n > 100 {
+			max := 100
+			if name == "message_reaction_read" {
+				max = 50
+			}
+			if name == "emoji_list" {
+				max = 200
+			}
+			if json.Unmarshal(raw, &n) != nil || n < 1 || n > max {
+				return false
+			}
+		}
+	}
+	for _, field := range []string{"before", "offset", "expected_version"} {
+		if raw, ok := args[field]; ok {
+			var n *int64
+			if json.Unmarshal(raw, &n) != nil || n == nil || *n < 0 {
+				return false
+			}
+		}
+	}
+	if name == "message_read" {
+		if raw, ok := args["after"]; ok {
+			var n *int64
+			if json.Unmarshal(raw, &n) != nil || n == nil || *n < 0 {
+				return false
+			}
+		}
+		if _, before := args["before"]; before {
+			if _, after := args["after"]; after {
+				return false
+			}
+		}
+	}
+	// An explicitly supplied null run/filter is not an absent run/filter. Do
+	// not silently broaden a caller's requested read by dropping invalid input.
+	for _, field := range []string{"run_id", "q", "category", "revision", "id", "reply_to"} {
+		if raw, ok := args[field]; ok {
+			var value *string
+			if json.Unmarshal(raw, &value) != nil || value == nil {
 				return false
 			}
 		}
@@ -327,23 +445,28 @@ func validToolArguments(name string, raw json.RawMessage) bool {
 	return true
 }
 
-func visibleTools(c *gin.Context, tools []any) []any {
-	if _, ok := machine(c); !ok {
-		return tools
-	}
+func visibleTools(c *gin.Context, cfg config, tools []any) []any {
+	_, isMachine := machine(c)
 	out := []any{}
 	for _, entry := range tools {
 		tool := entry.(gin.H)
 		name := tool["name"].(string)
+		if cfg.emoji == nil && (name == "emoji_list" || name == "emoji_get" || name == "message_reaction_set") {
+			continue
+		}
+		if !isMachine {
+			out = append(out, tool)
+			continue
+		}
 		if name == "workspace_create" || name == "room_create" || name == "room_execution_policy" {
 			continue
 		}
-		if name == "message_send" {
+		if name == "message_send" || name == "message_reaction_set" {
 			schema := tool["inputSchema"].(gin.H)
 			schema["required"] = append(schema["required"].([]string), "run_id")
 			properties := schema["properties"].(gin.H)
 			properties["action_id"] = gin.H{"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
-			tool["description"] = "Send through the registered run, current source scopes and durable action ledger. action_id is a 64-hex stable action ID."
+			tool["description"] = "Act through the registered run, current source scopes and durable action ledger. action_id is a 64-hex stable action ID; reaction active must be explicit, never toggle."
 		}
 		out = append(out, tool)
 	}

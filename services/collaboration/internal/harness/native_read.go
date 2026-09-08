@@ -83,6 +83,9 @@ func validateMessagePage(r RunContext, room string, after int64, page MessagePag
 		if message.Seq <= last {
 			return ErrInvalid
 		}
+		if err := validateMessageDetails(r, room, message); err != nil {
+			return err
+		}
 		last = message.Seq
 	}
 	if page.Cursor != last || (page.HasMore && len(page.Messages) == 0) {

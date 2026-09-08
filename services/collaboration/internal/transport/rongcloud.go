@@ -132,3 +132,69 @@ func (r *RongCloud) Publish(ctx context.Context, m domain.Message) (Delivery, er
 	}
 	return d, &ProviderError{Unknown: true}
 }
+
+// NotifyReaction invalidates a canonical reaction view; it is not a new chat
+// message, a read receipt, or proof of delivery to a participant. Receivers must
+// reload canonical state under their own current authorization. The outbox is
+// responsible for rechecking authorization before calling this transport.
+//
+// Official wire semantics:
+// https://docs.rongcloud.cn/platform-chat-api/message-about/objectname-callback
+// https://docs.rongcloud.cn/platform-chat-api/message/send-group
+// RC:CmdMsg is not displayed, stored locally, or counted as unread. Setting
+// isPersisted=0 disables cloud history; it does not promise no offline transport.
+func (r *RongCloud) NotifyReaction(ctx context.Context, receipt domain.ReactionReceipt) (Delivery, error) {
+	if err := ctx.Err(); err != nil {
+		return Delivery{}, err
+	}
+	if !reactionTransportID(receipt.RoomID) || !reactionTransportID(receipt.MessageID) ||
+		!reactionTransportID(receipt.PrincipalID) || receipt.Version < 1 {
+		return Delivery{}, domain.ErrInvalid
+	}
+	data, _ := json.Marshal(struct {
+		Schema    string `json:"schema"`
+		RoomID    string `json:"room_id"`
+		MessageID string `json:"message_id"`
+		Version   int64  `json:"version"`
+	}{"renji.reaction.v1", receipt.RoomID, receipt.MessageID, receipt.Version})
+	body, _ := json.Marshal(struct {
+		Name string `json:"name"`
+		Data string `json:"data"`
+	}{"renji.message.reaction", string(data)})
+	var d Delivery
+	err := r.post(ctx, "/message/group/publish.json", url.Values{
+		"fromUserId":           {receipt.PrincipalID},
+		"toGroupId":            {receipt.RoomID},
+		"objectName":           {"RC:CmdMsg"},
+		"content":              {string(body)},
+		"isIncludeSender":      {"1"},
+		"isPersisted":          {"0"},
+		"disablePush":          {"true"},
+		"disableUpdateLastMsg": {"true"},
+		"needReadReceipt":      {"0"},
+	}, &d)
+	if err != nil {
+		return d, err
+	}
+	// One requested group must produce exactly one matching, nonempty receipt.
+	// A successful HTTP code alone cannot confirm provider acceptance.
+	if len(d.MessageUIDs) != 1 || d.MessageUIDs[0].GroupID != receipt.RoomID ||
+		strings.TrimSpace(d.MessageUIDs[0].MessageUID) == "" {
+		return d, &ProviderError{Code: d.Code, Unknown: true}
+	}
+	return d, nil
+}
+
+// IDs are canonical opaque identifiers, never display names or multi-target
+// provider expressions. Local UUIDs and the existing fixture IDs fit this set.
+func reactionTransportID(id string) bool {
+	if len(id) == 0 || len(id) > 128 {
+		return false
+	}
+	for _, ch := range id {
+		if !(ch >= 'a' && ch <= 'z') && !(ch >= 'A' && ch <= 'Z') && !(ch >= '0' && ch <= '9') && ch != '-' && ch != '_' {
+			return false
+		}
+	}
+	return true
+}

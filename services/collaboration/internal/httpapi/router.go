@@ -3,13 +3,13 @@ package httpapi
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/huapohen/active-agent/services/collaboration/internal/auth"
 	"github.com/huapohen/active-agent/services/collaboration/internal/domain"
+	"github.com/huapohen/active-agent/services/collaboration/internal/emoji"
 	"github.com/huapohen/active-agent/services/collaboration/internal/store"
 	"github.com/huapohen/active-agent/services/collaboration/internal/transport"
 )
@@ -18,9 +18,14 @@ type Option func(*config)
 type config struct {
 	machine                 auth.MachineVerifier
 	transportTestPrincipals map[string]bool
+	emoji                   emoji.Provider
 }
 
 func WithMachineVerifier(v auth.MachineVerifier) Option { return func(c *config) { c.machine = v } }
+
+// The catalog is selected once at service composition, shared with reaction
+// validation, and is never an alternate identity or legacy API connection.
+func WithEmojiProvider(p emoji.Provider) Option { return func(c *config) { c.emoji = p } }
 
 // Ordinary RongCloud credentials currently permit SDK writes outside the Go
 // authorization gateway. Until provider-side closure is verified, issue client
@@ -41,6 +46,9 @@ func New(s *store.Store, v auth.Verifier, r *transport.RongCloud, origins []stri
 	for _, option := range options {
 		option(&cfg)
 	}
+	// One Store belongs to one deployment composition. Explicit removal must
+	// clear a previously installed validator, including internal action routes.
+	s.SetReactionEmojiValidator(cfg.emoji)
 	gin.SetMode(gin.ReleaseMode)
 	g := gin.New()
 	g.SetTrustedProxies(nil)
@@ -65,7 +73,7 @@ func New(s *store.Store, v auth.Verifier, r *transport.RongCloud, origins []stri
 			}
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Vary", "Origin")
-			c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, MCP-Protocol-Version")
+			c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type, MCP-Protocol-Version, If-Match, If-None-Match")
 			c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		}
 		if c.Request.Method == "OPTIONS" {
@@ -107,7 +115,9 @@ func New(s *store.Store, v auth.Verifier, r *transport.RongCloud, origins []stri
 		c.Set("principal", p)
 		c.Next()
 	})
-	mountNative(v1, s)
+	mountNative(v1, s, cfg)
+	mountEmoji(v1, s, cfg.emoji)
+	mountMessageInteractions(v1, s, cfg)
 	mountExecution(g, v1, s, cfg)
 	v1.GET("/me", func(c *gin.Context) { c.JSON(200, gin.H{"principal": principal(c)}) })
 	v1.POST("/workspaces", func(c *gin.Context) {
@@ -176,41 +186,28 @@ func New(s *store.Store, v auth.Verifier, r *transport.RongCloud, origins []stri
 		c.JSON(201, gin.H{"room": room})
 	})
 	v1.GET("/rooms/:room/messages", func(c *gin.Context) {
-		if !validID(c.Param("room")) {
+		q, err := readMessageQuery(c.Request.URL.Query())
+		if err != nil || !validID(c.Param("room")) {
 			fail(c, domain.ErrInvalid)
 			return
 		}
-		after := int64(0)
-		var err error
-		if c.Query("after") != "" {
-			after, err = strconv.ParseInt(c.Query("after"), 10, 64)
-		}
-		if err != nil || after < 0 {
-			fail(c, domain.ErrInvalid)
-			return
-		}
-		messages, err := nativeMessages(c, s, c.Param("room"), after, c.Query("run_id"))
+		page, err := messagePage(c, s, c.Param("room"), q, c.Query("run_id"))
 		if err != nil {
 			fail(c, err)
 			return
 		}
-		more := len(messages) > 100
-		if more {
-			messages = messages[:100]
-		}
-		next := after
-		if len(messages) > 0 {
-			next = messages[len(messages)-1].Seq
-		}
-		c.JSON(200, gin.H{"messages": messages, "cursor": next, "has_more": more})
+		c.JSON(200, page)
 	})
 	v1.POST("/rooms/:room/messages", func(c *gin.Context) {
 		var q struct {
 			domain.SendMessage
 			RunID string `json:"run_id"`
 		}
-		if !validID(c.Param("room")) || c.ShouldBindJSON(&q) != nil {
+		if !validID(c.Param("room")) {
 			fail(c, domain.ErrInvalid)
+			return
+		}
+		if !strictBody(c, &q) {
 			return
 		}
 		receipt, err := nativeSend(c, s, c.Param("room"), q.SendMessage, q.RunID)
@@ -276,6 +273,18 @@ func safeError(err error) (int, string) {
 	case errors.Is(err, domain.ErrStopped):
 		code = 409
 		message = "scope_stopped_or_stale"
+	case errors.Is(err, errEmojiUnavailable):
+		code = 503
+		message = "emoji_catalog_unavailable"
+	case errors.Is(err, emoji.ErrInvalidQuery):
+		code = 400
+		message = "invalid_emoji_query"
+	case errors.Is(err, emoji.ErrRevisionChanged):
+		code = 409
+		message = "emoji_revision_changed"
+	case errors.Is(err, emoji.ErrUnknownEmoji), errors.Is(err, emoji.ErrAssetNotFound):
+		code = 404
+		message = "emoji_not_found"
 	}
 	return code, message
 }

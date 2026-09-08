@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/huapohen/active-agent/services/collaboration/internal/auth"
+	"github.com/huapohen/active-agent/services/collaboration/internal/emoji"
 	"github.com/huapohen/active-agent/services/collaboration/internal/httpapi"
 	"github.com/huapohen/active-agent/services/collaboration/internal/store"
 	"github.com/huapohen/active-agent/services/collaboration/internal/transport"
@@ -50,6 +51,13 @@ func main() {
 		addr = "127.0.0.1:3318"
 	}
 	options := []httpapi.Option{httpapi.WithTransportTestPrincipals(strings.FieldsFunc(os.Getenv("RENJI_RONGCLOUD_TEST_PRINCIPALS"), func(r rune) bool { return r == ',' || r == ' ' || r == '\n' }))}
+	if dir := os.Getenv("RENJI_EMOJI_DIR"); dir != "" {
+		catalog, err := emoji.NewLocal(dir)
+		if err != nil {
+			log.Fatal("Emoji bundle invalid; verify explicit absolute RENJI_EMOJI_DIR and pinned asset manifest")
+		}
+		options = append(options, httpapi.WithEmojiProvider(catalog))
+	}
 	if os.Getenv("CLERK_RECEIVER_MACHINE_ID") != "" || os.Getenv("CLERK_MACHINE_SECRET_KEY") != "" {
 		machine, err := auth.NewClerkMachine(auth.ClerkMachineConfig{Issuer: os.Getenv("CLERK_ISSUER"), ReceiverMachineID: os.Getenv("CLERK_RECEIVER_MACHINE_ID"), MachineSecretKey: os.Getenv("CLERK_MACHINE_SECRET_KEY"), AllowNonExpiring: os.Getenv("CLERK_ALLOW_NONEXPIRING_MACHINE_TOKENS") == "true"})
 		if err != nil {

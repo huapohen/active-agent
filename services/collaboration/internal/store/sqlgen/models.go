@@ -44,12 +44,66 @@ type ExecutionAction struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
+type ExecutionArchive struct {
+	ID              pgtype.UUID        `json:"id"`
+	RunID           pgtype.UUID        `json:"run_id"`
+	ThroughSeq      int64              `json:"through_seq"`
+	TargetBinding   string             `json:"target_binding"`
+	RendererVersion string             `json:"renderer_version"`
+	RunSnapshot     []byte             `json:"run_snapshot"`
+	ManifestHash    string             `json:"manifest_hash"`
+	PreparedBy      pgtype.UUID        `json:"prepared_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+}
+
+type ExecutionArchiveCursor struct {
+	RunID           pgtype.UUID        `json:"run_id"`
+	TargetBinding   string             `json:"target_binding"`
+	VerifiedThrough int64              `json:"verified_through"`
+	ArchiveID       pgtype.UUID        `json:"archive_id"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ExecutionArchivePart struct {
+	ArchiveID           pgtype.UUID        `json:"archive_id"`
+	Part                int32              `json:"part"`
+	Title               string             `json:"title"`
+	Content             string             `json:"content"`
+	ContentHash         string             `json:"content_hash"`
+	State               string             `json:"state"`
+	ClaimToken          pgtype.UUID        `json:"claim_token"`
+	RequestStartedAt    pgtype.Timestamptz `json:"request_started_at"`
+	LeaseExpiresAt      pgtype.Timestamptz `json:"lease_expires_at"`
+	ExternalID          string             `json:"external_id"`
+	ObservedContentHash string             `json:"observed_content_hash"`
+	ObservedTitleHash   string             `json:"observed_title_hash"`
+	ErrorCode           string             `json:"error_code"`
+	Attempts            int32              `json:"attempts"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ExecutionArchiveTargetConfig struct {
+	BindingID  string             `json:"binding_id"`
+	ConfigHash string             `json:"config_hash"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
 type ExecutionEvent struct {
 	RunID       pgtype.UUID        `json:"run_id"`
 	EventID     string             `json:"event_id"`
 	RequestHash string             `json:"request_hash"`
 	Event       []byte             `json:"event"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type ExecutionEvidenceEntry struct {
+	RunID          pgtype.UUID        `json:"run_id"`
+	Seq            int64              `json:"seq"`
+	Kind           string             `json:"kind"`
+	ObjectID       string             `json:"object_id"`
+	Data           []byte             `json:"data"`
+	RecordedAt     pgtype.Timestamptz `json:"recorded_at"`
+	LegacySnapshot bool               `json:"legacy_snapshot"`
 }
 
 type ExecutionRun struct {
@@ -65,6 +119,7 @@ type ExecutionRun struct {
 	Status          string             `json:"status"`
 	CreatedBy       pgtype.UUID        `json:"created_by"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	EvidenceSeq     int64              `json:"evidence_seq"`
 }
 
 type Executor struct {
@@ -88,12 +143,24 @@ type ExternalIdentity struct {
 }
 
 type Message struct {
-	ID        pgtype.UUID        `json:"id"`
-	RoomID    pgtype.UUID        `json:"room_id"`
-	AuthorID  pgtype.UUID        `json:"author_id"`
-	Content   string             `json:"content"`
-	Seq       int64              `json:"seq"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	ID              pgtype.UUID        `json:"id"`
+	RoomID          pgtype.UUID        `json:"room_id"`
+	AuthorID        pgtype.UUID        `json:"author_id"`
+	Content         string             `json:"content"`
+	Seq             int64              `json:"seq"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	ReplyTo         pgtype.UUID        `json:"reply_to"`
+	ReplySnapshot   []byte             `json:"reply_snapshot"`
+	ReactionVersion int64              `json:"reaction_version"`
+}
+
+type MessageReaction struct {
+	MessageID   pgtype.UUID        `json:"message_id"`
+	PrincipalID pgtype.UUID        `json:"principal_id"`
+	Emoji       string             `json:"emoji"`
+	Active      bool               `json:"active"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Principal struct {

@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/huapohen/active-agent/services/collaboration/internal/domain"
@@ -24,7 +25,11 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
-type Store struct{ Pool *pgxpool.Pool }
+type Store struct {
+	Pool                *pgxpool.Pool
+	reactionValidatorMu sync.RWMutex
+	reactionValidator   ReactionEmojiValidator
+}
 
 func Open(ctx context.Context, dsn string) (*Store, error) {
 	p, err := pgxpool.New(ctx, dsn)
@@ -257,7 +262,7 @@ func (s *Store) Send(ctx context.Context, actor, room string, cmd domain.SendMes
 // inherited source scopes through the same message/action/event/outbox commit.
 func sendTx(ctx context.Context, tx pgx.Tx, actor, room string, cmd domain.SendMessage) (domain.Receipt, error) {
 	var out domain.Receipt
-	if strings.TrimSpace(cmd.Content) == "" || len(cmd.Content) > 8192 || len(cmd.ActionID) < 8 || len(cmd.ActionID) > 160 {
+	if strings.TrimSpace(cmd.Content) == "" || len(cmd.Content) > 8192 || len(cmd.ActionID) < 8 || len(cmd.ActionID) > 160 || (cmd.ReplyTo != "" && !executionUUIDs(cmd.ReplyTo)) {
 		return out, domain.ErrInvalid
 	}
 	b, _ := json.Marshal(struct {
@@ -299,11 +304,22 @@ func sendTx(ctx context.Context, tx pgx.Tx, actor, room string, cmd domain.SendM
 	if p.Kind == "agent" && (r.Stopped || cmd.ScopeEpoch == nil || *cmd.ScopeEpoch != r.ScopeEpoch) {
 		return out, domain.ErrStopped
 	}
-	m := domain.Message{ID: uuid.NewString(), RoomID: room, AuthorID: actor, Content: cmd.Content}
+	m := domain.Message{ID: uuid.NewString(), RoomID: room, AuthorID: actor, Content: cmd.Content, ReplyTo: cmd.ReplyTo}
+	var snapshot []byte
+	if cmd.ReplyTo != "" {
+		m.Reply, err = messageReplySnapshot(ctx, tx, room, cmd.ReplyTo)
+		if err != nil {
+			return out, err
+		}
+		snapshot, err = json.Marshal(m.Reply)
+		if err != nil {
+			return out, err
+		}
+	}
 	if err = tx.QueryRow(ctx, "UPDATE rooms SET seq=seq+1 WHERE id=$1 RETURNING seq", room).Scan(&m.Seq); err != nil {
 		return out, err
 	}
-	if err = tx.QueryRow(ctx, "INSERT INTO messages(id,room_id,author_id,content,seq) VALUES($1,$2,$3,$4,$5) RETURNING created_at", m.ID, room, actor, m.Content, m.Seq).Scan(&m.CreatedAt); err != nil {
+	if err = tx.QueryRow(ctx, "INSERT INTO messages(id,room_id,author_id,content,seq,reply_to,reply_snapshot) VALUES($1,$2,$3,$4,$5,NULLIF($6,'')::uuid,$7) RETURNING created_at", m.ID, room, actor, m.Content, m.Seq, m.ReplyTo, snapshot).Scan(&m.CreatedAt); err != nil {
 		return out, err
 	}
 	out.Message = m
@@ -398,21 +414,8 @@ func (s *Store) Messages(ctx context.Context, actor, room string, after int64) (
 	if _, _, err = roomAccess(ctx, tx, actor, room); err != nil {
 		return nil, err
 	}
-	rows, err := tx.Query(ctx, "SELECT id::text,room_id::text,author_id::text,content,seq,created_at FROM messages WHERE room_id=$1 AND seq>$2 ORDER BY seq LIMIT 101", room, after)
+	out, err := readMessageRows(ctx, tx, actor, room, after)
 	if err != nil {
-		return nil, err
-	}
-	out := []domain.Message{}
-	for rows.Next() {
-		var m domain.Message
-		if err = rows.Scan(&m.ID, &m.RoomID, &m.AuthorID, &m.Content, &m.Seq, &m.CreatedAt); err != nil {
-			rows.Close()
-			return nil, err
-		}
-		out = append(out, m)
-	}
-	rows.Close()
-	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 	return out, tx.Commit(ctx)

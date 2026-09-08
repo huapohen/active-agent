@@ -1,12 +1,17 @@
 export type Principal = { id: string; kind: 'human' | 'agent'; displayName: string; organization?: string; profession?: string; category?: string };
 export type Receipt = { read?: number; total?: number };
-export type Message = { id: string; roomId: string; authorId: string; authorName?: string; authorKind?: string; content: string; seq: number; createdAt: string; retracted: boolean; hidden?: boolean; receipt?: Receipt; mentions: string[]; isVoice?: boolean; attachmentCount?: number; replyTo?: string; reactions?: Record<string, string[]> };
+export type ReplySummary = { messageId: string; roomId: string; authorId: string; authorName: string; authorKind: 'human' | 'agent'; excerpt: string; seq: number };
+export type ReactionSummary = { emoji: string; count: number; selected: boolean };
+export type ReactionIntent = { actionId: string; emoji: string; active: boolean; scopeEpoch?: number };
+export type ReactionReceipt = { roomId: string; messageId: string; principalId: string; emoji: string; active: boolean; version: number; replayed: boolean };
+export type ReactionPage = { summaries: ReactionSummary[]; version: number; nextAfter?: string };
+export type Message = { id: string; roomId: string; authorId: string; authorName?: string; authorKind?: string; content: string; seq: number; createdAt: string; retracted: boolean; hidden?: boolean; receipt?: Receipt; mentions: string[]; isVoice?: boolean; attachmentCount?: number; replyTo?: string; reply?: ReplySummary; reactionSummaries?: ReactionSummary[]; reactionVersion?: number; reactionsHasMore?: boolean; reactions?: Record<string, string[]> };
 export type Room = { id: string; title: string; kind: string; version: number; scopeEpoch?: number; stopped?: boolean; unread?: number; pinned?: boolean; muted?: boolean; firstUnreadSeq?: number; lastMessage?: Message };
 export type RoomPage = { rooms: Room[]; cursor: number };
 export type MessagePage = { messages: Message[]; hasMoreBefore: boolean; hasMoreAfter: boolean; firstUnreadSeq?: number };
 export type SendIntent = { actionId: string; content: string; mentions: string[]; scopeEpoch?: number; replyTo?: string };
-export type Emoji = { id: string; name: string; text: string; category: string };
-export type EmojiPage = { entries: Emoji[]; categories: string[]; total: number; catalogCount: number; nextOffset?: number };
+export type Emoji = { id: string; name: string; text: string; category: string; asset?: string; revision?: string };
+export type EmojiPage = { entries: Emoji[]; categories: string[]; total: number; catalogCount: number; revision?: string; nextOffset?: number };
 export type Document = { id: string; roomId: string; roomIds?: string[]; title: string; revision?: number; updatedAt?: string };
 export type DocumentContent = Document & { content: string; revision: number; contentHash: string };
 export type EventPage = { cursor: number; changed: boolean; resetRequired: boolean };
@@ -23,7 +28,11 @@ export interface CollaborationClient {
   send(roomId: string, intent: SendIntent, signal?: AbortSignal): Promise<Message>;
   /** Legacy is a server-side toggle: callers must never automatically retry. */
   react(roomId: string, messageId: string, emojiId: string, signal?: AbortSignal): Promise<Message>;
-  emoji(options?: { query?: string; category?: string; offset?: number; signal?: AbortSignal }): Promise<EmojiPage>;
+  message?(roomId: string, messageId: string, signal?: AbortSignal): Promise<Message>;
+  setReaction?(roomId: string, messageId: string, intent: ReactionIntent, signal?: AbortSignal): Promise<ReactionReceipt>;
+  reactionSummaries?(roomId: string, messageId: string, options?: { after?: string; expectedVersion?: number; signal?: AbortSignal }): Promise<ReactionPage>;
+  emojiAsset?(asset: string, revision: string, signal?: AbortSignal): Promise<Blob>;
+  emoji(options?: { query?: string; category?: string; offset?: number; revision?: string; signal?: AbortSignal }): Promise<EmojiPage>;
   people(signal?: AbortSignal): Promise<Principal[]>;
   members(roomId: string, signal?: AbortSignal): Promise<Principal[]>;
   preferences(roomId: string, values: { pinned?: boolean; muted?: boolean; read_seq?: number }, signal?: AbortSignal): Promise<void>;

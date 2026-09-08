@@ -15,11 +15,32 @@ export function messageClientScope(client: CollaborationClient) {
   if (!id) { id = crypto.randomUUID(); clientScopes.set(client, id); }
   return id;
 }
-export function EmojiIcon({ id, name }: { id: string; name?: string }) {
+export function EmojiIcon({ id, name, client, asset, revision }: { id: string; name?: string; client?: CollaborationClient; asset?: string; revision?: string }) {
+  if (client?.mode === 'startup') return <AuthenticatedEmoji key={`${messageClientScope(client)}:${asset}:${revision}`} client={client} id={id} name={name} asset={asset} revision={revision} />;
   const code = id.startsWith('feishu:') ? id.slice(7) : '';
   const source = /^[a-zA-Z0-9_]+$/.test(code) ? images[`../../office/assets/emoji/feishu/${code}.png`] : undefined;
   return source ? <img src={source} alt="" draggable={false} className="reaction-image" /> : <span aria-hidden="true" className="reaction-glyph">{code ? `[${name || code}]` : id}</span>;
 }
+function AuthenticatedEmoji({ client, id, name, asset, revision }: { client: CollaborationClient; id: string; name?: string; asset?: string; revision?: string }) {
+  const [source, setSource] = useState<string>();
+  useEffect(() => {
+    const controller = new AbortController(); let url: string | undefined;
+    async function load() {
+      if (!client.emojiAsset || !id.startsWith('feishu:')) return;
+      // A message summary carries an emoji ID, not a renderer URL. Resolve its
+      // exact entry through the current authenticated provider before fetching.
+      const entry = asset && revision ? { asset, revision } : (await client.emoji({ query: id, signal: controller.signal })).entries.find(entry => entry.id === id);
+      if (controller.signal.aborted || !entry?.asset || !entry.revision) return;
+      const blob = await client.emojiAsset(entry.asset, entry.revision, controller.signal);
+      if (controller.signal.aborted) return;
+      url = URL.createObjectURL(blob); setSource(url);
+    }
+    void load().catch(() => { /* No remote asset or old-session URL fallback. */ });
+    return () => { controller.abort(); if (url) URL.revokeObjectURL(url); };
+  }, [client, id, asset, revision]);
+  return source ? <img src={source} alt="" draggable={false} className="reaction-image" /> : <span aria-hidden="true" className="reaction-glyph">{id.startsWith('feishu:') ? `[${name || id.slice(7)}]` : id}</span>;
+}
+
 export function sourceTime(value: string) {
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '发送时间未知';
@@ -134,14 +155,14 @@ export function MessageActions({ client, messages, children, reactionBlocked, on
         <button aria-label="表情回应" title={client.capabilities.reactions ? '表情回应' : '当前服务尚未开放表情回应'} disabled={!client.capabilities.reactions || reactionBlocked} data-capability="im.messages.reactions.toggle" onPointerEnter={event => { if (event.pointerType !== 'touch' && client.capabilities.reactions && !reactionBlocked) setPalette(true); }} onClick={() => setPalette(!palette)} aria-expanded={palette}><Smile size={18} /></button>
         <button aria-label="回复消息" title="回复消息" disabled={!client.capabilities.replies} data-capability="im.messages.reply" onClick={() => act(onReply)}><Reply size={18} /></button>
         <button aria-label="复制消息" title="复制消息" disabled={!selected.content} onClick={() => { void copy(); }}><Copy size={17} /></button>
-        <button aria-label="请 Agent 协作" title="请 Agent 协作" disabled={!client.capabilities.mentions || !client.capabilities.replies} onClick={() => act(onAgent)}><Sparkles size={18} /></button>
+        <button aria-label="请 Agent 协作" title={!client.capabilities.mentions ? '当前服务尚未开放会话成员，Agent 入口未接入' : '请 Agent 协作'} disabled={!client.capabilities.mentions || !client.capabilities.replies} onClick={() => act(onAgent)}><Sparkles size={18} /></button>
         <button aria-label="更多消息操作" title="更多" onClick={() => { setPalette(false); const next = { ...surface, kind: 'menu' as const, keyboard: true }; state.current = next; setSurface(next); }}><MoreHorizontal size={19} /></button>
       </div> : <div {...toolProps} className="message-action-menu" role="menu" aria-label="更多消息操作" style={{ left, top }}>
         <time dateTime={selected.createdAt}>{sourceTime(selected.createdAt)}</time>
         <button role="menuitem" disabled={!client.capabilities.reactions || reactionBlocked} onClick={() => setPalette(!palette)}><Smile />表情回应</button>
         <button role="menuitem" disabled={!client.capabilities.replies} onClick={() => act(onReply)}><Reply />回复消息</button>
         <button role="menuitem" disabled={!selected.content} onClick={() => { void copy(); }}><Copy />复制消息</button>
-        <button role="menuitem" disabled={!client.capabilities.mentions || !client.capabilities.replies} onClick={() => act(onAgent)}><Sparkles />请 Agent 协作</button>
+        <button role="menuitem" title={!client.capabilities.mentions ? '当前服务尚未开放会话成员，Agent 入口未接入' : undefined} disabled={!client.capabilities.mentions || !client.capabilities.replies} onClick={() => act(onAgent)}><Sparkles />请 Agent 协作</button>
       </div>}
       {surface.kind === 'toolbar' && <time className="message-source-time" dateTime={selected.createdAt} style={{ left, top: top >= 30 ? top - 23 : top + 39 }}>{sourceTime(selected.createdAt)}</time>}
       {palette && <div {...toolProps} className="message-emoji-panel" style={{ left: Math.max(8, Math.min(left, window.innerWidth - 344 - 8)), top: paletteTop, height: paletteHeight }}>
@@ -156,9 +177,9 @@ function EmojiPicker({ client, onSelect, onClose, keyboard }: { client: Collabor
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => { if (keyboard) input.current?.focus(); }, []);
   useEffect(() => { const timer = setTimeout(() => setTerm(search.trim()), 180); return () => clearTimeout(timer); }, [search]);
-  const query = useInfiniteQuery({ queryKey: ['emoji', messageClientScope(client), term, category], initialPageParam: 0,
-    queryFn: ({ pageParam, signal }) => client.emoji({ query: term, category, offset: pageParam, signal }),
-    getNextPageParam: page => page.nextOffset, staleTime: 60000, gcTime: 0, retry: false });
+  const query = useInfiniteQuery({ queryKey: ['emoji', messageClientScope(client), term, category], initialPageParam: { offset: 0, revision: undefined as string | undefined },
+    queryFn: ({ pageParam, signal }) => client.emoji({ query: term, category, offset: pageParam.offset, revision: pageParam.revision, signal }),
+    getNextPageParam: page => page.nextOffset !== undefined ? { offset: page.nextOffset, revision: page.revision } : undefined, staleTime: 60000, gcTime: 0, retry: false });
   const entries = query.isError ? [] : (query.data?.pages.flatMap(page => page.entries) ?? []);
   const searching = term !== search.trim();
   return <section role="dialog" aria-label="选择表情回应" className="emoji-picker">
@@ -166,7 +187,7 @@ function EmojiPicker({ client, onSelect, onClose, keyboard }: { client: Collabor
     <div className="emoji-search"><Search size={16} /><input ref={input} aria-label="搜索表情" placeholder="搜索表情" maxLength={100} value={search} onChange={event => setSearch(event.target.value)} /></div>
     <label className="emoji-category">分类<select aria-label="表情分类" value={category} onChange={event => setCategory(event.target.value)}><option value="">全部表情</option>{query.data?.pages[0].categories.map(name => <option key={name}>{name}</option>)}</select></label>
     <div className="emoji-results" aria-busy={query.isFetching || searching}>
-      {query.error ? <p className="error" role="alert">{errorMessage(query.error)}</p> : query.isPending || searching ? <p role="status">正在读取表情…</p> : entries.length ? <div className="emoji-grid">{entries.map(entry => <button key={entry.id} title={entry.name} aria-label={entry.name} onClick={() => onSelect(entry.id)}><EmojiIcon id={entry.id} name={entry.name} /></button>)}</div> : <p>没有匹配的表情</p>}
+      {query.error ? <p className="error" role="alert">{errorMessage(query.error)}</p> : query.isPending || searching ? <p role="status">正在读取表情…</p> : entries.length ? <div className="emoji-grid">{entries.map(entry => <button key={entry.id} title={entry.name} aria-label={entry.name} onClick={() => onSelect(entry.id)}><EmojiIcon client={client} id={entry.id} name={entry.name} asset={entry.asset} revision={entry.revision} /></button>)}</div> : <p>没有匹配的表情</p>}
       {query.hasNextPage && !searching && <button className="emoji-load-more" disabled={query.isFetchingNextPage} onClick={() => { void query.fetchNextPage(); }}>{query.isFetchingNextPage ? '正在加载…' : '加载更多表情'}</button>}
     </div>
     <footer>{query.data ? `${query.data.pages[0].total} 个匹配表情` : '表情来自当前工作空间'}<span>点击已有反应可取消</span></footer>

@@ -29,12 +29,18 @@ type Room struct {
 }
 
 type Message struct {
-	ID        string    `json:"id"`
-	RoomID    string    `json:"room_id"`
-	AuthorID  string    `json:"author_id"`
-	Content   string    `json:"content"`
-	Seq       int64     `json:"seq"`
-	CreatedAt time.Time `json:"created_at"`
+	ID                 string            `json:"id"`
+	RoomID             string            `json:"room_id"`
+	AuthorID           string            `json:"author_id"`
+	Content            string            `json:"content"`
+	Seq                int64             `json:"seq"`
+	CreatedAt          time.Time         `json:"created_at"`
+	ReplyTo            string            `json:"reply_to,omitempty"`
+	Reply              *MessageReply     `json:"reply,omitempty"`
+	Reactions          []ReactionSummary `json:"reactions,omitempty"`
+	ReactionVersion    int64             `json:"reaction_version,omitempty"`
+	ReactionsHasMore   bool              `json:"reactions_has_more,omitempty"`
+	ReactionsNextAfter string            `json:"reactions_next_after,omitempty"`
 }
 
 type Receipt struct {
@@ -46,6 +52,7 @@ type SendMessage struct {
 	ActionID   string `json:"action_id"`
 	Content    string `json:"content"`
 	ScopeEpoch *int64 `json:"scope_epoch,omitempty"`
+	ReplyTo    string `json:"reply_to,omitempty"`
 }
 
 type Event struct {

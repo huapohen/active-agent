@@ -64,6 +64,9 @@ func denyUnscopedMachineMutation(c *gin.Context) bool {
 func nativeSend(c *gin.Context, s *store.Store, room string, cmd domain.SendMessage, runID string) (any, error) {
 	m, ok := machine(c)
 	if !ok {
+		if runID != "" {
+			return nil, domain.ErrInvalid
+		}
 		return s.Send(c.Request.Context(), principal(c).ID, room, cmd)
 	}
 	if !validID(runID) {
@@ -76,7 +79,11 @@ func nativeSend(c *gin.Context, s *store.Store, room string, cmd domain.SendMess
 	if run.Context.RoomID != room || (cmd.ScopeEpoch != nil && *cmd.ScopeEpoch != run.Context.ScopeEpoch) {
 		return nil, domain.ErrStopped
 	}
-	payload, _ := json.Marshal(map[string]string{"room_id": room, "content": cmd.Content})
+	fields := map[string]string{"room_id": room, "content": cmd.Content}
+	if cmd.ReplyTo != "" {
+		fields["reply_to"] = cmd.ReplyTo
+	}
+	payload, _ := json.Marshal(fields)
 	return s.ExecuteAction(c.Request.Context(), m.Issuer, m.MachineSubject, run.Context, harness.Action{ID: cmd.ActionID, Type: "message.send", Payload: payload})
 }
 
@@ -187,7 +194,13 @@ func mountExecution(g *gin.Engine, v1 *gin.RouterGroup, s *store.Store, cfg conf
 			fail(c, domain.ErrForbidden)
 			return
 		}
-		c.JSON(200, gin.H{"protocol": "renji-harness-v1", "principal_id": b.Principal.ID, "executor_id": b.ExecutorID, "server_bound": true, "actions_idempotent": true, "scope_epochs_enforced": true})
+		actions := []string{"message.send"}
+		reads := []string{"message.get", "reaction.list"}
+		if cfg.emoji != nil {
+			actions = append(actions, "reaction.set")
+			reads = append(reads, "emoji.list")
+		}
+		c.JSON(200, gin.H{"protocol": "renji-harness-v1", "principal_id": b.Principal.ID, "executor_id": b.ExecutorID, "server_bound": true, "actions_idempotent": true, "scope_epochs_enforced": true, "action_types": actions, "read_capabilities": reads})
 	})
 	internal.POST("/check", func(c *gin.Context) {
 		var q struct {

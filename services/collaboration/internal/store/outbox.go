@@ -19,6 +19,12 @@ type Messenger interface {
 	Publish(context.Context, domain.Message) (transport.Delivery, error)
 }
 
+// Optional plugin capability; reactions are invalidation notifications, never
+// fabricated ordinary text messages for providers that lack this operation.
+type ReactionMessenger interface {
+	NotifyReaction(context.Context, domain.ReactionReceipt) (transport.Delivery, error)
+}
+
 const (
 	deliveryLease     = 30 * time.Second
 	deliveryHeartbeat = 5 * time.Second
@@ -52,7 +58,7 @@ FROM transport_outbox o JOIN events e ON e.id=o.event_id
 WHERE o.status='pending' AND NOT EXISTS(
  SELECT 1 FROM transport_outbox old JOIN events prior ON prior.id=old.event_id
  WHERE prior.room_id=e.room_id AND old.id<o.id AND old.status<>'delivered'
- AND NOT (old.status='blocked' AND prior.type='message.created'))
+ AND NOT (old.status='blocked' AND prior.type IN ('message.created','message.reaction_set')))
 ORDER BY o.id FOR UPDATE OF o SKIP LOCKED LIMIT 1`).Scan(&claim.ID, &claim.Room, &claim.Actor, &claim.Kind, &claim.Data, &claim.ScopeEpoch, &claim.ExecutionRunID)
 	if err != nil {
 		return claim, err
@@ -202,6 +208,22 @@ func (s *Store) deliver(ctx context.Context, claim deliveryClaim, provider Messe
 		err := s.withDeliveryAdmission(ctx, claim, "", func(callCtx context.Context, _ pgx.Tx, _ domain.Principal) error {
 			var err error
 			receipt, err = provider.Publish(callCtx, m)
+			return err
+		})
+		return receipt, err
+	case "message.reaction_set":
+		var r domain.ReactionReceipt
+		if json.Unmarshal(claim.Data, &r) != nil || r.RoomID != claim.Room || r.PrincipalID != claim.Actor || !executionUUIDs(r.MessageID) || r.Version < 1 || len(r.Emoji) == 0 || r.Count < 0 || r.Selected != r.Active || r.Replayed {
+			return nil, domain.ErrInvalid
+		}
+		notifier, ok := provider.(ReactionMessenger)
+		if !ok {
+			return nil, domain.ErrInvalid
+		}
+		var receipt transport.Delivery
+		err := s.withDeliveryAdmission(ctx, claim, "", func(callCtx context.Context, _ pgx.Tx, _ domain.Principal) error {
+			var err error
+			receipt, err = notifier.NotifyReaction(callCtx, r)
 			return err
 		})
 		return receipt, err

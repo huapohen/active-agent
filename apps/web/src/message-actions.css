@@ -42,3 +42,9 @@
 .reaction-status { padding: 4px 20px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
 .reaction-status .error { margin: 0; }
 .reaction-status button { color: #3370ff; white-space: nowrap; }
+
+.reaction-list-dialog { max-height: min(80vh, 640px); overflow: auto; }
+.reaction-list-dialog > .icon-button { position: absolute; top: 12px; right: 12px; }
+.reaction-list-rows { display: grid; gap: 10px; margin: 18px 0; }
+.reaction-list-rows > button { display: flex; align-items: center; gap: 12px; overflow-wrap: anywhere; }
+.reaction-list-rows > button > span:last-child { margin-left: auto; white-space: nowrap; color: var(--muted); }

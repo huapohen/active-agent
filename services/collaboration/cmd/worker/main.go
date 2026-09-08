@@ -48,7 +48,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("invalid explicit model configuration")
 	}
-	planner, err := harness.NewEinoPlanner(harness.PlannerConfig{Model: model, Gateway: gw, AllowedActionTypes: []string{"message.send"}})
+	planner, err := harness.NewEinoPlanner(harness.PlannerConfig{Model: model, Gateway: gw, AllowedActionTypes: gw.AllowedActionTypes()})
 	if err != nil {
 		return err
 	}

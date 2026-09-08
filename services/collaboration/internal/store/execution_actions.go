@@ -33,30 +33,53 @@ func executionJSON(raw json.RawMessage) (json.RawMessage, error) {
 	return out, err
 }
 
-// The first registered effect is message.send. Unknown operations and extra
-// authorization fields are rejected. Additional native plugins must register
-// real typed operations, never a language-only success response.
+// Effects are typed and canonicalized before admission. All source scopes,
+// the action, its reaction/message mutation and Outbox link commit together.
 func (s *Store) ExecuteAction(ctx context.Context, issuer, subject string, rc harness.RunContext, a harness.Action) (harness.Receipt, error) {
 	var out harness.Receipt
-	if !validExecutionID(a.ID) || a.Type != "message.send" || len(a.Payload) > 60000 {
+	if !validExecutionID(a.ID) || len(a.Payload) > 60000 {
 		return out, domain.ErrInvalid
 	}
-	var payload struct {
+	var sendPayload struct {
 		RoomID  string `json:"room_id,omitempty"`
 		Content string `json:"content"`
+		ReplyTo string `json:"reply_to,omitempty"`
 	}
+	var reactionPayload struct {
+		RoomID    string `json:"room_id,omitempty"`
+		MessageID string `json:"message_id"`
+		Emoji     string `json:"emoji"`
+		Active    *bool  `json:"active"`
+	}
+	var canonical []byte
+	var room string
 	d := json.NewDecoder(bytes.NewReader(a.Payload))
 	d.DisallowUnknownFields()
-	if d.Decode(&payload) != nil || d.Decode(new(any)) != io.EOF || strings.TrimSpace(payload.Content) == "" || len(payload.Content) > 8192 {
+	switch a.Type {
+	case "message.send":
+		if d.Decode(&sendPayload) != nil || d.Decode(new(any)) != io.EOF || strings.TrimSpace(sendPayload.Content) == "" || len(sendPayload.Content) > 8192 || (sendPayload.ReplyTo != "" && !executionUUIDs(sendPayload.ReplyTo)) {
+			return out, domain.ErrInvalid
+		}
+		if sendPayload.RoomID == "" {
+			sendPayload.RoomID = rc.RoomID
+		}
+		room = sendPayload.RoomID
+		canonical, _ = json.Marshal(sendPayload)
+	case "reaction.set":
+		if d.Decode(&reactionPayload) != nil || d.Decode(new(any)) != io.EOF || reactionPayload.Active == nil || !executionUUIDs(reactionPayload.MessageID) || !s.validReactionEmoji(reactionPayload.Emoji) {
+			return out, domain.ErrInvalid
+		}
+		if reactionPayload.RoomID == "" {
+			reactionPayload.RoomID = rc.RoomID
+		}
+		room = reactionPayload.RoomID
+		canonical, _ = json.Marshal(reactionPayload)
+	default:
 		return out, domain.ErrInvalid
 	}
-	if payload.RoomID == "" {
-		payload.RoomID = rc.RoomID
-	}
-	if payload.RoomID != rc.RoomID {
+	if room != rc.RoomID {
 		return out, domain.ErrForbidden
 	}
-	canonical, _ := json.Marshal(payload)
 	digest := actionDigest("execution.action", struct {
 		RunID, Type string
 		Payload     json.RawMessage
@@ -110,20 +133,38 @@ func (s *Store) ExecuteAction(ctx context.Context, issuer, subject string, rc ha
 	if collision {
 		return out, domain.ErrConflict
 	}
-	receipt, err := sendTx(ctx, tx, b.Principal.ID, rc.RoomID, domain.SendMessage{ActionID: a.ID, Content: payload.Content, ScopeEpoch: &rc.ScopeEpoch})
+	var result []byte
+	var messageID, eventType string
+	switch a.Type {
+	case "message.send":
+		receipt, sendErr := sendTx(ctx, tx, b.Principal.ID, rc.RoomID, domain.SendMessage{ActionID: a.ID, Content: sendPayload.Content, ScopeEpoch: &rc.ScopeEpoch, ReplyTo: sendPayload.ReplyTo})
+		if sendErr != nil {
+			return out, sendErr
+		}
+		messageID = receipt.Message.ID
+		eventType = "message.created"
+		result, _ = json.Marshal(map[string]any{"message_id": messageID, "room_id": receipt.Message.RoomID, "seq": receipt.Message.Seq, "canonical_status": "committed", "transport_status": "pending"})
+	case "reaction.set":
+		receipt, reactionErr := s.reactionSetTx(ctx, tx, b.Principal.ID, rc.RoomID, reactionPayload.MessageID, domain.SetReaction{ActionID: a.ID, Emoji: reactionPayload.Emoji, Active: *reactionPayload.Active, ScopeEpoch: &rc.ScopeEpoch})
+		if reactionErr != nil {
+			return out, reactionErr
+		}
+		messageID = receipt.MessageID
+		eventType = "message.reaction_set"
+		result, _ = json.Marshal(map[string]any{"reaction": receipt, "message_id": messageID, "room_id": receipt.RoomID, "canonical_status": "committed", "transport_status": "pending"})
+	}
+	// Success is canonical PostgreSQL commit, not provider acknowledgement.
+	result, err = executionJSON(result)
 	if err != nil {
 		return out, err
 	}
-	// A successful native action means canonical local commit. RongCloud
-	// delivery remains pending until the independent Outbox records its result.
-	result, _ := json.Marshal(map[string]any{"message_id": receipt.Message.ID, "room_id": receipt.Message.RoomID, "seq": receipt.Message.Seq, "canonical_status": "committed", "transport_status": "pending"})
 	out = harness.Receipt{ActionID: a.ID, Status: "succeeded", Result: result}
 	raw, _ = json.Marshal(out)
-	_, err = tx.Exec(ctx, `INSERT INTO execution_actions(run_id,action_id,request_hash,action_type,payload,receipt,message_id) VALUES($1,$2,$3,$4,$5,$6,$7)`, rc.RunID, a.ID, digest, a.Type, canonical, raw, receipt.Message.ID)
+	_, err = tx.Exec(ctx, `INSERT INTO execution_actions(run_id,action_id,request_hash,action_type,payload,receipt,message_id) VALUES($1,$2,$3,$4,$5,$6,$7)`, rc.RunID, a.ID, digest, a.Type, canonical, raw, messageID)
 	if err != nil {
 		return out, err
 	}
-	updated, err := tx.Exec(ctx, `UPDATE transport_outbox o SET execution_run_id=$1 FROM events e WHERE o.event_id=e.id AND e.principal_id=$2 AND e.action_id=$3 AND e.type='message.created'`, rc.RunID, b.Principal.ID, a.ID)
+	updated, err := tx.Exec(ctx, `UPDATE transport_outbox o SET execution_run_id=$1 FROM events e WHERE o.event_id=e.id AND e.principal_id=$2 AND e.action_id=$3 AND e.type=$4`, rc.RunID, b.Principal.ID, a.ID, eventType)
 	if err != nil {
 		return out, err
 	}

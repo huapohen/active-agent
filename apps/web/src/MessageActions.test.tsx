@@ -107,3 +107,77 @@ describe('transient message surfaces and real actions', () => {
     await screen.findByText('这条消息已隐藏'); expect(screen.queryByText(source.content)).toBeNull(); expect((screen.getByRole('button', { name: '发送' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+describe('commercial explicit reaction reconciliation', () => {
+  function commercial(): CollaborationClient {
+    const c = client();
+    return { ...c, mode: 'startup', capabilities: { ...c.capabilities, mentions: false },
+      messages: vi.fn(async () => ({ messages: [{ ...source, reactionSummaries: [{ emoji: '👍', count: 1, selected: false }], reactionVersion: 1 }], hasMoreBefore: false, hasMoreAfter: false })),
+      setReaction: vi.fn(async (_room, _message, intent) => ({ roomId: 'r1', messageId: 'm1', principalId: me.id, emoji: intent.emoji, active: intent.active, version: 2, replayed: false })),
+      message: vi.fn(async () => ({ ...source, reactionSummaries: [{ emoji: '👍', count: 2, selected: true }], reactionVersion: 2 })) };
+  }
+  it('reconciles unknown writes with the exact action rather than toggling again or trusting an old receipt', async () => {
+    const c = commercial(); vi.mocked(c.setReaction!).mockRejectedValueOnce(new TypeError('connection lost'));
+    vi.mocked(c.message!).mockResolvedValueOnce({ ...source, reactionSummaries: [{ emoji: '👍', count: 1, selected: false }], reactionVersion: 9 });
+    mount(c); const chip = await screen.findByRole('button', { name: '👍，1 位回应' }); fireEvent.click(chip); fireEvent.click(chip);
+    fireEvent.click(await screen.findByRole('button', { name: '核对原动作' }));
+    await waitFor(() => expect(c.setReaction).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(c.setReaction!).mock.calls[0][2]).toEqual(vi.mocked(c.setReaction!).mock.calls[1][2]);
+    expect(vi.mocked(c.setReaction!).mock.calls[0][2]).toMatchObject({ emoji: '👍', active: true });
+    await waitFor(() => expect(chip.getAttribute('aria-pressed')).toBe('false'));
+    expect(c.react).not.toHaveBeenCalled(); expect(c.message).toHaveBeenCalledTimes(1);
+    fireEvent.click(chip); await waitFor(() => expect(c.setReaction).toHaveBeenCalledTimes(3));
+    expect(vi.mocked(c.setReaction!).mock.calls[2][2].actionId).not.toBe(vi.mocked(c.setReaction!).mock.calls[0][2].actionId);
+  });
+  it('does not apply an acknowledged receipt when its current-state read fails', async () => {
+    const c = commercial(); vi.mocked(c.message!).mockRejectedValueOnce(new TypeError('read timeout'));
+    mount(c); const chip = await screen.findByRole('button', { name: '👍，1 位回应' }); fireEvent.click(chip);
+    await screen.findByRole('button', { name: '核对原动作' }); expect(chip.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(screen.getByRole('button', { name: '核对原动作' }));
+    await waitFor(() => expect(chip.getAttribute('aria-pressed')).toBe('true'));
+    expect(vi.mocked(c.setReaction!).mock.calls[0][2]).toEqual(vi.mocked(c.setReaction!).mock.calls[1][2]);
+    expect(c.message).toHaveBeenCalledTimes(2);
+  });
+  it('rechecks source authorization after a denied write and removes old visible content', async () => {
+    const c = commercial(); mount(c); const chip = await screen.findByRole('button', { name: '👍，1 位回应' });
+    vi.mocked(c.setReaction!).mockRejectedValueOnce(new ApiError(403, 'forbidden'));
+    vi.mocked(c.messages).mockRejectedValue(new ApiError(403, 'forbidden'));
+    fireEvent.click(chip); await waitFor(() => expect(screen.queryByText(source.content)).toBeNull());
+    expect(c.setReaction).toHaveBeenCalledTimes(1); expect(c.message).not.toHaveBeenCalled();
+  });
+  it('does not unlock an unknown action after ordinary refresh and disables fabricated Agent choices', async () => {
+    const c = commercial(); vi.mocked(c.setReaction!).mockRejectedValueOnce(new TypeError('timeout')); mount(c);
+    const chip = await screen.findByRole('button', { name: '👍，1 位回应' }); fireEvent.click(chip); await screen.findByRole('button', { name: '核对原动作' });
+    fireEvent.click(screen.getByRole('button', { name: '刷新消息' })); await waitFor(() => expect(c.messages).toHaveBeenCalledTimes(2));
+    expect((chip as HTMLButtonElement).disabled).toBe(true); fireEvent.click(chip); expect(c.setReaction).toHaveBeenCalledTimes(1);
+    await hover(); expect((screen.getByRole('button', { name: '请 Agent 协作' }) as HTMLButtonElement).disabled).toBe(true); expect(c.members).not.toHaveBeenCalled();
+  });
+  it('retires an uncertain identity action without reading or displaying its late result', async () => {
+    const c = commercial(); let resolve!: (receipt: Awaited<ReturnType<NonNullable<CollaborationClient['setReaction']>>>) => void;
+    vi.mocked(c.setReaction!).mockImplementationOnce(() => new Promise(ok => { resolve = ok; }));
+    const view = mount(c); fireEvent.click(await screen.findByRole('button', { name: '👍，1 位回应' }));
+    await waitFor(() => expect(c.setReaction).toHaveBeenCalledTimes(1));
+    const next = commercial(); vi.mocked(next.messages).mockResolvedValue({ messages: [], hasMoreBefore: false, hasMoreAfter: false }); view.rerender(view.element(next));
+    await act(async () => resolve({ roomId: 'r1', messageId: 'm1', principalId: me.id, emoji: '👍', active: true, version: 2, replayed: false }));
+    expect(c.message).not.toHaveBeenCalled(); expect(vi.mocked(c.setReaction!).mock.calls[0][3]?.aborted).toBe(true); expect(screen.queryByText(source.content)).toBeNull();
+  });
+  it('renders server quote summaries without the original loaded, never replacing a missing summary with cached source text', async () => {
+    const c = commercial(); const reply: Message = { ...source, id: 'm2', seq: 2, content: '回复正文', replyTo: 'missing', reply: { messageId: 'missing', roomId: 'r1', authorId: 'other', authorKind: 'human', authorName: '成员', seq: 1, excerpt: '真实摘要' } };
+    vi.mocked(c.messages).mockResolvedValue({ messages: [reply], hasMoreBefore: false, hasMoreAfter: false }); mount(c);
+    expect(await screen.findByText('回复：成员：真实摘要')).toBeTruthy();
+    vi.mocked(c.messages).mockResolvedValue({ messages: [{ ...reply, reply: undefined, replyTo: source.id }, source], hasMoreBefore: false, hasMoreAfter: false }); fireEvent.click(screen.getByRole('button', { name: '刷新消息' }));
+    expect(await screen.findByText('回复：原消息摘要不可用')).toBeTruthy();
+  });
+  it('reads all reaction pages with one version, discards pages on conflict and starts again cleanly', async () => {
+    const c = commercial(); vi.mocked(c.messages).mockResolvedValue({ messages: [{ ...source, reactionsHasMore: true }], hasMoreBefore: false, hasMoreAfter: false });
+    c.reactionSummaries = vi.fn().mockResolvedValueOnce({ summaries: [{ emoji: '👍', count: 3, selected: false }], version: 7, nextAfter: '👍' }).mockRejectedValueOnce(new ApiError(409, 'reaction_version_changed')).mockResolvedValueOnce({ summaries: [{ emoji: '✅', count: 2, selected: true }], version: 8 });
+    mount(c); fireEvent.click(await screen.findByRole('button', { name: '查看全部回应' }));
+    fireEvent.click(await screen.findByRole('button', { name: '加载更多回应' }));
+    await screen.findByRole('button', { name: '重新读取回应' });
+    expect(vi.mocked(c.reactionSummaries).mock.calls[1][2]).toMatchObject({ after: '👍', expectedVersion: 7 });
+    const dialog = screen.getByRole('dialog'); expect(within(dialog).queryByText('👍')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '重新读取回应' }));
+    fireEvent.click(await within(dialog).findByRole('button', { name: /✅.*2 位回应/ }));
+    await waitFor(() => expect(c.setReaction).toHaveBeenCalledTimes(1)); expect(vi.mocked(c.setReaction!).mock.calls[0][2]).toMatchObject({ emoji: '✅', active: false });
+  });
+});

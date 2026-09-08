@@ -100,6 +100,13 @@ func (p *EinoPlanner) Plan(parent context.Context, input StageInput) (StageResul
 		}
 		stageTools = append(stageTools, reads...)
 	}
+	if reader, ok := p.config.Gateway.(NativeInteractionReader); ok {
+		reads, err := nativeInteractionTools(reader, trace)
+		if err != nil {
+			return StageResult{}, err
+		}
+		stageTools = append(stageTools, reads...)
+	}
 	skills, err := skill.NewMiddleware(ctx, &skill.Config{Backend: &stageSkills{trace: trace}})
 	if err != nil {
 		return StageResult{}, err
@@ -122,7 +129,7 @@ func (p *EinoPlanner) Plan(parent context.Context, input StageInput) (StageResul
 	}
 	agent, err := deep.New(ctx, &deep.Config{
 		Name: "renji_planner", Description: "Bounded native collaboration planner", ChatModel: guarded,
-		Instruction:  planningInstruction + "\nAllowed action types: " + strings.Join(p.config.AllowedActionTypes, ", "),
+		Instruction:  planningInstruction + "\nAllowed action types: " + strings.Join(p.config.AllowedActionTypes, ", ") + actionSchemaInstruction(p.config.AllowedActionTypes),
 		MaxIteration: p.config.MaxIterations,
 		ToolsConfig:  adk.ToolsConfig{ToolsNodeConfig: compose.ToolsNodeConfig{Tools: stageTools}, EmitInternalEvents: true},
 		Handlers:     []adk.ChatModelAgentMiddleware{skills, reduce, summary, &toolFence{trace: trace}},

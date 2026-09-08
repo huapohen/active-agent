@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Conversation, ConversationRow, mergeMessagePages } from './App';
 import { ApiError } from './api';
-import type { CollaborationClient, Message, Room } from './types';
+import type { CollaborationClient, Message, Principal, Room } from './types';
 beforeAll(() => { Element.prototype.scrollIntoView = vi.fn(); window.HTMLElement.prototype.hasPointerCapture = () => false; window.HTMLElement.prototype.setPointerCapture = () => {}; window.HTMLElement.prototype.releasePointerCapture = () => {}; });
 afterEach(cleanup);
 const room: Room = { id: 'r1', title: '产品协作', kind: 'group', version: 1 };
@@ -12,7 +12,7 @@ const message: Message = { id: 'm1', roomId: 'r1', authorId: 'human1', content: 
 function fake(send = vi.fn(async () => message)): CollaborationClient {
   return { mode: 'legacy', endpoint: 'http://localhost:3218', capabilities: { directory: true, documents: true, roomPreferences: true, createRoom: true, mentions: true, liveEvents: false, readReceipts: true, reactions: true, replies: true }, me: vi.fn(), rooms: vi.fn(), messages: vi.fn(async () => ({ messages: [], hasMoreBefore: false, hasMoreAfter: false })), send, members: vi.fn(async () => [me, { id: 'agent1', kind: 'agent' as const, displayName: '机伴' }]), people: vi.fn(), preferences: vi.fn(), createRoom: vi.fn(), direct: vi.fn(), documents: vi.fn(), document: vi.fn(), emoji: vi.fn(async () => ({ entries: [], categories: [], total: 0, catalogCount: 0 })), react: vi.fn(), events: vi.fn(), close: vi.fn() };
 }
-function mount(client: CollaborationClient) { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return { cache, ...render(<QueryClientProvider client={cache}><Conversation client={client} me={me} room={room} /></QueryClientProvider>) }; }
+function mount(client: CollaborationClient, currentRoom = room, identity: Principal = me) { const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } }); return { cache, ...render(<QueryClientProvider client={cache}><Conversation client={client} me={identity} room={currentRoom} /></QueryClientProvider>) }; }
 describe('real composer intent and input safety', () => {
   it('does not submit during Chinese composition and sends once after composition finishes', async () => {
     const client = fake(); mount(client); const input = screen.getByRole('textbox', { name: '消息内容' });
@@ -26,6 +26,26 @@ describe('real composer intent and input safety', () => {
     fireEvent.change(input, { target: { value: '中文' } }); fireEvent.click(screen.getByRole('button', { name: '发送' }));
     await screen.findByRole('button', { name: '重试发送' }); fireEvent.click(screen.getByRole('button', { name: '重试发送' }));
     await waitFor(() => expect(send).toHaveBeenCalledTimes(2)); expect(send.mock.calls[0][1].actionId).toBe(send.mock.calls[1][1].actionId); await waitFor(() => expect((input as HTMLTextAreaElement).value).toBe(''));
+  });
+  it.each(['button', 'keyboard'])('allows a human to intervene while Agent execution is stopped via %s', async trigger => {
+    const client = fake(); mount(client, { ...room, stopped: true, scopeEpoch: 3 });
+    const input = screen.getByRole('textbox', { name: '消息内容' }) as HTMLTextAreaElement;
+    expect(input.disabled).toBe(false); expect(input.placeholder).toBe('Agent 执行已暂停，人类同事仍可沟通');
+    fireEvent.change(input, { target: { value: '人类暂停期间的干预消息' } });
+    const button = screen.getByRole('button', { name: '发送' }) as HTMLButtonElement; expect(button.disabled).toBe(false);
+    if (trigger === 'button') fireEvent.click(button); else fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 });
+    await waitFor(() => expect(client.send).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(client.send).mock.calls[0].slice(0, 2)).toMatchObject(['r1', { content: '人类暂停期间的干预消息', scopeEpoch: 3 }]);
+  });
+  it('disables an Agent with a preserved draft when its execution scope is stopped', async () => {
+    const client = fake(), agent: Principal = { id: 'agent1', kind: 'agent', displayName: '机伴' };
+    const view = mount(client, room, agent); const input = screen.getByRole('textbox', { name: '消息内容' }) as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: '暂停前的草稿' } });
+    view.rerender(<QueryClientProvider client={view.cache}><Conversation client={client} me={agent} room={{ ...room, stopped: true }} /></QueryClientProvider>);
+    expect(input.value).toBe('暂停前的草稿'); expect(input.disabled).toBe(true); expect(input.placeholder).toBe('Agent 执行已暂停');
+    expect((screen.getByRole('button', { name: '发送' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 13 }); fireEvent.click(screen.getByRole('button', { name: '发送' }));
+    await Promise.resolve(); expect(client.send).not.toHaveBeenCalled();
   });
   it('retains Shift+Enter newline and has a fixed send-button slot before typing', () => {
     const client = fake(); mount(client); const input = screen.getByRole('textbox', { name: '消息内容' });

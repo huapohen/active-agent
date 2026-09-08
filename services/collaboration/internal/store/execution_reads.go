@@ -40,22 +40,6 @@ func executionReadRun(ctx context.Context, tx pgx.Tx, issuer, subject, runID str
 	return b, run, nil
 }
 
-func readExecutionMessages(ctx context.Context, tx pgx.Tx, room string, after int64) ([]domain.Message, error) {
-	rows, err := tx.Query(ctx, `SELECT id::text,room_id::text,author_id::text,content,seq,created_at FROM messages WHERE room_id=$1 AND seq>$2 ORDER BY seq LIMIT 101`, room, after)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := []domain.Message{}
-	for rows.Next() {
-		var m domain.Message
-		if err = rows.Scan(&m.ID, &m.RoomID, &m.AuthorID, &m.Content, &m.Seq, &m.CreatedAt); err != nil {
-			return nil, err
-		}
-		out = append(out, m)
-	}
-	return out, rows.Err()
-}
 func scanExecutionRooms(rows pgx.Rows) ([]domain.Room, error) {
 	defer rows.Close()
 	out := []domain.Room{}
@@ -80,7 +64,7 @@ func (s *Store) ExecutionMessages(ctx context.Context, issuer, subject, runID, r
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
-	_, run, err := executionReadRun(ctx, tx, issuer, subject, runID)
+	b, run, err := executionReadRun(ctx, tx, issuer, subject, runID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +81,7 @@ func (s *Store) ExecutionMessages(ctx context.Context, issuer, subject, runID, r
 	if !inside {
 		return nil, domain.ErrForbidden
 	}
-	out, err := readExecutionMessages(ctx, tx, roomID, after)
+	out, err := readMessageRows(ctx, tx, b.Principal.ID, roomID, after)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +146,7 @@ func (s *Store) ExecutorMessages(ctx context.Context, issuer, subject, roomID st
 	if room.WorkspaceID != b.WorkspaceID {
 		return nil, domain.ErrForbidden
 	}
-	out, err := readExecutionMessages(ctx, tx, roomID, after)
+	out, err := readMessageRows(ctx, tx, b.Principal.ID, roomID, after)
 	if err != nil {
 		return nil, err
 	}

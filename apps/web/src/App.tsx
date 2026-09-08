@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { SignIn, useAuth } from '@clerk/react';
+import { SignIn, SignUp, useAuth } from '@clerk/react';
 import { QueryClient, QueryClientProvider, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createStore } from 'zustand/vanilla';
 import { useStore } from 'zustand';
@@ -7,9 +7,10 @@ import * as Menu from '@radix-ui/react-dropdown-menu';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ArrowDown, AtSign, BellOff, Check, CheckCheck, ChevronDown, FileText, FolderClosed, Grid2x2, LoaderCircle, LogOut, Menu as MenuIcon, MessageCircle, MoreHorizontal, Pin, Plus, RefreshCw, Rocket, Search, Send, Settings, Smile, Sparkles, Users, X } from 'lucide-react';
 import { ApiError, LegacyClient, StartupClient, errorMessage } from './api';
-import type { CollaborationClient, Message, Principal, Room, SendIntent } from './types';
+import type { CollaborationClient, Message, Principal, Room, SendIntent, ReactionIntent } from './types';
 import { useRongCloud } from './rongcloud';
 import { Documents } from './Documents';
+import { ReactionList, visibleReactions } from './ReactionList';
 import { EmojiIcon, MessageActions, messageClientScope, messagePreview } from './MessageActions';
 
 type Session = { id: string; client: CollaborationClient; principal: Principal; logout?: () => Promise<unknown> };
@@ -59,7 +60,9 @@ function ClerkLogin({ onConnect }: { onConnect: (c: CollaborationClient, p: Prin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn, attempt]);
   if (!isLoaded) return <p className="subtle">正在加载登录…</p>;
-  if (!isSignedIn) return <SignIn routing="hash" />;
+  if (!isSignedIn) return new URLSearchParams(window.location.search).get('auth') === 'signup'
+    ? <SignUp routing="hash" signInUrl="/?auth=signin" forceRedirectUrl="/" />
+    : <SignIn routing="hash" signUpUrl="/?auth=signup" forceRedirectUrl="/" />;
   return <div><p>正在进入工作空间…</p><Status error={error} />{Boolean(error) && <button className="primary" onClick={() => { setError(undefined); setAttempt(attempt + 1); }}>重新连接</button>}</div>;
 }
 
@@ -156,16 +159,20 @@ export function Conversation(props: { client: CollaborationClient; me: Principal
   return <ScopedConversation key={`${messageClientScope(props.client)}:${props.me.id}:${props.room.id}`} {...props} />;
 }
 function ScopedConversation({ client, me, room }: { client: CollaborationClient; me: Principal; room: Room }) {
+  const agentStopped = room.stopped === true && me.kind === 'agent';
   const cache = useQueryClient();
   const [draft, setDraft] = useState(''), [sending, setSending] = useState(false), [sendError, setSendError] = useState<unknown>();
   const [mentionOpen, setMentionOpen] = useState(false), [agentOnly, setAgentOnly] = useState(false), [mentionIds, setMentionIds] = useState<string[]>([]);
   const [replyId, setReplyId] = useState<string>(), [reactionBusy, setReactionBusy] = useState(false), [reactionUncertain, setReactionUncertain] = useState(false), [actionError, setActionError] = useState<unknown>();
+  const [reactionListId, setReactionListId] = useState<string>();
+  const pendingReaction = useRef<{ messageId: string; intent: ReactionIntent } | undefined>(undefined);
+  const reactionInFlight = useRef(false);
   const reactionLock = useRef(false), requests = useRef(new AbortController());
   const pendingIntent = useRef<{ key: string; intent: SendIntent } | undefined>(undefined);
   const pane = useRef<HTMLDivElement>(null), input = useRef<HTMLTextAreaElement>(null), alive = useRef(true), composing = useRef(false), anchored = useRef(false);
   useEffect(() => { alive.current = true; const controller = new AbortController(); requests.current = controller; return () => { alive.current = false; controller.abort(); }; }, []);
   const queryKey = ['messages', room.id, messageClientScope(client)];
-  const query = useInfiniteQuery({ queryKey, initialPageParam: undefined as number | undefined, queryFn: ({ signal, pageParam }) => client.messages(room.id, { before: pageParam, firstUnread: pageParam === undefined && (room.unread ?? 0) > 0, signal }), getNextPageParam: page => page.hasMoreBefore && page.messages.length ? page.messages[0].seq : undefined, refetchInterval: client.mode === 'startup' ? 5000 : false, gcTime: 0 });
+  const query = useInfiniteQuery({ queryKey, initialPageParam: undefined as number | undefined, queryFn: ({ signal, pageParam }) => client.messages(room.id, { before: pageParam, firstUnread: pageParam === undefined && (room.unread ?? 0) > 0, signal }), getNextPageParam: page => page.hasMoreBefore && page.messages.length ? page.messages[0].seq : undefined, refetchInterval: client.mode === 'startup' && !reactionBusy ? 5000 : false, gcTime: 0 });
   const members = useQuery({ queryKey: ['members', room.id, messageClientScope(client)], queryFn: ({ signal }) => client.members(room.id, signal), enabled: client.capabilities.mentions });
   const messages = query.isError ? [] : mergeMessagePages(query.data?.pages ?? []);
   const reply = messages.find(message => message.id === replyId);
@@ -178,7 +185,7 @@ function ScopedConversation({ client, me, room }: { client: CollaborationClient;
     anchored.current = true;
   }, [messages.length, room.firstUnreadSeq]);
   async function send() {
-    const content = draft.trim(); if (!content || sending || room.stopped || composing.current || replyUnavailable || query.isError) return;
+    const content = draft.trim(); if (!content || sending || agentStopped || composing.current || replyUnavailable || query.isError) return;
     const key = JSON.stringify([room.id, content, mentionIds, replyId]);
     if (pendingIntent.current?.key !== key) pendingIntent.current = { key, intent: { actionId: crypto.randomUUID(), content, mentions: [...mentionIds], scopeEpoch: room.scopeEpoch, ...(replyId ? { replyTo: replyId } : {}) } };
     const intent = pendingIntent.current.intent;
@@ -192,17 +199,46 @@ function ScopedConversation({ client, me, room }: { client: CollaborationClient;
     } catch (e) { if (alive.current) setSendError(e); } finally { if (alive.current) setSending(false); }
   }
   async function refreshMessages() {
+    if (reactionInFlight.current) return;
     const result = await query.refetch();
     if (!alive.current || result.isError) return;
-    reactionLock.current = false; setReactionUncertain(false); setActionError(undefined);
+    // A normal refresh cannot discard an uncertain idempotent write. Its
+    // original action must be reconciled before a new desired state is sent.
+    if (!pendingReaction.current) { reactionLock.current = false; setReactionUncertain(false); setActionError(undefined); }
   }
-  async function react(message: Message, emoji: string) {
+  function updateMessage(updated: Message) {
+    cache.setQueryData<{ pages: { messages: Message[] }[] }>(queryKey, old => old && { ...old, pages: old.pages.map(page => ({ ...page, messages: page.messages.map(value => value.id === updated.id ? updated : value) })) });
+  }
+  async function reconcileReaction() {
+    const pending = pendingReaction.current;
+    if (!pending || reactionInFlight.current || !client.setReaction || !client.message) return;
+    reactionInFlight.current = true; setReactionBusy(true); setActionError(undefined);
+    try {
+      await cache.cancelQueries({ queryKey });
+      if (!alive.current) return;
+      await client.setReaction(room.id, pending.messageId, pending.intent, requests.current.signal);
+      if (!alive.current) return;
+      // Replay is an old receipt. Only the authorized point read is current.
+      const updated = await client.message(room.id, pending.messageId, requests.current.signal);
+      if (!alive.current) return;
+      updateMessage(updated); pendingReaction.current = undefined;
+      reactionLock.current = false; setReactionUncertain(false);
+    } catch (error) { if (alive.current) { setReactionUncertain(true); setActionError(error); if (error instanceof ApiError && [401, 403, 404].includes(error.status)) void cache.invalidateQueries({ queryKey }); } }
+    finally { reactionInFlight.current = false; if (alive.current) setReactionBusy(false); }
+  }
+  async function react(message: Message, emoji: string, desiredActive?: boolean) {
     if (reactionLock.current || reactionUncertain || !client.capabilities.reactions || message.roomId !== room.id || message.hidden || message.retracted || query.isError) return;
-    reactionLock.current = true; setReactionBusy(true); setActionError(undefined);
+    reactionLock.current = true;
+    if (client.mode === 'startup') {
+      if (!client.setReaction || !client.message) { reactionLock.current = false; return; }
+      pendingReaction.current = { messageId: message.id, intent: { actionId: crypto.randomUUID(), emoji, active: desiredActive ?? !visibleReactions(message, me.id).some(s => s.emoji === emoji && s.selected), scopeEpoch: room.scopeEpoch } };
+      await reconcileReaction(); return;
+    }
+    reactionInFlight.current = true; setReactionBusy(true); setActionError(undefined);
     try {
       const updated = await client.react(room.id, message.id, emoji, requests.current.signal);
       if (!alive.current) return;
-      cache.setQueryData<{ pages: { messages: Message[] }[] }>(queryKey, old => old && { ...old, pages: old.pages.map(page => ({ ...page, messages: page.messages.map(value => value.id === updated.id ? updated : value) })) });
+      updateMessage(updated);
       reactionLock.current = false;
       void cache.invalidateQueries({ queryKey });
     } catch (error) {
@@ -210,7 +246,7 @@ function ScopedConversation({ client, me, room }: { client: CollaborationClient;
       // A toggle has no server idempotency key. Keep it locked after any
       // ambiguous result; explicit authoritative refresh must precede reuse.
       setReactionUncertain(true); setActionError(error);
-    } finally { if (alive.current) setReactionBusy(false); }
+    } finally { reactionInFlight.current = false; if (alive.current) setReactionBusy(false); }
   }
   const startReply = (message: Message, agent = false) => {
     if (sending || !client.capabilities.replies || message.roomId !== room.id || message.hidden || message.retracted) return;
@@ -220,24 +256,24 @@ function ScopedConversation({ client, me, room }: { client: CollaborationClient;
   };
   const candidates = (members.data ?? []).filter(p => p.id !== me.id && (!agentOnly || p.kind === 'agent'));
   const addMention = (p: Principal) => { setMentionIds(ids => [...new Set([...ids, p.id])]); setDraft(d => `${d}${d && !/\s$/.test(d) ? ' ' : ''}@${label(p)} `); setMentionOpen(false); input.current?.focus(); };
-  return <><header className="conversation-header"><div><h2>{room.title}</h2><span>{members.data ? `${members.data.length} 位同事` : room.kind === 'direct' ? '单聊' : '群聊'}{room.stopped ? ' · 主动执行已停止' : ''}</span></div><button className="icon-button" onClick={() => { void refreshMessages(); }} disabled={reactionBusy || query.isFetching} aria-label="刷新消息"><RefreshCw size={19} /></button></header>
+  return <><header className="conversation-header"><div><h2>{room.title}</h2><span>{members.data ? `${members.data.length} 位同事` : room.kind === 'direct' ? '单聊' : '群聊'}{room.stopped ? ' · Agent 执行已暂停' : ''}</span></div><button className="icon-button" onClick={() => { void refreshMessages(); }} disabled={reactionBusy || query.isFetching} aria-label="刷新消息"><RefreshCw size={19} /></button></header>
     <div className="conversation-tabs"><span className="active">消息</span></div>
     <div className="messages-pane" ref={pane}><Status error={query.error} />{query.hasNextPage && <button className="load-history" disabled={query.isFetchingNextPage} onClick={() => { void query.fetchNextPage(); }}>{query.isFetchingNextPage ? '正在加载…' : '查看更早消息'}</button>}{query.isPending && <p className="empty">正在读取消息…</p>}{!query.isPending && !messages.length && <p className="empty">还没有消息，开始协作吧</p>}
       <MessageActions client={client} messages={messages} meId={me.id} reactionBlocked={reactionBusy || reactionUncertain} onReact={(message, emoji) => { void react(message, emoji); }} onReply={message => startReply(message)} onAgent={message => startReply(message, true)} onError={setActionError}>
         {messages.map(m => <div key={m.id} className={`message-row ${m.authorId === me.id ? 'mine' : ''}`} data-seq={m.seq} data-message-id={m.id} tabIndex={0} aria-label={`${m.authorName || m.authorId}的消息`}><Avatar name={m.authorName || (m.authorId === me.id ? label(me) : m.authorId)} agent={m.authorKind === 'agent' || (m.authorId === me.id && me.kind === 'agent')} small /><div className="message-main"><div className="message-author">{m.authorName || (m.authorId === me.id ? label(me) : m.authorId)} <time title={m.createdAt}>{time(m.createdAt)}</time></div><div className={`bubble ${m.retracted || m.hidden ? 'retracted' : ''}`}>
-          {m.replyTo && !m.retracted && !m.hidden && <span className="message-reply-quote">回复：{messagePreview(messages.find(parent => parent.id === m.replyTo))}</span>}
+          {m.replyTo && !m.retracted && !m.hidden && <span className="message-reply-quote">回复：{client.mode === 'startup' ? m.reply ? `${m.reply.authorName || m.reply.authorId}：${m.reply.excerpt}` : '原消息摘要不可用' : messagePreview(messages.find(parent => parent.id === m.replyTo))}</span>}
           {m.hidden ? '这条消息已隐藏' : m.retracted ? '这条消息已撤回' : m.isVoice ? '[语音消息 · 请在移动客户端播放]' : m.content || `[${m.attachmentCount || 1} 个附件]`}</div>{m.authorId === me.id && m.receipt && <span className="read-receipt">{m.receipt.read === m.receipt.total ? <CheckCheck size={12} /> : <Check size={12} />}{m.receipt.read}/{m.receipt.total} 已读</span>}
-          {!m.retracted && !m.hidden && Boolean(Object.keys(m.reactions ?? {}).length) && <div className="message-reactions" aria-label="消息表情回应">{Object.entries(m.reactions ?? {}).filter(([, users]) => users.length).map(([id, users]) => <button key={id} aria-label={`${id}，${users.length} 位回应${users.includes(me.id) ? '，再次点击取消我的回应' : ''}`} aria-pressed={users.includes(me.id)} disabled={!client.capabilities.reactions || reactionBusy || reactionUncertain} onClick={() => { void react(m, id); }}><EmojiIcon id={id} /><span>{users.length}</span></button>)}</div>}
+          {!m.retracted && !m.hidden && (visibleReactions(m, me.id).length > 0 || m.reactionsHasMore) && <div className="message-reactions" aria-label="消息表情回应">{visibleReactions(m, me.id).map(s => <button key={s.emoji} aria-label={`${s.emoji}，${s.count} 位回应${s.selected ? '，再次点击取消我的回应' : ''}`} aria-pressed={s.selected} disabled={!client.capabilities.reactions || reactionBusy || reactionUncertain} onClick={() => { void react(m, s.emoji); }}><EmojiIcon client={client} id={s.emoji} /><span>{s.count}</span></button>)}{m.reactionsHasMore && client.reactionSummaries && <button onClick={() => setReactionListId(m.id)}>查看全部回应</button>}</div>}
         </div></div>)}
       </MessageActions>
-    </div><div className="composer"><div className="composer-tools"><button className="icon-button" disabled={!client.capabilities.mentions} title="@ 人或 Agent" onClick={() => { setAgentOnly(false); setMentionOpen(!mentionOpen); }}><AtSign size={21} /></button><button className="icon-button agent-entry" disabled={!client.capabilities.mentions} title="Agent 超级入口" onClick={() => { setAgentOnly(true); setMentionOpen(!mentionOpen || !agentOnly); }}><Sparkles size={21} /></button><span className="composer-hint">Enter 发送 · Shift + Enter 换行</span></div>
+    </div><div className="composer"><div className="composer-tools"><button className="icon-button" disabled={!client.capabilities.mentions} title="@ 人或 Agent" onClick={() => { setAgentOnly(false); setMentionOpen(!mentionOpen); }}><AtSign size={21} /></button><button className="icon-button agent-entry" disabled={!client.capabilities.mentions} title={client.capabilities.mentions ? 'Agent 超级入口' : '当前服务尚未开放会话成员，Agent 入口未接入'} onClick={() => { setAgentOnly(true); setMentionOpen(!mentionOpen || !agentOnly); }}><Sparkles size={21} /></button><span className="composer-hint">Enter 发送 · Shift + Enter 换行</span></div>
       {mentionOpen && <div className="mention-panel"><header><strong>{agentOnly ? '选择 Agent 同事' : '@ 人或 Agent'}</strong><button className="icon-button" onClick={() => setMentionOpen(false)} aria-label="关闭"><X size={16} /></button></header>{members.isPending ? <p>正在读取成员…</p> : candidates.length ? candidates.map(p => <button key={p.id} onClick={() => addMention(p)}><Avatar name={label(p)} agent={p.kind === 'agent'} small /><span>{label(p)}</span><small>{p.kind === 'agent' ? 'Agent' : '人'}</small></button>) : <p>当前会话没有符合条件的成员</p>}<Status error={members.error} /></div>}
       {replyId && <div className="composer-reply" aria-label="正在回复"><span>{replyUnavailable ? '原消息已不可用于回复，请取消引用或刷新确认' : `回复 ${reply?.authorName || reply?.authorId}：${messagePreview(reply)}`}</span><button disabled={sending} aria-label="取消回复" onClick={() => setReplyId(undefined)}><X size={16} /></button></div>}
-      {Boolean(actionError) && <div className="reaction-status"><Status error={actionError} />{reactionUncertain && <><span>反应结果待确认，请先刷新</span><button disabled={query.isFetching} onClick={() => { void refreshMessages(); }}>刷新确认</button></>}</div>}
-      <textarea ref={input} aria-label="消息内容" placeholder={room.stopped ? '此群的执行范围已暂停' : `发送给 ${room.title}`} value={draft} disabled={sending || room.stopped} onChange={e => setDraft(e.target.value)} onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !composing.current && e.keyCode !== 229) { e.preventDefault(); void send(); } }} />
+      {Boolean(actionError) && <div className="reaction-status"><Status error={actionError} />{reactionUncertain && <><span>{client.mode === 'startup' ? '回应结果待确认，将使用原动作核对' : '反应结果待确认，请先刷新'}</span><button disabled={reactionBusy || query.isFetching} onClick={() => { void (client.mode === 'startup' ? reconcileReaction() : refreshMessages()); }}>{client.mode === 'startup' ? '核对原动作' : '刷新确认'}</button></>}</div>}
+      <textarea ref={input} aria-label="消息内容" placeholder={room.stopped ? agentStopped ? 'Agent 执行已暂停' : 'Agent 执行已暂停，人类同事仍可沟通' : `发送给 ${room.title}`} value={draft} disabled={sending || agentStopped} onChange={e => setDraft(e.target.value)} onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !composing.current && e.keyCode !== 229) { e.preventDefault(); void send(); } }} />
       {mentionIds.length > 0 && <div className="mention-chips">{mentionIds.map(id => <button key={id} onClick={() => setMentionIds(ids => ids.filter(p => p !== id))}>@{members.data?.find(p => p.id === id)?.displayName || id}<X size={12} /></button>)}</div>}
-      <div className="composer-footer"><Status error={sendError} /><button className="send-button" disabled={!draft.trim() || sending || room.stopped || replyUnavailable || query.isError} onClick={() => { void send(); }}><Send size={16} />{sending ? '发送中' : sendError ? '重试发送' : '发送'}</button></div>
-    </div></>;
+      <div className="composer-footer"><Status error={sendError} /><button className="send-button" disabled={!draft.trim() || sending || agentStopped || replyUnavailable || query.isError} onClick={() => { void send(); }}><Send size={16} />{sending ? '发送中' : sendError ? '重试发送' : '发送'}</button></div>
+    </div>{reactionListId && client.reactionSummaries && <ReactionList client={client} roomId={room.id} messageId={reactionListId} disabled={reactionBusy || reactionUncertain} onSelect={summary => { const message = messages.find(m => m.id === reactionListId); if (message) { setReactionListId(undefined); void react(message, summary.emoji, !summary.selected); } }} onClose={() => setReactionListId(undefined)} />}</>;
 }
 
 function Directory({ client, onOpen }: { client: CollaborationClient; onOpen: (id: string) => void }) {

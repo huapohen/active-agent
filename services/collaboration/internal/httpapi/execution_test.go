@@ -106,6 +106,7 @@ func TestMachineRoutesRequireServerRunAndInheritedStopScope(t *testing.T) {
 	require.Equal(t, 403, code)
 	_, err = s.SetStopped(ctx, owner.ID, source.ID, "machine-stop-source", 1, true)
 	require.NoError(t, err)
+	delete(action, "room_id") // room_id is the REST path, never a caller override in the strict body.
 	action["action_id"] = harness.StableID(child.Context.RunID, "after-source-stop")
 	code, data = request(t, h, "mt_fixture", "POST", "/v1/rooms/"+target.ID+"/messages", action)
 	require.Equal(t, 409, code)

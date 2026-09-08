@@ -10,17 +10,21 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
 const gatewayProtocol = "renji-harness-v1"
 
 type HTTPGateway struct {
-	base      string
-	token     string
-	principal string
-	executor  string
-	client    *http.Client
+	base             string
+	token            string
+	principal        string
+	executor         string
+	client           *http.Client
+	capabilitiesMu   sync.RWMutex
+	actionTypes      []string
+	readCapabilities []string
 }
 
 func safeEndpoint(raw string) (string, error) {
@@ -55,13 +59,19 @@ func NewHTTPGateway(endpoint, token, principal, executor string) (*HTTPGateway, 
 // assert implemented server contracts, not values the client can self-grant.
 // An unimplemented route or human session credential cannot silently enable it.
 func (g *HTTPGateway) VerifyBinding(ctx context.Context) error {
+	g.capabilitiesMu.Lock()
+	g.actionTypes = nil
+	g.readCapabilities = nil
+	g.capabilitiesMu.Unlock()
 	var binding struct {
-		Protocol            string `json:"protocol"`
-		PrincipalID         string `json:"principal_id"`
-		ExecutorID          string `json:"executor_id"`
-		ServerBound         bool   `json:"server_bound"`
-		ActionsIdempotent   bool   `json:"actions_idempotent"`
-		ScopeEpochsEnforced bool   `json:"scope_epochs_enforced"`
+		Protocol            string          `json:"protocol"`
+		PrincipalID         string          `json:"principal_id"`
+		ExecutorID          string          `json:"executor_id"`
+		ServerBound         bool            `json:"server_bound"`
+		ActionsIdempotent   bool            `json:"actions_idempotent"`
+		ScopeEpochsEnforced bool            `json:"scope_epochs_enforced"`
+		ActionTypes         json.RawMessage `json:"action_types"`
+		ReadCapabilities    []string        `json:"read_capabilities"`
 	}
 	if err := g.post(ctx, "/internal/harness/binding", map[string]string{"principal_id": g.principal, "executor_id": g.executor}, &binding); err != nil {
 		return err
@@ -69,7 +79,55 @@ func (g *HTTPGateway) VerifyBinding(ctx context.Context) error {
 	if binding.Protocol != gatewayProtocol || binding.PrincipalID != g.principal || binding.ExecutorID != g.executor || !binding.ServerBound || !binding.ActionsIdempotent || !binding.ScopeEpochsEnforced {
 		return ErrDenied
 	}
+	// Missing action_types means the original v1 server contract only. New
+	// capabilities must be explicit; old histories and message-only fixtures work.
+	actions := []string{"message.send"}
+	if len(binding.ActionTypes) > 0 {
+		if json.Unmarshal(binding.ActionTypes, &actions) != nil {
+			return ErrDenied
+		}
+	}
+	if len(actions) == 0 || len(actions) > 64 || len(binding.ReadCapabilities) > 64 {
+		return ErrDenied
+	}
+	seen := map[string]bool{}
+	for _, name := range actions {
+		if name == "" || len(name) > 128 || seen[name] {
+			return ErrDenied
+		}
+		seen[name] = true
+	}
+	seen = map[string]bool{}
+	for _, name := range binding.ReadCapabilities {
+		if name == "" || len(name) > 128 || seen[name] {
+			return ErrDenied
+		}
+		seen[name] = true
+	}
+	g.capabilitiesMu.Lock()
+	g.actionTypes = actions
+	g.readCapabilities = append([]string(nil), binding.ReadCapabilities...)
+	g.capabilitiesMu.Unlock()
 	return nil
+}
+
+func (g *HTTPGateway) AllowedActionTypes() []string {
+	g.capabilitiesMu.RLock()
+	defer g.capabilitiesMu.RUnlock()
+	return append([]string(nil), g.actionTypes...)
+}
+func (g *HTTPGateway) NativeReadCapabilities() []string {
+	g.capabilitiesMu.RLock()
+	defer g.capabilitiesMu.RUnlock()
+	return append([]string(nil), g.readCapabilities...)
+}
+func (g *HTTPGateway) supportsNativeRead(name string) bool {
+	for _, capability := range g.NativeReadCapabilities() {
+		if capability == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *HTTPGateway) bound(r RunContext) error {
