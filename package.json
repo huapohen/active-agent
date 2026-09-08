@@ -1,0 +1,14 @@
+{
+  "name": "renji-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/web", "apps/desktop"],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @renji/web",
+    "dev:desktop": "npm run dev --workspace @renji/desktop",
+    "build:web": "npm run build --workspace @renji/web",
+    "test:clients": "npm run test --workspace @renji/web && npm run test --workspace @renji/desktop",
+    "check:clients": "npm run check --workspace @renji/web && npm run check --workspace @renji/desktop"
+  },
+  "engines": {"node": ">=24.15.0"}
+}

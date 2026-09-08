@@ -1,0 +1,13 @@
+{
+  "name": "@renji/desktop", "private": true, "version": "0.1.0", "type": "module", "main": "src/main.cjs",
+  "scripts": {
+    "dev": "node scripts/launch.cjs",
+    "check": "node --check src/main.cjs && node --check src/preload.cjs && node --check src/security.cjs",
+    "test": "node --test test/*.test.cjs",
+    "prepare:preload": "node scripts/build-preload.cjs"
+  },
+  "dependencies": {
+    "@rongcloud/engine": "5.46.0", "@rongcloud/electron": "5.46.0", "@rongcloud/electron-renderer": "5.46.0"
+  },
+  "devDependencies": {"electron": "44.2.0", "esbuild": "0.27.4"}
+}
