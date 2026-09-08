@@ -75,13 +75,55 @@ class CalendarFixture extends OfficeState {
   final created = <Json>[];
   final updated = <Json>[];
   final responses = <String>[];
+  final cancellations = <Json>[];
+  final rangeLoads = <Json>[];
+  @override
+  Future<void> loadCalendarOccurrences({
+    required DateTime from,
+    required DateTime to,
+    String timezone = 'Asia/Shanghai',
+    bool append = false,
+    bool force = false,
+  }) async {
+    rangeLoads.add({
+      'from': from,
+      'to': to,
+      'timezone': timezone,
+      'append': append,
+      'force': force,
+    });
+  }
+
+  @override
+  Future<Json> calendarEventDetail(String id, {String? occurrenceId}) async =>
+      Map<String, dynamic>.from(
+        calendarEvents.firstWhere((e) => e['id'] == id),
+      );
+  @override
+  Future<void> cancelCalendarEvent(
+    Json event, {
+    required String scope,
+    String? occurrenceId,
+  }) async {
+    cancellations.add({
+      'id': event['id'],
+      'scope': scope,
+      'occurrence_id': occurrenceId,
+    });
+  }
+
   Completer<Json>? pending;
   void changed() => notifyListeners();
   @override
   Future<Json> createCalendarEvent({
     required String title,
-    required String startsAt,
-    required String endsAt,
+    String? startsAt,
+    String? endsAt,
+    bool allDay = false,
+    String timezone = 'UTC',
+    String? startDate,
+    String? endDate,
+    Json? recurrence,
     String description = '',
     String location = '',
     List<String> attendeeIds = const [],
@@ -90,6 +132,11 @@ class CalendarFixture extends OfficeState {
     created.add({
       'room_id': roomId,
       'title': title,
+      'all_day': allDay,
+      'timezone': timezone,
+      'start_date': startDate,
+      'end_date': endDate,
+      'recurrence': recurrence,
       'starts_at': startsAt,
       'ends_at': endsAt,
       'description': description,
@@ -100,16 +147,31 @@ class CalendarFixture extends OfficeState {
   }
 
   @override
-  Future<void> updateCalendarEvent(Json event, Json changes) async {
+  Future<void> updateCalendarEvent(
+    Json event,
+    Json changes, {
+    String? scope,
+    String? occurrenceId,
+    bool resetExceptions = false,
+  }) async {
     updated.add({
       ...changes,
+      'scope': scope,
+      'occurrence_id': occurrenceId,
+      'reset_exceptions': resetExceptions,
       'id': event['id'],
       'base_revision': event['revision'],
     });
   }
 
   @override
-  Future<void> respondCalendarEvent(String id, String response) async {
+  Future<void> respondCalendarEvent(
+    String id,
+    String response, {
+    Json? event,
+    String? scope,
+    String? occurrenceId,
+  }) async {
     responses.add('$id:$response');
   }
 }
@@ -650,7 +712,7 @@ void main() {
         expect(field.decoration!.hintStyle!.fontSize, 17);
         expect(field.decoration!.filled, isFalse);
       }
-      expect(find.textContaining('本机时区 · GMT'), findsOneWidget);
+      expect(find.textContaining('中国标准时间 · Asia/Shanghai'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

@@ -86,6 +86,13 @@ class OfficeState extends ChangeNotifier {
       searchResults = [];
   List<Json> allDocuments = [], allTasks = [], libraryRooms = [];
   List<Json> meetings = [], calendarEvents = [], apps = [];
+  // Masters remain separate from the bounded, server-expanded visible window.
+  List<Json>? calendarOccurrences;
+  List<Json> get calendarViewEvents => calendarOccurrences ?? calendarEvents;
+  bool calendarOccurrencesLoading = false, calendarOccurrencesTruncated = false;
+  String? calendarOccurrencesError, calendarNextCursor;
+  ({String from, String to, String timezone})? _calendarWindow;
+  int _calendarRead = 0;
   List<String> appFavorites = [], appRecents = [];
   Future<void> _workbenchQueue = Future<void>.value();
   int _workbenchPending = 0, _workbenchChange = 0, _workbenchRead = 0;
@@ -212,6 +219,18 @@ class OfficeState extends ChangeNotifier {
             'attendance_conflict': '考勤记录已变化，请核对后重新申请补卡',
             'meeting_ended': '会议已结束',
             'meeting_full': '这场会议已达到人数上限',
+            'meeting_schedule_mode_unsupported':
+                '关联视频会议的日程暂不支持全天、重复或取消，请先处理原会议',
+            'exceptions_reset_required': '这个系列已有单次调整，请确认是否清除这些调整后再修改重复规则',
+            'occurrence_not_found': '这次日程已取消或重复规则已改变，请刷新日历',
+            'calendar_cursor_stale': '日历内容已变化，请重新加载当前日期范围',
+            'stale_cursor': '日历内容已变化，请重新加载当前日期范围',
+            'stale_occurrence': '重复规则已改变，请刷新后重新打开这次日程',
+            'event_cancelled': '这条日程已取消，请刷新日历',
+            'invalid_recurrence': '重复规则、开始日期或截止条件不匹配，请检查后重试',
+            'invalid_timezone': '时区无效，请重新选择日程时区',
+            'invalid_date': '日期范围无效，请检查开始和结束日期',
+            'invalid_datetime': '所选日期或时间无效，请检查时区及起止时间',
             'session_expired': '会议连接已失效，请重新加入',
             'attachment_unavailable': '文件已被删除或其消息已撤回',
             'already_sent': '这封邮件已经发送',
@@ -286,6 +305,7 @@ class OfficeState extends ChangeNotifier {
         meetings = [];
       case 'calendar':
         calendarEvents = [];
+        _resetCalendarWindow();
       case 'attendance':
         attendanceRecords = [];
         currentAttendance = {};
@@ -405,6 +425,7 @@ class OfficeState extends ChangeNotifier {
     libraryRooms = [];
     meetings = [];
     calendarEvents = [];
+    _resetCalendarWindow();
     apps = [];
     appFavorites = [];
     appRecents = [];
@@ -470,6 +491,7 @@ class OfficeState extends ChangeNotifier {
       _resetMessageWindow();
     }
     _notify();
+    await _refreshCalendarWindow();
   }
 
   void _resetMessageWindow() {
@@ -2204,6 +2226,126 @@ class OfficeState extends ChangeNotifier {
     meetings = _list(results[0]['meetings']);
     calendarEvents = _list(results[1]['events']);
     _notify();
+    await _refreshCalendarWindow();
+  }
+
+  void _resetCalendarWindow() {
+    _calendarRead++;
+    _calendarWindow = null;
+    calendarOccurrences = null;
+    calendarOccurrencesLoading = false;
+    calendarOccurrencesTruncated = false;
+    calendarOccurrencesError = null;
+    calendarNextCursor = null;
+  }
+
+  Future<void> _refreshCalendarWindow() async {
+    final window = _calendarWindow;
+    if (window == null) return;
+    await loadCalendarOccurrences(
+      from: DateTime.parse(window.from),
+      to: DateTime.parse(window.to),
+      timezone: window.timezone,
+      force: true,
+    );
+  }
+
+  Future<void> loadCalendarOccurrences({
+    required DateTime from,
+    required DateTime to,
+    String timezone = 'Asia/Shanghai',
+    bool append = false,
+    bool force = false,
+  }) async {
+    if (!to.isAfter(from) || to.difference(from) > const Duration(days: 366)) {
+      throw OfficeException(422, '请选择不超过 366 天的有效日历范围');
+    }
+    final window = (
+      from: from.toUtc().toIso8601String(),
+      to: to.toUtc().toIso8601String(),
+      timezone: timezone,
+    );
+    if (append &&
+        (_calendarWindow != window ||
+            calendarNextCursor == null ||
+            calendarOccurrencesLoading)) {
+      return;
+    }
+    if (!append &&
+        !force &&
+        _calendarWindow == window &&
+        (calendarOccurrencesLoading ||
+            (calendarOccurrences != null &&
+                calendarOccurrencesError == null))) {
+      return;
+    }
+    final identity = _identity, read = ++_calendarRead;
+    final changedWindow = _calendarWindow != window;
+    final cursor = append ? calendarNextCursor : null;
+    final preceding = append ? [...?calendarOccurrences] : <Json>[];
+    _calendarWindow = window;
+    if (!append) {
+      if (changedWindow || calendarOccurrences == null) {
+        calendarOccurrences = [];
+      }
+      calendarNextCursor = null;
+      calendarOccurrencesTruncated = false;
+    }
+    calendarOccurrencesLoading = true;
+    calendarOccurrencesError = null;
+    _notify();
+    bool current() =>
+        !_disposed &&
+        identity == _identity &&
+        read == _calendarRead &&
+        _calendarWindow == window;
+    try {
+      final query = Uri(
+        queryParameters: {
+          'from': window.from,
+          'to': window.to,
+          'timezone': timezone,
+          'limit': '500',
+          'cursor': ?cursor,
+        },
+      ).query;
+      final result = await _backgroundRequest(
+        '/calendar/occurrences?$query',
+        plugin: 'calendar',
+      );
+      if (!current()) return;
+      if (result['occurrences'] is! List) {
+        throw OfficeException(502, '服务没有返回日历实例，请确认日历服务已升级');
+      }
+      final page = _list(result['occurrences']);
+      final merged = <String, Json>{};
+      for (final item in [...preceding, ...page]) {
+        final key = item['occurrence_id'];
+        if (key is! String || key.isEmpty) {
+          throw OfficeException(502, '日历实例缺少稳定标识，请刷新后重试');
+        }
+        merged[key] = item;
+      }
+      final next = result['next_cursor'];
+      if (next != null && (next is! String || next.isEmpty || next == cursor)) {
+        throw OfficeException(502, '日历分页状态无效，请重新加载');
+      }
+      calendarOccurrences = merged.values.toList();
+      calendarNextCursor = next as String?;
+      calendarOccurrencesTruncated = result['truncated'] == true;
+    } catch (e) {
+      if (!current()) return;
+      // A failed authorization or invalid page must never retain stale events.
+      calendarOccurrences = [];
+      calendarNextCursor = null;
+      calendarOccurrencesTruncated = false;
+      calendarOccurrencesError = e.toString();
+    } finally {
+      if (current()) {
+        calendarOccurrencesLoading = false;
+        _notify();
+      }
+    }
   }
 
   Future<Json> _createOfficeItem(String route, Json body, String key) async {
@@ -2217,8 +2359,13 @@ class OfficeState extends ChangeNotifier {
     );
     _requireIdentity(identity);
     _outbox.remove(intent);
+    final calendarRead = route.endsWith('/calendar') ? ++_calendarRead : null;
     await _updated();
     _requireIdentity(identity);
+    if (calendarRead != null && _calendarRead == calendarRead) {
+      await _refreshCalendarWindow();
+      _requireIdentity(identity);
+    }
     return Json.from(result[key]);
   }
 
@@ -2257,37 +2404,142 @@ class OfficeState extends ChangeNotifier {
 
   Future<Json> createCalendarEvent({
     required String title,
-    required String startsAt,
-    required String endsAt,
+    String? startsAt,
+    String? endsAt,
+    bool allDay = false,
+    String timezone = 'UTC',
+    String? startDate,
+    String? endDate,
+    Json? recurrence,
     String description = '',
     String location = '',
     List<String> attendeeIds = const [],
     String? roomId,
   }) => _createOfficeItem(_businessRoom(roomId, '/calendar'), {
     'title': title,
-    'starts_at': startsAt,
-    'ends_at': endsAt,
+    'starts_at': ?startsAt,
+    'ends_at': ?endsAt,
+    'all_day': allDay,
+    'timezone': timezone,
+    'start_date': ?startDate,
+    'end_date': ?endDate,
+    'recurrence': recurrence,
     'description': description,
     'location': location,
     'attendee_ids': attendeeIds,
   }, 'event');
-  Future<void> updateCalendarEvent(Json event, Json changes) async {
-    await _request(
-      '/calendar/${event['id']}',
-      method: 'PATCH',
-      data: {...changes, 'base_revision': event['revision']},
+  Future<Json> calendarEventDetail(String id, {String? occurrenceId}) async {
+    final query = occurrenceId == null
+        ? ''
+        : '?${Uri(queryParameters: {'occurrence_id': occurrenceId}).query}';
+    final identity = _identity;
+    final calendarRead = _calendarRead;
+    final visibleRooms = rooms.map((room) => room['id']).toSet();
+    final result = await officeRequest(
+      '/calendar/${Uri.encodeComponent(id)}$query',
     );
-    await _updated();
+    _requireIdentity(identity);
+    if (calendarRead != _calendarRead || !moduleAvailable('calendar')) {
+      throw OfficeException(409, '日历访问状态已改变，请重新打开日程');
+    }
+    if (result['event'] is! Map) {
+      throw OfficeException(502, '服务没有返回日程详情，请刷新后重试');
+    }
+    final event = Json.from(result['event']);
+    if (event['id'] != id) {
+      throw OfficeException(502, '服务返回的日程身份不匹配');
+    }
+    if (visibleRooms.contains(event['room_id']) &&
+        !rooms.any((room) => room['id'] == event['room_id'])) {
+      throw OfficeException(403, '你已离开日程所属会话');
+    }
+    final master = result['series'] is Map
+        ? Json.from(result['series'])
+        : event['occurrence_id'] == null
+        ? event
+        : null;
+    if (master != null && master['id'] == id) {
+      final index = calendarEvents.indexWhere((e) => e['id'] == id);
+      if (index >= 0) {
+        final previous = (calendarEvents[index]['revision'] as num?) ?? 0;
+        if (((master['revision'] as num?) ?? 0) < previous) {
+          throw OfficeException(409, '日程详情已更新，请重新打开');
+        }
+        calendarEvents[index] = master;
+      } else {
+        calendarEvents.add(master);
+      }
+      _notify();
+    }
+    return event;
   }
 
-  Future<void> respondCalendarEvent(String id, String response) async {
+  Future<void> _mutateCalendar(String route, String method, Json body) async {
+    final identity = _identity;
+    final intent = jsonEncode(['calendar', method, route, body]);
+    final clientId = _outbox.putIfAbsent(intent, newClientId);
     await _request(
-      '/calendar/${Uri.encodeComponent(id)}/respond',
-      method: 'POST',
-      data: {'response': response},
+      route,
+      method: method,
+      data: {...body, 'client_id': clientId},
     );
+    _requireIdentity(identity);
+    _outbox.remove(intent);
+    // Discard any old window read that began before the successful mutation.
+    final invalidatedRead = ++_calendarRead;
     await _updated();
+    _requireIdentity(identity);
+    // If the broader refresh failed before loading the calendar, still try to
+    // read the authoritative result of this successful write.
+    if (_calendarRead == invalidatedRead) await _refreshCalendarWindow();
   }
+
+  Future<void> updateCalendarEvent(
+    Json event,
+    Json changes, {
+    String? scope,
+    String? occurrenceId,
+    bool resetExceptions = false,
+  }) => _mutateCalendar(
+    '/calendar/${Uri.encodeComponent((event['event_id'] ?? event['id']).toString())}',
+    'PATCH',
+    {
+      ...changes,
+      'base_revision': event['base_revision'] ?? event['revision'],
+      'scope': ?scope,
+      'occurrence_id': ?occurrenceId,
+      if (resetExceptions) 'reset_exceptions': true,
+    },
+  );
+
+  Future<void> cancelCalendarEvent(
+    Json event, {
+    required String scope,
+    String? occurrenceId,
+  }) => _mutateCalendar(
+    '/calendar/${Uri.encodeComponent((event['event_id'] ?? event['id']).toString())}',
+    'DELETE',
+    {
+      'base_revision': event['base_revision'] ?? event['revision'],
+      'scope': scope,
+      'occurrence_id': ?occurrenceId,
+    },
+  );
+
+  Future<void> respondCalendarEvent(
+    String id,
+    String response, {
+    Json? event,
+    String? scope,
+    String? occurrenceId,
+  }) =>
+      _mutateCalendar('/calendar/${Uri.encodeComponent(id)}/respond', 'POST', {
+        'response': response,
+        if (event != null)
+          'base_revision': event['base_revision'] ?? event['revision'],
+        'scope': ?scope,
+        'occurrence_id': ?occurrenceId,
+      });
 
   void _acceptWorkbench(Json result) {
     apps = _list(result['apps']);

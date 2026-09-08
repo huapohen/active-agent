@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../office_state.dart' hide Json;
 import 'business_widgets.dart';
+import 'calendar_schedule.dart';
 import 'office_dialogs.dart';
 import 'office_theme.dart';
 
@@ -41,13 +42,73 @@ class OfficeCalendar extends StatefulWidget {
 class OfficeCalendarState extends State<OfficeCalendar> {
   Future<void> createEvent() => _edit();
   Future<void> openEvent(Json event) => _detail(event);
-  DateTime _selected = DateTime.now();
+  DateTime _selected = calendarWallTime(DateTime.now(), 'Asia/Shanghai');
   _CalendarView _view = _CalendarView.week;
   _CalendarView? _chosenView;
   bool _monthExpanded = false;
   final Set<String> _hiddenRooms = {};
   bool _onlyMine = false;
   String _calendarQuery = '';
+  String _timezone = 'Asia/Shanghai';
+  String? _loadedRange;
+  DateTime? _rangeFrom, _rangeTo;
+  Future<void> _reloadRange({bool append = false}) async {
+    if (_rangeFrom == null || _rangeTo == null) return;
+    await s.loadCalendarOccurrences(
+      from: calendarInstant(_rangeFrom!, _timezone),
+      to: calendarInstant(_rangeTo!, _timezone),
+      timezone: _timezone,
+      append: append,
+      force: !append,
+    );
+  }
+
+  String _eventKey(Json event) => str(event['occurrence_id'], str(event['id']));
+  Json? _currentEvent(Json original) =>
+      (original['occurrence_id'] == null
+              ? s.calendarEvents
+              : s.calendarViewEvents)
+          .where((e) => _eventKey(e) == _eventKey(original))
+          .firstOrNull;
+  void _ensureRange() {
+    final first = _view == _CalendarView.month
+        ? DateTime(_selected.year, _selected.month, 1)
+        : _view == _CalendarView.week
+        ? _sunday
+        : _day(_selected);
+    final from = _view == _CalendarView.month
+        ? DateTime(first.year, first.month, first.day - first.weekday % 7)
+        : first;
+    final to = DateTime(
+      from.year,
+      from.month,
+      from.day +
+          (_view == _CalendarView.month
+              ? 42
+              : _view == _CalendarView.week
+              ? 7
+              : _view == _CalendarView.threeDay
+              ? 3
+              : 1),
+    );
+    _rangeFrom = from;
+    _rangeTo = to;
+    final key =
+        '${s.identityGeneration}:${s.endpoint}:${personId(s.me ?? {})}:$from:$to:$_timezone';
+    if (_loadedRange == key) return;
+    _loadedRange = key;
+    final identity = _CalendarIdentity(s);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identity.current(s) && _loadedRange == key) {
+        s.loadCalendarOccurrences(
+          from: calendarInstant(from, _timezone),
+          to: calendarInstant(to, _timezone),
+          timezone: _timezone,
+        );
+      }
+    });
+  }
+
   double _hourHeight = 48;
   late final ScrollController _timelineScroll = ScrollController(
     initialScrollOffset: math.max(0, DateTime.now().hour - 5) * _hourHeight,
@@ -59,10 +120,21 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     _selected.month,
     _selected.day - _selected.weekday % 7,
   );
-  DateTime? _time(dynamic value) => DateTime.tryParse(str(value))?.toLocal();
-  List<Json> _onDay(DateTime day, {bool filtered = true}) =>
-      s.calendarEvents.where((e) {
-        final start = _time(e['starts_at']), end = _time(e['ends_at']);
+  DateTime? _time(dynamic value, {String? timezone}) {
+    final parsed = DateTime.tryParse(str(value));
+    return parsed == null
+        ? null
+        : calendarWallTime(parsed, timezone ?? _timezone);
+  }
+
+  List<Json> _onDay(DateTime day, {bool filtered = true, String? timezone}) =>
+      s.calendarViewEvents.where((e) {
+        final start = e['all_day'] == true
+            ? calendarParseDate(e['start_date'])
+            : _time(e['starts_at'], timezone: timezone);
+        final end = e['all_day'] == true
+            ? calendarParseDate(e['end_date'])
+            : _time(e['ends_at'], timezone: timezone);
         if (start == null || end == null || !end.isAfter(start)) return false;
         if (filtered && _hiddenRooms.contains(str(e['room_id']))) return false;
         if (filtered &&
@@ -110,7 +182,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
           );
   });
   void _today() {
-    final now = DateTime.now();
+    final now = calendarWallTime(DateTime.now(), _timezone);
     setState(() {
       _selected = now;
       _monthExpanded = false;
@@ -141,13 +213,19 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     );
   }
 
-  String _zoneLabel(DateTime time) {
-    final offset = time.timeZoneOffset;
-    final minutes = offset.inMinutes.abs();
-    final suffix = minutes % 60 == 0
-        ? ''
-        : ':${(minutes % 60).toString().padLeft(2, '0')}';
-    return 'GMT${offset.isNegative ? '-' : '+'}${minutes ~/ 60}$suffix';
+  String _zoneLabel(DateTime wall, String timezone) {
+    final civil = DateTime.utc(
+      wall.year,
+      wall.month,
+      wall.day,
+      wall.hour,
+      wall.minute,
+      wall.second,
+      wall.millisecond,
+      wall.microsecond,
+    );
+    final minutes = civil.difference(calendarInstant(wall, timezone)).inMinutes;
+    return 'GMT${minutes < 0 ? '-' : '+'}${minutes.abs() ~/ 60}${minutes.abs() % 60 == 0 ? '' : ':${(minutes.abs() % 60).toString().padLeft(2, '0')}'}';
   }
 
   @override
@@ -165,8 +243,8 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     final date = await showDatePicker(
       context: context,
       initialDate: value,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2040),
+      firstDate: DateTime(calendarPickerMinYear(value)),
+      lastDate: DateTime(calendarPickerMaxYear(value) + 1),
     );
     if (date == null || !context.mounted || !identity.current(s)) return null;
     final time = await showTimePicker(
@@ -311,7 +389,17 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     );
   }
 
-  Future<void> _edit([Json? event, DateTime? initial]) async {
+  Rect _calendarEntryRect(BuildContext context) {
+    final box = context.findRenderObject() as RenderBox;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Future<void> _edit([
+    Json? event,
+    DateTime? initial,
+    String? scope,
+    bool initialAllDay = false,
+  ]) async {
     final identity = _CalendarIdentity(s);
     final selectedRoom = s.selectedRoomId;
     final roomId =
@@ -328,16 +416,34 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     final title = TextEditingController(text: str(event?['title']));
     final note = TextEditingController(text: str(event?['description']));
     final location = TextEditingController(text: str(event?['location']));
-    var start =
-        _time(event?['starts_at']) ??
-        initial ??
-        DateTime(
-          _selected.year,
-          _selected.month,
-          _selected.day,
-          DateTime.now().hour + 1,
-        );
-    var end = _time(event?['ends_at']) ?? start.add(const Duration(hours: 1));
+    var zone = str(event?['timezone'], _timezone);
+    DateTime wall(dynamic value) =>
+        calendarWallTime(DateTime.parse(str(value)), zone);
+    var allDay = event == null ? initialAllDay : event['all_day'] == true;
+    var start = allDay
+        ? calendarParseDate(event?['start_date']) ??
+              calendarDay(initial ?? _selected)
+        : event?['starts_at'] != null
+        ? wall(event!['starts_at'])
+        : initial ??
+              DateTime(
+                _selected.year,
+                _selected.month,
+                _selected.day,
+                DateTime.now().hour + 1,
+              );
+    var end = allDay
+        ? calendarParseDate(event?['end_date']) ?? calendarDay(start, 1)
+        : event?['ends_at'] != null
+        ? wall(event!['ends_at'])
+        : start.add(const Duration(hours: 1));
+    final originalStart = start, originalEnd = end, originalZone = zone;
+    final originalAllDay = allDay;
+    Json? recurrence = event?['recurrence'] is Map
+        ? Map<String, dynamic>.from(event!['recurrence'])
+        : null;
+    var resetExceptions = false;
+    final meetingLinked = str(event?['meeting_id']).isNotEmpty;
     final previewScroll = ScrollController(
       initialScrollOffset: math.max(0, start.hour - 2) * 48.0,
     );
@@ -352,7 +458,13 @@ class OfficeCalendarState extends State<OfficeCalendar> {
         identity.current(s) &&
         _roomCurrent(roomId) &&
         (event == null ||
-            s.calendarEvents.any((e) => e['id'] == event['id'] && _canEdit(e)));
+            [
+                  ...s.calendarEvents,
+                  ...s.calendarViewEvents,
+                ].any((e) => e['id'] == event['id'] && _canEdit(e)) &&
+                (event['occurrence_id'] == null ||
+                    scope == 'series' ||
+                    _currentEvent(event) != null));
     late final DialogRoute<void> route;
     route = DialogRoute<void>(
       context: context,
@@ -376,22 +488,63 @@ class OfficeCalendarState extends State<OfficeCalendar> {
             }
             Future<void> chooseDate(bool beginning) async {
               if (busy || !current()) return;
-              final value = await _pickDateTime(
-                context,
-                beginning ? start : end,
-                identity,
-              );
-              if (value == null || !context.mounted || !current()) return;
-              change(() {
-                if (beginning) {
-                  start = value;
-                  if (!end.isAfter(start)) {
-                    end = start.add(const Duration(hours: 1));
+              if (mobile) {
+                final selected = await showCalendarTimePage(
+                  context,
+                  schedule: CalendarSchedule(
+                    start: start,
+                    end: end,
+                    allDay: allDay,
+                    timezone: zone,
+                  ),
+                  valid: current,
+                  identity: s,
+                  beginning: beginning,
+                  allowAllDay: !meetingLinked,
+                );
+                if (selected == null || !context.mounted || !current()) return;
+                change(() {
+                  start = selected.start;
+                  end = selected.end;
+                  allDay = selected.allDay;
+                  zone = selected.timezone;
+                });
+              } else {
+                final value = allDay
+                    ? await showDatePicker(
+                        context: context,
+                        initialDate: beginning ? start : calendarDay(end, -1),
+                        firstDate: DateTime(
+                          calendarPickerMinYear(
+                            beginning ? start : calendarDay(end, -1),
+                          ),
+                        ),
+                        lastDate: DateTime(
+                          calendarPickerMaxYear(
+                                beginning ? start : calendarDay(end, -1),
+                              ) +
+                              1,
+                        ),
+                      )
+                    : await _pickDateTime(
+                        context,
+                        beginning ? start : end,
+                        identity,
+                      );
+                if (value == null || !context.mounted || !current()) return;
+                change(() {
+                  if (beginning) {
+                    start = value;
+                    if (!end.isAfter(start)) {
+                      end = allDay
+                          ? calendarDay(start, 1)
+                          : start.add(const Duration(hours: 1));
+                    }
+                  } else {
+                    end = allDay ? calendarDay(value, 1) : value;
                   }
-                } else {
-                  end = value;
-                }
-              });
+                });
+              }
               if (beginning) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!context.mounted ||
@@ -432,27 +585,59 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                 error = null;
               });
               try {
+                final fields = CalendarSchedule(
+                  start: start,
+                  end: end,
+                  allDay: allDay,
+                  timezone: zone,
+                ).toFields();
+                // Keep the original instant when its wall clock was not edited.
+                // A pre-existing repeated DST hour may deliberately use its later offset.
+                if (event != null &&
+                    !allDay &&
+                    !originalAllDay &&
+                    zone == originalZone) {
+                  if (start == originalStart) {
+                    fields['starts_at'] = event['starts_at'];
+                  }
+                  if (end == originalEnd) fields['ends_at'] = event['ends_at'];
+                }
                 if (event == null) {
                   await s.createCalendarEvent(
                     roomId: roomId,
                     title: title.text.trim(),
-                    startsAt: start.toUtc().toIso8601String(),
-                    endsAt: end.toUtc().toIso8601String(),
+                    startsAt: fields['starts_at'],
+                    endsAt: fields['ends_at'],
+                    allDay: allDay,
+                    timezone: zone,
+                    startDate: fields['start_date'],
+                    endDate: fields['end_date'],
+                    recurrence: recurrence,
                     description: note.text,
                     location: location.text,
                     attendeeIds: attendees.toList(),
                   );
                 } else {
-                  await s.updateCalendarEvent(event, {
-                    'title': title.text.trim(),
-                    'starts_at': start.toUtc().toIso8601String(),
-                    'ends_at': end.toUtc().toIso8601String(),
-                    'description': note.text,
-                    'location': location.text,
-                    'attendee_ids': attendees.toList(),
-                  });
+                  await s.updateCalendarEvent(
+                    event,
+                    {
+                      'title': title.text.trim(),
+                      ...fields,
+                      if (scope != 'occurrence') 'recurrence': recurrence,
+                      'description': note.text,
+                      'location': location.text,
+                      'attendee_ids': attendees.toList(),
+                    },
+                    scope: scope ?? 'series',
+                    occurrenceId: scope == 'occurrence'
+                        ? str(event['occurrence_id'])
+                        : null,
+                    resetExceptions: resetExceptions,
+                  );
                 }
-                if (dialogContext.mounted && current() && route.isCurrent) {
+                if (dialogContext.mounted &&
+                    identity.current(s) &&
+                    route.isCurrent) {
                   Navigator.pop(dialogContext);
                 }
               } catch (e) {
@@ -584,6 +769,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                           '开始时间',
                           start,
                           busy ? null : () => chooseDate(true),
+                          allDay: allDay,
                         ),
                       ),
                       const Padding(
@@ -597,8 +783,9 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                       Expanded(
                         child: _mobileTimeField(
                           '结束时间',
-                          end,
+                          allDay ? calendarDay(end, -1) : end,
                           busy ? null : () => chooseDate(false),
+                          allDay: allDay,
                         ),
                       ),
                     ],
@@ -606,7 +793,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                 else ...[
                   _dateField(
                     '开始',
-                    _fullTime(start),
+                    allDay ? calendarDateLabel(start) : _fullTime(start),
                     () => chooseDate(true),
                     mobile: false,
                     enabled: !busy,
@@ -614,20 +801,162 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                   const SizedBox(height: 8),
                   _dateField(
                     '结束',
-                    _fullTime(end),
+                    allDay
+                        ? calendarDateLabel(calendarDay(end, -1))
+                        : _fullTime(end),
                     () => chooseDate(false),
                     mobile: false,
                     enabled: !busy,
                   ),
                 ],
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.only(left: 32),
-                  child: Text(
-                    '本机时区 · ${_zoneLabel(start)}',
-                    style: const TextStyle(fontSize: 12, color: mutedColor),
+                if (!mobile)
+                  CheckboxListTile(
+                    key: const ValueKey('calendar-all-day'),
+                    dense: true,
+                    contentPadding: const EdgeInsets.only(left: 24),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text('全天'),
+                    value: allDay,
+                    onChanged: busy || meetingLinked
+                        ? null
+                        : (v) => change(() {
+                            allDay = v!;
+                            start = allDay
+                                ? calendarDay(start)
+                                : calendarDay(start)
+                                      .add(const Duration(hours: 9));
+                            end = allDay
+                                ? calendarDay(
+                                    end,
+                                    end.hour == 0 && end.minute == 0 ? 0 : 1,
+                                  )
+                                : calendarDay(
+                                    end,
+                                    -1,
+                                  ).add(const Duration(hours: 10));
+                            if (!end.isAfter(start)) {
+                              end = allDay
+                                  ? calendarDay(start, 1)
+                                  : start.add(const Duration(hours: 1));
+                            }
+                          }),
+                  ),
+                ListTile(
+                  key: const ValueKey('calendar-timezone-entry'),
+                  dense: true,
+                  contentPadding: const EdgeInsets.only(left: 32),
+                  title: Text(
+                    '${calendarTimezones[zone] ?? zone} · $zone',
+                    style: const TextStyle(fontSize: 13, color: mutedColor),
+                  ),
+                  trailing: const Icon(Icons.expand_more, size: 18),
+                  onTap: busy
+                      ? null
+                      : () async {
+                          final selected = await chooseCalendarTimezone(
+                            context,
+                            current: zone,
+                            valid: current,
+                            identity: s,
+                          );
+                          if (selected != null &&
+                              context.mounted &&
+                              current()) {
+                            change(() => zone = selected);
+                          }
+                        },
+                ),
+                Builder(
+                  builder: (entryContext) => ListTile(
+                    key: const ValueKey('calendar-repeat-entry'),
+                    contentPadding: const EdgeInsets.only(left: 32),
+                    title: Text(
+                      calendarRepeatLabel(recurrence),
+                      style: TextStyle(fontSize: mobile ? 16 : 14),
+                    ),
+                    trailing: const Icon(Icons.expand_more, size: 18),
+                    onTap: busy || scope == 'occurrence' || meetingLinked
+                        ? null
+                        : () async {
+                            final selected = await showCalendarRepeatPicker(
+                              context,
+                              start: start,
+                              current: recurrence,
+                              valid: current,
+                              identity: s,
+                              anchor: _calendarEntryRect(entryContext),
+                            );
+                            if (selected != null &&
+                                context.mounted &&
+                                current()) {
+                              change(() => recurrence = selected.rule);
+                            }
+                          },
                   ),
                 ),
+                if (mobile && recurrence != null)
+                  ListTile(
+                    key: const ValueKey('calendar-repeat-end-entry'),
+                    contentPadding: const EdgeInsets.only(left: 32),
+                    title: Text(
+                      calendarRepeatEndLabel(recurrence!),
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, size: 18),
+                    onTap: busy || scope == 'occurrence' || meetingLinked
+                        ? null
+                        : () async {
+                            final result = await showCalendarRepeatEndPage(
+                              context,
+                              start: start,
+                              rule: recurrence!,
+                              valid: current,
+                              identity: s,
+                            );
+                            if (result != null &&
+                                context.mounted &&
+                                current()) {
+                              change(() => recurrence = result.rule);
+                            }
+                          },
+                  ),
+                if (meetingLinked)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 32),
+                    child: Text(
+                      '关联会议日程仅支持定时安排；会议结束请进入会议管理。',
+                      style: TextStyle(fontSize: 12, color: mutedColor),
+                    ),
+                  ),
+                if (scope == 'occurrence')
+                  const Padding(
+                    padding: EdgeInsets.only(left: 32),
+                    child: Text(
+                      '本次日程 · 重复规则仅能在整个系列中修改',
+                      style: TextStyle(fontSize: 12, color: mutedColor),
+                    ),
+                  ),
+                if (event != null &&
+                    scope == 'series' &&
+                    (event['exception_count'] as num? ??
+                            (event['exceptions'] as Map?)?.length ??
+                            0) >
+                        0)
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text(
+                      '重设已单独修改的日程',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    subtitle: const Text(
+                      '修改系列规则时，如有例外日程，服务器会要求明确重设。',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: resetExceptions,
+                    onChanged: busy
+                        ? null
+                        : (v) => change(() => resetExceptions = v!),
+                  ),
                 const Divider(height: 35),
                 TextField(
                   controller: location,
@@ -764,6 +1093,8 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                             title.text,
                             event?['id'] as String?,
                             previewScroll,
+                            allDay: allDay,
+                            timezone: zone,
                           ),
                         ),
                       ],
@@ -819,13 +1150,33 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     location.dispose();
   }
 
+  Json? _draftFields(
+    DateTime start,
+    DateTime end,
+    bool allDay,
+    String timezone,
+  ) {
+    try {
+      return CalendarSchedule(
+        start: start,
+        end: end,
+        allDay: allDay,
+        timezone: timezone,
+      ).toFields();
+    } on FormatException {
+      return null;
+    }
+  }
+
   Widget _draftPreview(
     DateTime start,
     DateTime end,
     String title,
     String? editingId,
-    ScrollController scroll,
-  ) => Column(
+    ScrollController scroll, {
+    bool allDay = false,
+    String timezone = 'Asia/Shanghai',
+  }) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Padding(
@@ -842,18 +1193,20 @@ class OfficeCalendarState extends State<OfficeCalendar> {
           desktop: true,
           scrollController: scroll,
           allowEditing: false,
+          timezone: timezone,
           previewEvents: [
             ..._onDay(
               start,
               filtered: false,
+              timezone: timezone,
             ).where((e) => e['id'] != editingId),
-            if (end.isAfter(start))
+            if (end.isAfter(start) &&
+                _draftFields(start, end, allDay, timezone) != null)
               {
                 'id': 'draft-preview',
                 '_draft': true,
                 'title': title.isEmpty ? '未保存日程' : '草稿 · $title',
-                'starts_at': start.toUtc().toIso8601String(),
-                'ends_at': end.toUtc().toIso8601String(),
+                ..._draftFields(start, end, allDay, timezone)!,
               },
           ]..sort((a, b) => str(a['starts_at']).compareTo(str(b['starts_at']))),
         ),
@@ -864,8 +1217,12 @@ class OfficeCalendarState extends State<OfficeCalendar> {
   Widget _mobileTimeField(
     String label,
     DateTime time,
-    VoidCallback? onTap,
-  ) => Semantics(
+    VoidCallback? onTap, {
+    bool allDay = false,
+  }) => Semantics(
+    key: ValueKey(
+      label == '开始时间' ? 'calendar-start-time-entry' : 'calendar-end-time-entry',
+    ),
     label: label,
     button: true,
     child: InkWell(
@@ -876,7 +1233,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              officeHourMinute(time, context: context),
+              allDay ? '全天' : officeHourMinute(time, context: context),
               style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,
@@ -926,21 +1283,82 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     ),
   );
 
+  Future<String?> _chooseScope(
+    BuildContext context,
+    Json event,
+    String action,
+    bool Function() valid,
+  ) async {
+    if (event['recurrence'] == null) return 'series';
+    return showDialog<String>(
+      context: context,
+      builder: (dialog) => AnimatedBuilder(
+        animation: s,
+        builder: (_, _) => AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text(valid() ? '$action重复日程' : '日程已不可用'),
+          content: valid()
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (str(event['occurrence_id']).isNotEmpty)
+                      ListTile(
+                        key: const ValueKey('calendar-scope-occurrence'),
+                        title: const Text('仅本次日程'),
+                        onTap: () {
+                          if (valid()) Navigator.pop(dialog, 'occurrence');
+                        },
+                      ),
+                    ListTile(
+                      key: const ValueKey('calendar-scope-series'),
+                      title: const Text('整个系列'),
+                      onTap: () {
+                        if (valid()) Navigator.pop(dialog, 'series');
+                      },
+                    ),
+                  ],
+                )
+              : const Text('身份、成员关系或日程状态已改变。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog),
+              child: const Text('返回'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _detail(Json initial) async {
     final identity = _CalendarIdentity(s);
     var busy = false;
+    var cancelling = false;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AnimatedBuilder(
         animation: s,
         builder: (_, _) => StatefulBuilder(
           builder: (context, change) {
-            final event = identity.current(s)
-                ? s.calendarEvents
-                      .where((e) => e['id'] == initial['id'])
-                      .firstOrNull
-                : null;
-            if (event == null) {
+            final event = identity.current(s) ? _currentEvent(initial) : null;
+            bool valid() =>
+                mounted &&
+                identity.current(s) &&
+                _currentEvent(initial) != null &&
+                _roomCurrent(str(initial['room_id']));
+            if (event == null &&
+                cancelling &&
+                identity.current(s) &&
+                _roomCurrent(str(initial['room_id']))) {
+              return const AlertDialog(
+                title: Text('正在取消日程…'),
+                content: SizedBox(
+                  height: 48,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+            if (event == null || !valid()) {
               return AlertDialog(
                 title: const Text('日程已不可用'),
                 content: const Text('当前身份已改变，或日程已被移除。'),
@@ -959,11 +1377,157 @@ class OfficeCalendarState extends State<OfficeCalendar> {
             final responses = event['responses'] is Map
                 ? event['responses'] as Map
                 : {};
-            bool valid() =>
-                mounted &&
-                identity.current(s) &&
-                s.calendarEvents.any((e) => e['id'] == initial['id']);
+            Future<void> respond(String response) async {
+              if (busy ||
+                  !valid() ||
+                  !(event['attendee_ids'] as List? ?? []).contains(
+                    identity.principal,
+                  )) {
+                return;
+              }
+              final scope = await _chooseScope(context, event, '回应', valid);
+              if (scope == null ||
+                  !context.mounted ||
+                  !valid() ||
+                  !(_currentEvent(initial)?['attendee_ids'] as List? ?? [])
+                      .contains(identity.principal)) {
+                return;
+              }
+              change(() => busy = true);
+              try {
+                await s.respondCalendarEvent(
+                  str(event['id']),
+                  response,
+                  event: event,
+                  scope: scope,
+                  occurrenceId: scope == 'occurrence'
+                      ? str(event['occurrence_id'])
+                      : null,
+                );
+              } catch (e) {
+                if (context.mounted && valid()) {
+                  notifyOffice(context, friendlyError(e));
+                }
+              } finally {
+                if (context.mounted && valid()) change(() => busy = false);
+              }
+            }
+
+            Future<void> edit() async {
+              if (busy || !valid() || !_canEdit(event)) return;
+              final scope = await _chooseScope(context, event, '编辑', valid);
+              if (scope == null ||
+                  !context.mounted ||
+                  !valid() ||
+                  !_canEdit(_currentEvent(initial)!)) {
+                return;
+              }
+              Json target = event;
+              if (scope == 'series' && event['occurrence_id'] != null) {
+                change(() => busy = true);
+                try {
+                  target = await s.calendarEventDetail(str(event['id']));
+                } catch (e) {
+                  if (context.mounted && valid()) {
+                    change(() => busy = false);
+                    notifyOffice(context, friendlyError(e));
+                  }
+                  return;
+                }
+              }
+              if (!context.mounted ||
+                  !valid() ||
+                  !_canEdit(target) ||
+                  ModalRoute.of(dialogContext)?.isCurrent != true) {
+                return;
+              }
+              Navigator.pop(dialogContext);
+              await _edit(target, null, scope);
+            }
+
+            Future<void> cancel() async {
+              if (busy || !valid() || !_canEdit(event)) return;
+              final scope = await _chooseScope(context, event, '取消', valid);
+              if (scope == null ||
+                  !context.mounted ||
+                  !valid() ||
+                  !_canEdit(_currentEvent(initial)!)) {
+                return;
+              }
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (confirmation) => AnimatedBuilder(
+                  animation: s,
+                  builder: (_, _) => AlertDialog(
+                    title: Text(
+                      cancelling && identity.current(s)
+                          ? '正在取消日程…'
+                          : valid()
+                          ? '取消${scope == 'occurrence' ? '本次日程' : '日程'}？'
+                          : '日程已不可用',
+                    ),
+                    content: Text(
+                      cancelling && identity.current(s)
+                          ? '取消请求已提交。'
+                          : valid()
+                          ? scope == 'occurrence'
+                                ? '仅取消这一次，系列的其他日程保留。'
+                                : event['recurrence'] != null
+                                ? '整个系列及其单独修改的日程将被取消。'
+                                : '参与者将不再看到这条日程。'
+                          : '当前身份或日程状态已改变。',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(confirmation),
+                        child: const Text('返回'),
+                      ),
+                      FilledButton(
+                        onPressed: valid() && _canEdit(_currentEvent(initial)!)
+                            ? () => Navigator.pop(confirmation, true)
+                            : null,
+                        child: const Text('确认取消'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+              if (confirmed != true ||
+                  !context.mounted ||
+                  !valid() ||
+                  !_canEdit(_currentEvent(initial)!)) {
+                return;
+              }
+              change(() {
+                busy = true;
+                cancelling = true;
+              });
+              try {
+                await s.cancelCalendarEvent(
+                  event,
+                  scope: scope,
+                  occurrenceId: scope == 'occurrence'
+                      ? str(event['occurrence_id'])
+                      : null,
+                );
+                if (dialogContext.mounted &&
+                    identity.current(s) &&
+                    ModalRoute.of(dialogContext)?.isCurrent == true) {
+                  Navigator.pop(dialogContext);
+                }
+              } catch (e) {
+                if (context.mounted && identity.current(s)) {
+                  change(() {
+                    busy = false;
+                    cancelling = false;
+                  });
+                  notifyOffice(context, friendlyError(e));
+                }
+              }
+            }
+
             return AlertDialog(
+              backgroundColor: Colors.white,
               title: Text(
                 str(event['title']),
                 style: const TextStyle(fontSize: 21),
@@ -976,13 +1540,29 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${fullOfficeTime(event['starts_at'], context: context)}\n${fullOfficeTime(event['ends_at'], context: context)}',
+                        event['all_day'] == true
+                            ? calendarAllDayLabel(event)
+                            : '${_fullTime(_time(event['starts_at'], timezone: str(event['timezone'], _timezone))!)}\n${_fullTime(_time(event['ends_at'], timezone: str(event['timezone'], _timezone))!)}',
                         style: TextStyle(
                           fontSize: mobile ? 16 : 14,
                           height: 1.7,
                           color: accentColor,
                         ),
                       ),
+                      Text(
+                        str(event['timezone'], _timezone),
+                        style: const TextStyle(fontSize: 12, color: mutedColor),
+                      ),
+                      if (event['recurrence'] is Map)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            calendarRepeatLabel(
+                              Map<String, dynamic>.from(event['recurrence']),
+                            ),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
                       if (str(event['location']).isNotEmpty)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -1060,39 +1640,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                                       responses[identity.principal] == response,
                                   onSelected: busy
                                       ? null
-                                      : (_) async {
-                                          if (!valid() ||
-                                              !s.calendarEvents.any(
-                                                (e) =>
-                                                    e['id'] == event['id'] &&
-                                                    (e['attendee_ids']
-                                                                as List? ??
-                                                            [])
-                                                        .contains(
-                                                          identity.principal,
-                                                        ),
-                                              )) {
-                                            return;
-                                          }
-                                          change(() => busy = true);
-                                          try {
-                                            await s.respondCalendarEvent(
-                                              str(event['id']),
-                                              response,
-                                            );
-                                          } catch (e) {
-                                            if (context.mounted && valid()) {
-                                              notifyOffice(
-                                                context,
-                                                friendlyError(e),
-                                              );
-                                            }
-                                          } finally {
-                                            if (context.mounted && valid()) {
-                                              change(() => busy = false);
-                                            }
-                                          }
-                                        },
+                                      : (_) => respond(response),
                                   side: const BorderSide(color: borderColor),
                                 ),
                               )
@@ -1108,34 +1656,33 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                   onPressed: () => Navigator.pop(dialogContext),
                   child: const Text('关闭'),
                 ),
-                if (_canEdit(event))
+                if (_canEdit(event)) ...[
                   TextButton(
-                    onPressed: busy
+                    onPressed: busy || str(event['meeting_id']).isNotEmpty
                         ? null
-                        : () {
-                            if (!valid() || !_canEdit(event)) return;
-                            Navigator.pop(dialogContext);
-                            _edit(event);
-                          },
+                        : cancel,
+                    child: const Text('取消日程'),
+                  ),
+                  TextButton(
+                    onPressed: busy ? null : edit,
                     child: const Text('编辑日程'),
                   ),
-                if (event['meeting_id'] != null)
-                  FilledButton(
+                ],
+                if (str(event['meeting_id']).isNotEmpty)
+                  FilledButton.icon(
                     onPressed: busy
                         ? null
                         : () {
                             if (!valid() ||
-                                !s.calendarEvents.any(
-                                  (e) =>
-                                      e['id'] == event['id'] &&
-                                      e['meeting_id'] == event['meeting_id'],
-                                )) {
+                                _currentEvent(initial)?['meeting_id'] !=
+                                    event['meeting_id']) {
                               return;
                             }
                             Navigator.pop(dialogContext);
                             widget.onMeeting(str(event['meeting_id']));
                           },
-                    child: const Text('加入会议'),
+                    icon: const Icon(Icons.videocam_outlined),
+                    label: const Text('加入会议'),
                   ),
               ],
             );
@@ -1174,7 +1721,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                         const SizedBox(height: 10),
                         Expanded(
                           child: ListView(
-                            children: s.calendarEvents
+                            children: s.calendarViewEvents
                                 .where(
                                   (e) =>
                                       ['title', 'description', 'location'].any(
@@ -1230,6 +1777,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
             _chosenView ??
             (desktop ? _CalendarView.week : _CalendarView.threeDay);
         _view = view;
+        _ensureRange();
         return Material(
           color: Colors.white,
           child: Column(
@@ -1270,6 +1818,28 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                       child: Column(
                         children: [
                           if (desktop) _toolbar(),
+                          if (s.calendarOccurrencesLoading)
+                            const LinearProgressIndicator(minHeight: 2),
+                          if (s.calendarOccurrencesError != null)
+                            MaterialBanner(
+                              content: Text(
+                                '日程加载失败：${friendlyError(s.calendarOccurrencesError!)}',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => _reloadRange(),
+                                  child: const Text('重试'),
+                                ),
+                              ],
+                            ),
+                          if (s.calendarNextCursor != null)
+                            TextButton(
+                              onPressed: s.calendarOccurrencesLoading
+                                  ? null
+                                  : () => _reloadRange(append: true),
+                              child: const Text('加载更多日程'),
+                            ),
                           if (!desktop && _monthExpanded) _inlineMonth(),
                           Expanded(
                             child: Stack(
@@ -1873,7 +2443,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                                                   ),
                                               child: InkWell(
                                                 key: ValueKey(
-                                                  'calendar-month-event-${event['id']}-${date.day}',
+                                                  'calendar-month-event-${_eventKey(event)}-${date.day}',
                                                 ),
                                                 onTap: () => _detail(event),
                                                 child: Container(
@@ -1957,6 +2527,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     ScrollController? scrollController,
     List<Json>? previewEvents,
     bool allowEditing = true,
+    String? timezone,
   }) => LayoutBuilder(
     builder: (context, constraints) {
       final hourHeight = desktop ? 48.0 : 52.0;
@@ -1984,11 +2555,29 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                     SizedBox(
                       width: axisWidth,
                       child: Center(
-                        child: Text(
-                          _zoneLabel(_selected),
-                          style: const TextStyle(
-                            fontSize: 9,
-                            color: mutedColor,
+                        child: InkWell(
+                          onTap: allowEditing
+                              ? () async {
+                                  final identity = _CalendarIdentity(s);
+                                  final zone = await chooseCalendarTimezone(
+                                    context,
+                                    current: _timezone,
+                                    valid: () => mounted && identity.current(s),
+                                    identity: s,
+                                  );
+                                  if (zone != null &&
+                                      mounted &&
+                                      identity.current(s)) {
+                                    setState(() => _timezone = zone);
+                                  }
+                                }
+                              : null,
+                          child: Text(
+                            _zoneLabel(_selected, timezone ?? _timezone),
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: mutedColor,
+                            ),
                           ),
                         ),
                       ),
@@ -2030,6 +2619,90 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                   ],
                 ),
               ),
+              if (days.any(
+                (day) => (previewEvents ?? _onDay(day)).any(
+                  (e) => e['all_day'] == true,
+                ),
+              ))
+                Container(
+                  key: ValueKey(
+                    allowEditing
+                        ? 'calendar-all-day-band'
+                        : 'calendar-preview-all-day-band',
+                  ),
+                  height: math.min(
+                    120,
+                    34.0 *
+                        days
+                            .map(
+                              (day) => (previewEvents ?? _onDay(day))
+                                  .where((e) => e['all_day'] == true)
+                                  .length,
+                            )
+                            .reduce(math.max),
+                  ),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: borderColor),
+                      bottom: BorderSide(color: borderColor),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: axisWidth,
+                        child: const Padding(
+                          padding: EdgeInsets.only(top: 9),
+                          child: Text(
+                            '全天',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, color: mutedColor),
+                          ),
+                        ),
+                      ),
+                      ...days.map(
+                        (day) => SizedBox(
+                          width: width,
+                          child: ListView(
+                            children: (previewEvents ?? _onDay(day))
+                                .where((e) => e['all_day'] == true)
+                                .map(
+                                  (event) => Padding(
+                                    padding: const EdgeInsets.all(2),
+                                    child: InkWell(
+                                      key: ValueKey(
+                                        '${allowEditing ? 'calendar-all-day' : 'calendar-preview-all-day'}-${_eventKey(event)}-${day.day}',
+                                      ),
+                                      onTap: allowEditing
+                                          ? () => _detail(event)
+                                          : null,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 5,
+                                          vertical: 6,
+                                        ),
+                                        color: const Color(0xffe8efff),
+                                        child: Text(
+                                          str(event['title']),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: accentColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: SingleChildScrollView(
                   key: ValueKey(
@@ -2072,6 +2745,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
                             desktop,
                             entries: previewEvents,
                             allowEditing: allowEditing,
+                            timezone: timezone,
                           ),
                         ),
                       ],
@@ -2093,8 +2767,13 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     bool desktop, {
     List<Json>? entries,
     bool allowEditing = true,
+    String? timezone,
   }) {
-    final events = entries ?? _onDay(day), lanes = <int>[], counts = <int>[];
+    final events = (entries ?? _onDay(day))
+            .where((e) => e['all_day'] != true)
+            .toList(),
+        lanes = <int>[],
+        counts = <int>[];
     final laneEnds = <DateTime>[];
     var groupStart = 0;
     DateTime? groupEnd;
@@ -2108,7 +2787,8 @@ class OfficeCalendarState extends State<OfficeCalendar> {
     }
 
     for (final event in events) {
-      final start = _time(event['starts_at'])!, end = _time(event['ends_at'])!;
+      final start = _time(event['starts_at'], timezone: timezone)!,
+          end = _time(event['ends_at'], timezone: timezone)!;
       if (groupEnd != null && !start.isBefore(groupEnd)) finishGroup();
       var lane = laneEnds.indexWhere((value) => !value.isAfter(start));
       if (lane < 0) {
@@ -2121,7 +2801,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
       groupEnd = groupEnd == null || end.isAfter(groupEnd) ? end : groupEnd;
     }
     finishGroup();
-    final now = DateTime.now();
+    final now = calendarWallTime(DateTime.now(), timezone ?? _timezone);
     return SizedBox(
       width: width,
       child: Stack(
@@ -2153,8 +2833,8 @@ class OfficeCalendarState extends State<OfficeCalendar> {
           ),
           ...List.generate(events.length, (i) {
             final event = events[i],
-                start = _time(event['starts_at'])!,
-                end = _time(event['ends_at'])!;
+                start = _time(event['starts_at'], timezone: timezone)!,
+                end = _time(event['ends_at'], timezone: timezone)!;
             // A calendar grid represents wall-clock hours, including DST days.
             final top =
                 (_day(start).isBefore(_day(day))
@@ -2181,7 +2861,7 @@ class OfficeCalendarState extends State<OfficeCalendar> {
               height: height,
               child: InkWell(
                 key: ValueKey(
-                  '${allowEditing ? 'calendar-event' : 'calendar-preview-event'}-${event['id']}-${day.day}',
+                  '${allowEditing ? 'calendar-event' : 'calendar-preview-event'}-${_eventKey(event)}-${day.day}',
                 ),
                 onTap: allowEditing ? () => _detail(event) : null,
                 child: Container(

@@ -14,7 +14,7 @@ import threading
 import urllib.error
 import urllib.request
 from typing import Optional
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote, urlencode, urlsplit
 
 from .config import Settings
 from .llm import ModelError, OpenAICompatibleModel
@@ -184,6 +184,120 @@ class IMClient:
             raise IMError(exc.code, _http_error_code(exc)) from None
         except (OSError, ValueError):
             raise IMError(503, "connection_failed") from None
+
+    @staticmethod
+    def _calendar_resource(value, prefix):
+        if not isinstance(value, str) or not re.fullmatch(prefix + r"[a-f0-9-]{1,100}", value):
+            raise ValueError("Invalid calendar resource ID")
+        return value
+
+    @staticmethod
+    def _calendar_intent(*, base_revision=None, client_id=None, scope=None, occurrence_id=None):
+        if base_revision is not None and (isinstance(base_revision, bool)
+                or not isinstance(base_revision, int) or not 1 <= base_revision <= 9007199254740991):
+            raise ValueError("base_revision must be a positive safe integer")
+        if client_id is not None and (not isinstance(client_id, str) or not client_id.strip() or len(client_id) > 160):
+            raise ValueError("A stable client_id must contain 1-160 characters")
+        if scope is not None and (not isinstance(scope, str) or scope not in {"series", "occurrence"}):
+            raise ValueError("Calendar scope must be series or occurrence")
+        if occurrence_id is not None and (not isinstance(occurrence_id, str)
+                or not occurrence_id or len(occurrence_id) > 256):
+            raise ValueError("Use an opaque server-issued occurrence_id")
+        return {key: value for key, value in {
+            "base_revision": base_revision, "client_id": client_id,
+            "scope": scope, "occurrence_id": occurrence_id}.items() if value is not None}
+
+    def _calendar_request(self, method, path, body=None, query=None):
+        identity = (self.base_url, self.token)
+        if query:
+            encoded = urlencode({k: v for k, v in query.items() if v is not None})
+            if encoded:
+                path += "?" + encoded
+        result = self.request(method, path, body)
+        if identity != (self.base_url, self.token):
+            raise IMError(409, "identity_changed")
+        return result
+
+    def list_calendar_events(self, *, q=None):
+        """Return the member-scoped master-event response; no local filtering."""
+        return self._calendar_request("GET", "/calendar", query={"q": q})
+
+    def list_calendar_occurrences(self, *, from_time, to_time, timezone="UTC", limit=200, cursor=None):
+        """Return a bounded occurrence page; pass its opaque cursor unchanged.
+
+        from_time/to_time are offset ISO timestamps describing a half-open
+        window. Expansion, timezone and recurrence validation belong to the server.
+        """
+        if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
+            raise ValueError("Calendar occurrence limit must be 1-500")
+        return self._calendar_request("GET", "/calendar/occurrences", query={
+            "from": from_time, "to": to_time, "timezone": timezone, "limit": limit, "cursor": cursor})
+
+    def read_calendar_event(self, event_id, *, occurrence_id=None):
+        event_id = self._calendar_resource(event_id, "calendar-")
+        query = self._calendar_intent(occurrence_id=occurrence_id)
+        return self._calendar_request("GET", "/calendar/" + event_id, query=query)
+
+    def create_calendar_event(self, room_id, *, title, client_id, starts_at=None, ends_at=None,
+                              all_day=False, timezone=None, start_date=None, end_date=None,
+                              recurrence=None, description="", location="", attendee_ids=None):
+        """Create once using the caller's stable intent, returning the real receipt.
+
+        Timed events use starts_at/ends_at with offsets. All-day events use
+        start_date/end_date (exclusive); do not fabricate UTC midnight timestamps.
+        Recurrence is the native structured recurrence object, not an RRULE string.
+        """
+        room_id = self._calendar_resource(room_id, "room-")
+        if client_id is None:
+            raise ValueError("Calendar creation requires a stable client_id")
+        body = self._calendar_intent(client_id=client_id)
+        body.update({"title": title, "all_day": all_day, "recurrence": recurrence,
+                     "description": description, "location": location})
+        body.update({key: value for key, value in {"starts_at": starts_at, "ends_at": ends_at,
+                     "timezone": timezone, "start_date": start_date, "end_date": end_date,
+                     "attendee_ids": attendee_ids}.items() if value is not None})
+        return self._calendar_request("POST", "/rooms/" + room_id + "/calendar", body)
+
+    def update_calendar_event(self, event_id, *, base_revision, client_id=None,
+                              scope=None, occurrence_id=None, **changes):
+        """Update the expected version; recurring changes require scope/client_id.
+
+        Pass recurrence=None explicitly to remove a series recurrence. Omitted
+        fields are not reset. The response preserves effective event and series.
+        Changing a series schedule with exceptions requires reset_exceptions=True
+        to explicitly archive them; this is never inferred by the SDK.
+        """
+        event_id = self._calendar_resource(event_id, "calendar-")
+        if base_revision is None:
+            raise ValueError("Calendar update requires base_revision")
+        allowed = {"title", "starts_at", "ends_at", "all_day", "timezone", "start_date", "end_date",
+                   "recurrence", "description", "location", "attendee_ids", "reset_exceptions"}
+        if set(changes) - allowed:
+            raise ValueError("Unsupported calendar update field")
+        body = self._calendar_intent(base_revision=base_revision, client_id=client_id,
+                                     scope=scope, occurrence_id=occurrence_id)
+        body.update(changes)
+        return self._calendar_request("PATCH", "/calendar/" + event_id, body)
+
+    def cancel_calendar_event(self, event_id, *, base_revision, client_id, scope=None, occurrence_id=None):
+        """Cancel without erasing the event or retrying an uncertain write."""
+        event_id = self._calendar_resource(event_id, "calendar-")
+        if base_revision is None:
+            raise ValueError("Calendar cancellation requires base_revision")
+        if client_id is None:
+            raise ValueError("Calendar cancellation requires a stable client_id")
+        body = self._calendar_intent(base_revision=base_revision, client_id=client_id,
+                                     scope=scope, occurrence_id=occurrence_id)
+        return self._calendar_request("DELETE", "/calendar/" + event_id, body)
+
+    def respond_calendar_event(self, event_id, response, *, base_revision=None,
+                               client_id=None, scope=None, occurrence_id=None):
+        """Respond only as the authenticated attendee; never as a supplied actor."""
+        event_id = self._calendar_resource(event_id, "calendar-")
+        body = self._calendar_intent(base_revision=base_revision, client_id=client_id,
+                                     scope=scope, occurrence_id=occurrence_id)
+        body["response"] = response
+        return self._calendar_request("POST", "/calendar/" + event_id + "/respond", body)
 
     @staticmethod
     def _media_id(value, prefix):
