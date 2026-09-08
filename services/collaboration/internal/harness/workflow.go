@@ -19,8 +19,9 @@ const (
 )
 
 type Activities struct {
-	Gateway Gateway
-	Planner Planner
+	Gateway  Gateway
+	Planner  Planner
+	Archiver ArchivePlugin
 }
 
 type ActionInput struct {
@@ -161,6 +162,10 @@ func RunWorkflow(ctx workflow.Context, input RunInput) (result RunResult, runErr
 	}
 	ctx = workflow.WithActivityOptions(ctx, options)
 	result = RunResult{Status: "running", Receipts: []Receipt{}}
+	archiveStatus := ArchiveOutcome{Status: "not_scheduled"}
+	if err := workflow.SetQueryHandler(ctx, ArchiveQueryName, func() (ArchiveOutcome, error) { return archiveStatus, nil }); err != nil {
+		return result, err
+	}
 	defer func() {
 		// Old histories remain replayable; new executions persist their terminal
 		// status before Temporal reports completion to a caller.
@@ -175,9 +180,19 @@ func RunWorkflow(ctx workflow.Context, input RunInput) (result RunResult, runErr
 		}
 		finalCtx, _ := workflow.NewDisconnectedContext(ctx)
 		finalCtx = workflow.WithActivityOptions(finalCtx, workflow.ActivityOptions{StartToCloseTimeout: 20 * time.Second, ScheduleToCloseTimeout: time.Minute, RetryPolicy: &temporal.RetryPolicy{InitialInterval: time.Second, MaximumAttempts: 3}})
-		if err := workflow.ExecuteActivity(finalCtx, terminalActivityName, TerminalInput{input.Context, result}).Get(finalCtx, nil); err != nil && runErr == nil {
-			result.Status = "reconciliation_required"
-			runErr = err
+		if err := workflow.ExecuteActivity(finalCtx, terminalActivityName, TerminalInput{input.Context, result}).Get(finalCtx, nil); err != nil {
+			archiveStatus = ArchiveOutcome{Status: "skipped", Code: "terminal_not_persisted"}
+			if runErr == nil {
+				result.Status = "reconciliation_required"
+				runErr = err
+			}
+			return
+		}
+		// Old completed histories keep their exact command sequence. Archives
+		// are a separate activity after the successful terminal commit.
+		if workflow.GetVersion(ctx, "automatic-terminal-archive-v1", workflow.DefaultVersion, 1) != workflow.DefaultVersion {
+			executeArchive(finalCtx, input.Context.RunID, &archiveStatus)
+			result.Archive = &archiveStatus
 		}
 	}()
 	seen := make(map[string]Action)
@@ -239,7 +254,9 @@ func RunWorkflow(ctx workflow.Context, input RunInput) (result RunResult, runErr
 
 func Register(w worker.Worker, a *Activities) {
 	w.RegisterWorkflowWithOptions(RunWorkflow, workflow.RegisterOptions{Name: WorkflowName})
+	w.RegisterWorkflowWithOptions(ArchiveWorkflow, workflow.RegisterOptions{Name: ArchiveWorkflowName})
 	w.RegisterActivityWithOptions(a.Plan, activity.RegisterOptions{Name: planActivityName})
 	w.RegisterActivityWithOptions(a.Execute, activity.RegisterOptions{Name: actionActivityName})
 	w.RegisterActivityWithOptions(a.Terminal, activity.RegisterOptions{Name: terminalActivityName})
+	w.RegisterActivityWithOptions(a.Archive, activity.RegisterOptions{Name: archiveActivityName})
 }

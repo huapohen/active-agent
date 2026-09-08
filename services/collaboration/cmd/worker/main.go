@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/huapohen/active-agent/services/collaboration/internal/harness"
+	"github.com/huapohen/active-agent/services/collaboration/internal/runarchive"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -36,6 +37,13 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("machine binding or required gateway contracts are not ready")
 	}
+	archiveCtx, archiveCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	archiver, closeArchive, archiveMode, err := runarchive.OpenDeployment(archiveCtx, os.Getenv("RENJI_RUN_ARCHIVE_CONFIG"), os.Getenv)
+	archiveCancel()
+	if err != nil {
+		return fmt.Errorf("invalid terminal archive deployment configuration")
+	}
+	defer closeArchive()
 	model, err := harness.NewConfiguredHTTPModel(os.Getenv("RENJI_MODEL_BASE_URL"), os.Getenv("RENJI_MODEL_API_KEY"), os.Getenv("RENJI_MODEL_NAME"), os.Getenv("RENJI_MODEL_REASONING_EFFORT"), os.Getenv("RENJI_MODEL_API_STYLE"))
 	if err != nil {
 		return fmt.Errorf("invalid explicit model configuration")
@@ -76,7 +84,8 @@ func run() error {
 		queue = harness.TaskQueue
 	}
 	w := worker.New(c, queue, worker.Options{MaxConcurrentActivityExecutionSize: 4, MaxConcurrentWorkflowTaskExecutionSize: 4})
-	harness.Register(w, &harness.Activities{Gateway: gw, Planner: planner})
+	harness.Register(w, &harness.Activities{Gateway: gw, Planner: planner, Archiver: archiver})
+	fmt.Println("Terminal archive plugin:", archiveMode)
 	fmt.Println("Harness worker started. Ctrl+C stops this executor; use the room stop API first to fence all source-derived actions.")
 	return w.Run(worker.InterruptCh())
 }

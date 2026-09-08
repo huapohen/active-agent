@@ -1,4 +1,4 @@
-import type { Capabilities, CollaborationClient, Document, DocumentContent, EventPage, Message, MessagePage, Principal, Room, RoomPage, SendIntent } from './types';
+import type { Capabilities, CollaborationClient, Document, DocumentContent, EmojiPage, EventPage, Message, MessagePage, Principal, Room, RoomPage, SendIntent } from './types';
 
 type Json = Record<string, unknown>;
 const object = (value: unknown): Json => value && typeof value === 'object' && !Array.isArray(value) ? value as Json : {};
@@ -42,7 +42,14 @@ export function principal(value: unknown): Principal {
 export function message(value: unknown, roomId = ''): Message {
   const m = object(value), author = object(m.author), receipt = object(m.receipt_summary);
   if (!text(m.id) || !Number.isSafeInteger(m.seq) || number(m.seq) < 0) throw new ApiError(502, 'invalid_message');
-  return { id: text(m.id), roomId: text(m.room_id, roomId), authorId: text(m.author_id), authorName: text(author.display_name, text(author.name)), authorKind: text(author.kind), content: text(m.content), seq: number(m.seq), createdAt: text(m.created_at, text(m.at)), retracted: Boolean(m.retracted_at), mentions: Array.isArray(m.mentions) ? m.mentions.filter((id): id is string => typeof id === 'string') : [], isVoice: Boolean(m.voice), attachmentCount: Array.isArray(m.attachments) ? m.attachments.length : 0, receipt: receipt.known === true && typeof receipt.read_count === 'number' && typeof receipt.eligible_count === 'number' ? { read: receipt.read_count, total: receipt.eligible_count } : undefined };
+  if (roomId && m.room_id !== undefined && m.room_id !== roomId) throw new ApiError(502, 'invalid_message_room');
+  const unavailable = Boolean(m.retracted_at) || m.hidden === true;
+  const reactions: Record<string, string[]> = {};
+  for (const [id, users] of Object.entries(object(m.reactions))) {
+    if (!Array.isArray(users) || users.some(user => typeof user !== 'string' || !user)) throw new ApiError(502, 'invalid_reactions');
+    if (!unavailable && users.length) Object.defineProperty(reactions, id, { value: [...new Set(users)], enumerable: true });
+  }
+  return { id: text(m.id), roomId: text(m.room_id, roomId), authorId: text(m.author_id), authorName: text(author.display_name, text(author.name)), authorKind: text(author.kind), content: unavailable ? '' : text(m.content), seq: number(m.seq), createdAt: timestamp(m.created_at ?? m.at), retracted: Boolean(m.retracted_at), hidden: m.hidden === true, replyTo: unavailable ? undefined : text(m.reply_to) || undefined, reactions, mentions: unavailable ? [] : Array.isArray(m.mentions) ? m.mentions.filter((id): id is string => typeof id === 'string') : [], isVoice: !unavailable && Boolean(m.voice), attachmentCount: !unavailable && Array.isArray(m.attachments) ? m.attachments.length : 0, receipt: receipt.known === true && typeof receipt.read_count === 'number' && typeof receipt.eligible_count === 'number' ? { read: receipt.read_count, total: receipt.eligible_count } : undefined };
 }
 export function room(value: unknown): Room {
   const r = object(value);
@@ -90,6 +97,8 @@ abstract class HttpClient implements CollaborationClient {
     return { messages: list(r.messages).map(m => message(m, roomId)).sort((a, b) => a.seq - b.seq), hasMoreBefore: r.has_more_before === true, hasMoreAfter: r.has_more_after === true, firstUnreadSeq: typeof r.anchor_seq === 'number' ? r.anchor_seq : undefined };
   }
   abstract send(roomId: string, intent: SendIntent, signal?: AbortSignal): Promise<Message>;
+  async react(_roomId: string, _messageId: string, _emojiId: string, _signal?: AbortSignal): Promise<Message> { return this.unsupported(); }
+  async emoji(_options: { query?: string; category?: string; offset?: number; signal?: AbortSignal } = {}): Promise<EmojiPage> { return this.unsupported(); }
   protected unsupported(): never { throw new ApiError(501, 'capability_unavailable'); }
   async people(_signal?: AbortSignal): Promise<Principal[]> { return this.unsupported(); }
   async members(_roomId: string, _signal?: AbortSignal): Promise<Principal[]> { return this.unsupported(); }
@@ -104,10 +113,11 @@ abstract class HttpClient implements CollaborationClient {
 
 export class StartupClient extends HttpClient {
   readonly mode = 'startup' as const;
-  readonly capabilities: Capabilities = { directory: false, documents: false, roomPreferences: false, createRoom: false, mentions: false, liveEvents: false, readReceipts: false };
+  readonly capabilities: Capabilities = { directory: false, documents: false, roomPreferences: false, createRoom: false, mentions: false, liveEvents: false, readReceipts: false, reactions: false, replies: false };
   protected get prefix() { return '/v1'; }
   async send(roomId: string, intent: SendIntent, signal?: AbortSignal): Promise<Message> {
     if (intent.mentions.length) throw new ApiError(501, 'mentions_unavailable');
+    if (intent.replyTo) throw new ApiError(501, 'replies_unavailable');
     const result = await this.request(`/rooms/${encodeURIComponent(roomId)}/messages`, 'POST', { action_id: intent.actionId, content: intent.content, ...(intent.scopeEpoch !== undefined ? { scope_epoch: intent.scopeEpoch } : {}) }, signal);
     return message(result.message, roomId);
   }
@@ -121,7 +131,7 @@ export class StartupClient extends HttpClient {
 /** Explicit legacy migration adapter; never a fallback for failed Clerk auth. */
 export class LegacyClient extends HttpClient {
   readonly mode = 'legacy' as const;
-  readonly capabilities: Capabilities = { directory: true, documents: true, roomPreferences: true, createRoom: true, mentions: true, liveEvents: true, readReceipts: true };
+  readonly capabilities: Capabilities = { directory: true, documents: true, roomPreferences: true, createRoom: true, mentions: true, liveEvents: true, readReceipts: true, reactions: true, replies: true };
   protected get prefix() { return '/api/im'; }
   protected requestURL(path: string) { return legacyRequestURL(this.endpoint, path, import.meta.env.DEV); }
   static async login(endpoint: string, username: string, password: string, signal?: AbortSignal, fetcher: typeof fetch = fetch): Promise<LegacyClient> {
@@ -137,7 +147,28 @@ export class LegacyClient extends HttpClient {
     return client;
   }
   async send(roomId: string, intent: SendIntent, signal?: AbortSignal): Promise<Message> {
-    return message((await this.request(`/rooms/${encodeURIComponent(roomId)}/messages`, 'POST', { client_id: intent.actionId, content: intent.content, mentions: intent.mentions, mention_all: false, attachment_ids: [] }, signal)).message, roomId);
+    return message((await this.request(`/rooms/${encodeURIComponent(roomId)}/messages`, 'POST', { client_id: intent.actionId, content: intent.content, mentions: intent.mentions, mention_all: false, attachment_ids: [], ...(intent.replyTo ? { reply_to: intent.replyTo } : {}) }, signal)).message, roomId);
+  }
+  async react(roomId: string, messageId: string, emojiId: string, signal?: AbortSignal): Promise<Message> {
+    const result = message((await this.request(`/rooms/${encodeURIComponent(roomId)}/messages/${encodeURIComponent(messageId)}/reactions`, 'POST', { emoji: emojiId }, signal)).message, roomId);
+    if (result.id !== messageId) throw new ApiError(502, 'invalid_reaction_target');
+    return result;
+  }
+  async emoji(options: { query?: string; category?: string; offset?: number; signal?: AbortSignal } = {}): Promise<EmojiPage> {
+    const offset = options.offset ?? 0;
+    if (!Number.isSafeInteger(offset) || offset < 0 || (options.query?.length ?? 0) > 100) throw new ApiError(422, 'invalid_emoji_query');
+    const params = new URLSearchParams({ offset: String(offset), limit: '100' });
+    if (options.query) params.set('q', options.query);
+    if (options.category) params.set('category', options.category);
+    const result = await this.request(`/emoji?${params}`, 'GET', undefined, options.signal);
+    if (!Array.isArray(result.entries) || result.entries.length > 100 || !Array.isArray(result.categories) || result.categories.some(c => typeof c !== 'string') || !Number.isSafeInteger(result.total) || number(result.total, -1) < 0 || !Number.isSafeInteger(result.catalog_count) || result.offset !== offset || typeof result.has_more !== 'boolean') throw new ApiError(502, 'invalid_emoji_catalog');
+    const entries = result.entries.map(value => {
+      const entry = object(value);
+      if (!text(entry.id) || !text(entry.name) || !text(entry.text) || !text(entry.category)) throw new ApiError(502, 'invalid_emoji_catalog');
+      return { id: text(entry.id), name: text(entry.name), text: text(entry.text), category: text(entry.category) };
+    });
+    if (new Set(entries.map(e => e.id)).size !== entries.length || result.has_more && (!entries.length || result.next_offset !== offset + entries.length)) throw new ApiError(502, 'invalid_emoji_cursor');
+    return { entries, categories: result.categories as string[], total: result.total as number, catalogCount: result.catalog_count as number, nextOffset: result.has_more ? result.next_offset as number : undefined };
   }
   async people(signal?: AbortSignal): Promise<Principal[]> { return list((await this.request('/principals', 'GET', undefined, signal)).principals).map(principal); }
   async members(roomId: string, signal?: AbortSignal): Promise<Principal[]> { return list((await this.request(`/rooms/${encodeURIComponent(roomId)}`, 'GET', undefined, signal)).members).filter(p => !p.disabled).map(principal); }

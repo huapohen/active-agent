@@ -184,11 +184,16 @@ func (f *fakeDocFree) serve(w http.ResponseWriter, r *http.Request) {
 		id := strings.TrimPrefix(r.URL.Path, "/api/im/rooms/room-test/documents/")
 		f.mu.Lock()
 		f.gets++
+		readNumber := f.gets
 		d, ok := f.documents[id]
 		mode := f.mode
 		f.mu.Unlock()
 		if !ok {
 			w.WriteHeader(404)
+			return
+		}
+		if mode == "read-fails-once" && readNumber == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
 		if mode == "body-mismatch" {

@@ -1,0 +1,411 @@
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "bfqgstjdcywc",
+        "indent": 0,
+        "textAlign": null,
+        "level": 1
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "人机执行档案 · 76dedd18-1ddf-4fc0-abfa-19aee795b034 · 游标 5 · 1"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "yksgszkzknqg",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "这是持久事实档案。模型输出、Agent 输出与工具文字属于执行器报告；只有动作账本证明本地提交，只有运输回执证明实际外发。unknown 保持未知，不以文字代替回执。"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "hewshbcyqbxj",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Run："
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "76dedd18-1ddf-4fc0-abfa-19aee795b034"
+        },
+        {
+          "type": "text",
+          "text": "；归档至证据游标："
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "5"
+        },
+        {
+          "type": "text",
+          "text": "；渲染契约："
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "renji-run-markdown-v1"
+        },
+        {
+          "type": "text",
+          "text": "。完整来源范围见 Run 元数据；读取权限必须满足所有来源。"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "izoxdmrtwapr",
+        "indent": 0,
+        "textAlign": null,
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Run 元数据（本次归档快照） · 原始 JSON 分片 1/1"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "khxoavfcpbzg",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "分片按序直接拼接还原完整 JSON；整项 SHA-256："
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "f736b459f36e5823393bfb4a35709a17c0172103fa2c84cde4c429504239b43b"
+        },
+        {
+          "type": "text",
+          "text": "。"
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "language": "json"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"context\": {\n    \"principal_id\": \"b49d2ffc-946c-4061-a6ef-5ed7e4308465\",\n    \"executor_id\": \"65406456-48cf-4d57-83ee-6a90c206e7a1\",\n    \"run_id\": \"76dedd18-1ddf-4fc0-abfa-19aee795b034\",\n    \"room_id\": \"63892e35-efbd-40cb-86e6-17c7cab37aa6\",\n    \"scope_epoch\": 3,\n    \"runtime_version\": \"eino-v0.9.19-renji-1\",\n    \"workflow_version\": \"renji-stage-v1\"\n  },\n  \"workspace_id\": \"736b5198-479b-4505-8dbb-8d54b0d5c697\",\n  \"executor_version\": 1,\n  \"policy_version\": 2,\n  \"goal\": \"这是用户授权的隔离合成验收，只操作当前context.room_id。不要委派研究子代理。本次验证真实读取、两阶段动作与定时继续。\\n阶段0：调用 im_room_list 和 im_message_read 读取当前会话（after=0）；随后提出恰好一项 message.send，key为runtime-v2-first，payload必须包含room_id=context.room_id和content。content写“[合成验收 runtime-v2] 第1阶段：已通过原生接口读取本群消息”，并附上你实际读取的一条消息的seq或说明为空。done=false，wait_seconds=60。不要宣称已送达客户端。\\n阶段1：先读取当前群消息，核对已存在第1阶段的实际消息；结合receipts确认动作结果。提出恰好一项message.send，key为runtime-v2-second，payload.room_id=context.room_id；content写“[合成验收 runtime-v2] 第2阶段：定时继续后复核第一阶段记录”，并注明实际核对到的消息seq。done=true，wait_seconds=0。若未查到，不编造。两次提交只是本地持久动作，本轮未要求向融云派发，严禁声称融云/客户端收件成功。\\n只返回规划协议所需JSON。\",\n  \"status\": \"failed\",\n  \"created_by\": \"b49d2ffc-946c-4061-a6ef-5ed7e4308465\",\n  \"created_at\": \"2026-09-09T05:16:40.864893+08:00\"\n}\n"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "uaidhdnpleiu",
+        "indent": 0,
+        "textAlign": null,
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "证据 #1 · 执行器提交的原始事件（模型文字不构成外部成功） · 原始 JSON 分片 1/1"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "qygxtkmcowad",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "分片按序直接拼接还原完整 JSON；整项 SHA-256："
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "36ab681a8c2e22165042a68173a63dc3d94ad2acecd3411cf713c002dcde5594"
+        },
+        {
+          "type": "text",
+          "text": "。"
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "language": "json"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"seq\": 1,\n  \"kind\": \"event\",\n  \"object_id\": \"ffb25bb5f0f4ab8cf42fa52e557b417ba9bcb778297a6ffc207cdd658c75026e\",\n  \"data\": {\n    \"created_at\": \"2026-09-08T21:16:41.998314+00:00\",\n    \"event\": {\n      \"data\": {\n        \"attempt\": 1,\n        \"context\": {\n          \"executor_id\": \"65406456-48cf-4d57-83ee-6a90c206e7a1\",\n          \"principal_id\": \"b49d2ffc-946c-4061-a6ef-5ed7e4308465\",\n          \"room_id\": \"63892e35-efbd-40cb-86e6-17c7cab37aa6\",\n          \"run_id\": \"76dedd18-1ddf-4fc0-abfa-19aee795b034\",\n          \"runtime_version\": \"eino-v0.9.19-renji-1\",\n          \"scope_epoch\": 3,\n          \"workflow_version\": \"renji-stage-v1\"\n        },\n        \"goal\": \"这是用户授权的隔离合成验收，只操作当前context.room_id。不要委派研究子代理。本次验证真实读取、两阶段动作与定时继续。\\n阶段0：调用 im_room_list 和 im_message_read 读取当前会话（after=0）；随后提出恰好一项 message.send，key为runtime-v2-first，payload必须包含room_id=context.room_id和content。content写“[合成验收 runtime-v2] 第1阶段：已通过原生接口读取本群消息”，并附上你实际读取的一条消息的seq或说明为空。done=false，wait_seconds=60。不要宣称已送达客户端。\\n阶段1：先读取当前群消息，核对已存在第1阶段的实际消息；结合receipts确认动作结果。提出恰好一项message.send，key为runtime-v2-second，payload.room_id=context.room_id；content写“[合成验收 runtime-v2] 第2阶段：定时继续后复核第一阶段记录”，并注明实际核对到的消息seq。done=true，wait_seconds=0。若未查到，不编造。两次提交只是本地持久动作，本轮未要求向融云派发，严禁声称融云/客户端收件成功。\\n只返回规划协议所需JSON。\",\n        \"stage\": 0\n      },\n      \"id\": \"ffb25bb5f0f4ab8cf42fa52e557b417ba9bcb778297a6ffc207cdd658c75026e\",\n      \"stage\": 0,\n      \"type\": \"stage.input\"\n    },\n    \"event_id\": \"ffb25bb5f0f4ab8cf42fa52e557b417ba9bcb778297a6ffc207cdd658c75026e\",\n    \"request_hash\": \"6c581d9cce68a4b7ad02890325b986f6a26e1cbd72df93f53e7998bd2455905a\"\n  },\n  \"recorded_at\": \"2026-09-09T05:16:42.005009+08:00\",\n  \"legacy_snapshot\": false\n}\n"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "shgaumwcehej",
+        "indent": 0,
+        "textAlign": null,
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "证据 #2 · 执行器提交的原始事件（模型文字不构成外部成功） · 原始 JSON 分片 1/1"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "prljazesfblb",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "分片按序直接拼接还原完整 JSON；整项 SHA-256："
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "a92c6539499d2441ebea0f990233de429c6fbd093a9c7b1a6c25a9422b1d7f0a"
+        },
+        {
+          "type": "text",
+          "text": "。"
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "language": "json"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"seq\": 2,\n  \"kind\": \"event\",\n  \"object_id\": \"49cbbb7de7cbcd8874eef518c6a6e867e8236d595ed51508763e510df948124c\",\n  \"data\": {\n    \"created_at\": \"2026-09-08T21:16:55.002365+00:00\",\n    \"event\": {\n      \"data\": {\n        \"attempt\": 2,\n        \"context\": {\n          \"executor_id\": \"65406456-48cf-4d57-83ee-6a90c206e7a1\",\n          \"principal_id\": \"b49d2ffc-946c-4061-a6ef-5ed7e4308465\",\n          \"room_id\": \"63892e35-efbd-40cb-86e6-17c7cab37aa6\",\n          \"run_id\": \"76dedd18-1ddf-4fc0-abfa-19aee795b034\",\n          \"runtime_version\": \"eino-v0.9.19-renji-1\",\n          \"scope_epoch\": 3,\n          \"workflow_version\": \"renji-stage-v1\"\n        },\n        \"goal\": \"这是用户授权的隔离合成验收，只操作当前context.room_id。不要委派研究子代理。本次验证真实读取、两阶段动作与定时继续。\\n阶段0：调用 im_room_list 和 im_message_read 读取当前会话（after=0）；随后提出恰好一项 message.send，key为runtime-v2-first，payload必须包含room_id=context.room_id和content。content写“[合成验收 runtime-v2] 第1阶段：已通过原生接口读取本群消息”，并附上你实际读取的一条消息的seq或说明为空。done=false，wait_seconds=60。不要宣称已送达客户端。\\n阶段1：先读取当前群消息，核对已存在第1阶段的实际消息；结合receipts确认动作结果。提出恰好一项message.send，key为runtime-v2-second，payload.room_id=context.room_id；content写“[合成验收 runtime-v2] 第2阶段：定时继续后复核第一阶段记录”，并注明实际核对到的消息seq。done=true，wait_seconds=0。若未查到，不编造。两次提交只是本地持久动作，本轮未要求向融云派发，严禁声称融云/客户端收件成功。\\n只返回规划协议所需JSON。\",\n        \"stage\": 0\n      },\n      \"id\": \"49cbbb7de7cbcd8874eef518c6a6e867e8236d595ed51508763e510df948124c\",\n      \"stage\": 0,\n      \"type\": \"stage.input\"\n    },\n    \"event_id\": \"49cbbb7de7cbcd8874eef518c6a6e867e8236d595ed51508763e510df948124c\",\n    \"request_hash\": \"6d7a97b03ca9e9276dfa2ae628701494824e9330ddc08acda4f3e2f55670e737\"\n  },\n  \"recorded_at\": \"2026-09-09T05:16:55.006049+08:00\",\n  \"legacy_snapshot\": false\n}\n"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "kwxfogrwshsj",
+        "indent": 0,
+        "textAlign": null,
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "证据 #3 · 执行器提交的原始事件（模型文字不构成外部成功） · 原始 JSON 分片 1/1"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "oivlefhomhvw",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "分片按序直接拼接还原完整 JSON；整项 SHA-256："
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "9340547fefce309a85a046f21cc4e3ce4dc5fb01282643f0a0a10a8bbb65faa0"
+        },
+        {
+          "type": "text",
+          "text": "。"
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "language": "json"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"seq\": 3,\n  \"kind\": \"event\",\n  \"object_id\": \"97a1ccbf28f34c8120a8f2e357325b56dd0e2552b08bc7803777b794218f5084\",\n  \"data\": {\n    \"created_at\": \"2026-09-08T21:17:09.068521+00:00\",\n    \"event\": {\n      \"data\": {\n        \"attempt\": 3,\n        \"context\": {\n          \"executor_id\": \"65406456-48cf-4d57-83ee-6a90c206e7a1\",\n          \"principal_id\": \"b49d2ffc-946c-4061-a6ef-5ed7e4308465\",\n          \"room_id\": \"63892e35-efbd-40cb-86e6-17c7cab37aa6\",\n          \"run_id\": \"76dedd18-1ddf-4fc0-abfa-19aee795b034\",\n          \"runtime_version\": \"eino-v0.9.19-renji-1\",\n          \"scope_epoch\": 3,\n          \"workflow_version\": \"renji-stage-v1\"\n        },\n        \"goal\": \"这是用户授权的隔离合成验收，只操作当前context.room_id。不要委派研究子代理。本次验证真实读取、两阶段动作与定时继续。\\n阶段0：调用 im_room_list 和 im_message_read 读取当前会话（after=0）；随后提出恰好一项 message.send，key为runtime-v2-first，payload必须包含room_id=context.room_id和content。content写“[合成验收 runtime-v2] 第1阶段：已通过原生接口读取本群消息”，并附上你实际读取的一条消息的seq或说明为空。done=false，wait_seconds=60。不要宣称已送达客户端。\\n阶段1：先读取当前群消息，核对已存在第1阶段的实际消息；结合receipts确认动作结果。提出恰好一项message.send，key为runtime-v2-second，payload.room_id=context.room_id；content写“[合成验收 runtime-v2] 第2阶段：定时继续后复核第一阶段记录”，并注明实际核对到的消息seq。done=true，wait_seconds=0。若未查到，不编造。两次提交只是本地持久动作，本轮未要求向融云派发，严禁声称融云/客户端收件成功。\\n只返回规划协议所需JSON。\",\n        \"stage\": 0\n      },\n      \"id\": \"97a1ccbf28f34c8120a8f2e357325b56dd0e2552b08bc7803777b794218f5084\",\n      \"stage\": 0,\n      \"type\": \"stage.input\"\n    },\n    \"event_id\": \"97a1ccbf28f34c8120a8f2e357325b56dd0e2552b08bc7803777b794218f5084\",\n    \"request_hash\": \"8dacffd5dca8bbc3e61f25a32917e5f2a7f62a237c4a5611c58f99c81cafca36\"\n  },\n  \"recorded_at\": \"2026-09-09T05:17:09.072553+08:00\",\n  \"legacy_snapshot\": false\n}\n"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "ccbqqwvpipzh",
+        "indent": 0,
+        "textAlign": null,
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "证据 #4 · 执行器提交的原始事件（模型文字不构成外部成功） · 原始 JSON 分片 1/1"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "qvjxxchraeep",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "分片按序直接拼接还原完整 JSON；整项 SHA-256："
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "1c1e7bcc671128d88d37bc0f798a9748fb83a98cc7f26848d03fbed69601326e"
+        },
+        {
+          "type": "text",
+          "text": "。"
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "language": "json"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"seq\": 4,\n  \"kind\": \"event\",\n  \"object_id\": \"2b2b06e7baf419f6941e940ce5a2bfe955874db3163b680852e702471035e7be\",\n  \"data\": {\n    \"created_at\": \"2026-09-08T21:17:20.658241+00:00\",\n    \"event\": {\n      \"data\": {\n        \"receipts\": [],\n        \"stages\": 0,\n        \"status\": \"failed\",\n        \"summary\": \"\"\n      },\n      \"id\": \"2b2b06e7baf419f6941e940ce5a2bfe955874db3163b680852e702471035e7be\",\n      \"stage\": 0,\n      \"type\": \"run.failed\"\n    },\n    \"event_id\": \"2b2b06e7baf419f6941e940ce5a2bfe955874db3163b680852e702471035e7be\",\n    \"request_hash\": \"50a360a447ea81784d56defd86fd45128460ba44f58f6ce42dffa2dea4798077\"\n  },\n  \"recorded_at\": \"2026-09-09T05:17:20.665913+08:00\",\n  \"legacy_snapshot\": false\n}\n"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "attrs": {
+        "id": "imefuavntajy",
+        "indent": 0,
+        "textAlign": null,
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "证据 #5 · 服务端 Run 状态变更 · 原始 JSON 分片 1/1"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "attrs": {
+        "id": "xhxdkqhhzbvv",
+        "indent": 0,
+        "textAlign": null
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "分片按序直接拼接还原完整 JSON；整项 SHA-256："
+        },
+        {
+          "type": "text",
+          "marks": [
+            {
+              "type": "code"
+            }
+          ],
+          "text": "c0fba6759b2086ed79d2495c223fb46a90d77ae243bfc1b3d01f817a131e2ebc"
+        },
+        {
+          "type": "text",
+          "text": "。"
+        }
+      ]
+    },
+    {
+      "type": "codeBlock",
+      "attrs": {
+        "language": "json"
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"seq\": 5,\n  \"kind\": \"run.status\",\n  \"object_id\": \"76dedd18-1ddf-4fc0-abfa-19aee795b034\",\n  \"data\": {\n    \"previous_status\": \"running\",\n    \"status\": \"failed\"\n  },\n  \"recorded_at\": \"2026-09-09T05:17:20.669703+08:00\",\n  \"legacy_snapshot\": false\n}\n"
+        }
+      ]
+    }
+  ]
+}

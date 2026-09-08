@@ -107,15 +107,21 @@ func (w *boundedOutput) Write(p []byte) (int, error) {
 	return w.Buffer.Write(p)
 }
 func (a *Affine) compareNative(ctx context.Context, source Snapshot, native []byte) (NativeProof, error) {
+	return a.compareNativeProfile(ctx, source, native, AffineNativeProfile)
+}
+func (a *Affine) compareNativeProfile(ctx context.Context, source Snapshot, native []byte, profile string) (NativeProof, error) {
 	var p NativeProof
+	if nativeProfileProvider(profile) != "affine" {
+		return p, Failure("unsupported_native_profile")
+	}
 	if a.NativeCodecPath == "" || a.NativeNodeExecutable == "" {
 		return p, Failure("native_codec_unavailable")
 	}
-	tree, e := markdownTree(source.Content)
+	tree, e := markdownTreeForProfile(source.Content, profile)
 	if e != nil {
 		return p, e
 	}
-	input, e := json.Marshal(map[string]any{"profile": AffineNativeProfile, "source": tree, "title": source.Title, "snapshot": base64.StdEncoding.EncodeToString(native)})
+	input, e := json.Marshal(map[string]any{"profile": profile, "source": tree, "title": source.Title, "snapshot": base64.StdEncoding.EncodeToString(native)})
 	if e != nil {
 		return p, Failure("invalid_native_request")
 	}
@@ -145,13 +151,19 @@ func (a *Affine) compareNative(ctx context.Context, source Snapshot, native []by
 	}
 	desired := Hash(string(canonicalBytes(tree)))
 	raw := Hash(string(native))
-	if result.Profile != AffineNativeProfile || result.SourceHash != desired || result.TargetHash != desired || result.SnapshotHash != raw || result.VisitedBlocks < 1 {
+	if result.Profile != profile || result.SourceHash != desired || result.TargetHash != desired || result.SnapshotHash != raw || result.VisitedBlocks < 1 {
 		return p, Failure("native_structure_mismatch")
 	}
-	return NativeProof{Profile: AffineNativeProfile, TargetVersion: "sha256:" + raw, SourceCanonicalHash: desired, TargetCanonicalHash: result.TargetHash, TargetNativeRawHash: raw, PlatformBehaviorHash: Hash("[]"), MarkdownExportError: "readback_mismatch"}, nil
+	return NativeProof{Profile: profile, TargetVersion: "sha256:" + raw, SourceCanonicalHash: desired, TargetCanonicalHash: result.TargetHash, TargetNativeRawHash: raw, PlatformBehaviorHash: Hash("[]"), MarkdownExportError: "readback_mismatch"}, nil
 }
 func (a *Affine) VerifyNative(ctx context.Context, id string, source Snapshot, observed Observation) (NativeProof, error) {
+	return a.VerifyNativeProfile(ctx, id, source, observed, AffineNativeProfile)
+}
+func (a *Affine) VerifyNativeProfile(ctx context.Context, id string, source Snapshot, observed Observation, profile string) (NativeProof, error) {
 	var p NativeProof
+	if nativeProfileProvider(profile) != "affine" {
+		return p, Failure("unsupported_native_profile")
+	}
 	if e := source.Validate(); e != nil {
 		return p, e
 	}
@@ -162,10 +174,14 @@ func (a *Affine) VerifyNative(ctx context.Context, id string, source Snapshot, o
 	if e != nil {
 		return p, e
 	}
-	return a.compareNative(ctx, source, native)
+	proof, err := a.compareNativeProfile(ctx, source, native, profile)
+	if err == nil && observed.BodyHash == BodyHash(source.Content) {
+		proof.MarkdownExportError = ""
+	}
+	return proof, err
 }
 func (a *Affine) CheckNativeBaseline(ctx context.Context, id string, observed Observation, proof NativeProof) error {
-	if proof.Profile != AffineNativeProfile || proof.TargetNativeRawHash == "" || proof.SourceCanonicalHash != proof.TargetCanonicalHash {
+	if nativeProfileProvider(proof.Profile) != "affine" || proof.TargetNativeRawHash == "" || proof.SourceCanonicalHash != proof.TargetCanonicalHash {
 		return Failure("invalid_native_receipt")
 	}
 	native, e := a.stableNative(ctx, id, observed)

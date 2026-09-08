@@ -25,6 +25,12 @@ type NativeTarget interface {
 	CheckNativeBaseline(context.Context, string, Observation, NativeProof) error
 }
 
+// Profile selection is explicit so adding code-block support cannot broaden an
+// existing v1 journal's interpretation or silently relabel its proof.
+type ProfiledNativeTarget interface {
+	VerifyNativeProfile(context.Context, string, Snapshot, Observation, string) (NativeProof, error)
+}
+
 func nativeVersionValid(version string) bool {
 	_, e := time.Parse(time.RFC3339Nano, version)
 	return version != "" && e == nil
@@ -72,7 +78,13 @@ func (d *Docmost) stableNative(ctx context.Context, id string, before Observatio
 	return last, nil
 }
 func (d *Docmost) VerifyNative(ctx context.Context, id string, source Snapshot, observed Observation) (NativeProof, error) {
+	return d.VerifyNativeProfile(ctx, id, source, observed, DocmostNativeProfile)
+}
+func (d *Docmost) VerifyNativeProfile(ctx context.Context, id string, source Snapshot, observed Observation, profile string) (NativeProof, error) {
 	var p NativeProof
+	if nativeProfileProvider(profile) != "docmost" {
+		return p, Failure("unsupported_native_profile")
+	}
 	if err := source.Validate(); err != nil {
 		return p, err
 	}
@@ -83,15 +95,18 @@ func (d *Docmost) VerifyNative(ctx context.Context, id string, source Snapshot, 
 	if e != nil {
 		return p, e
 	}
-	proof, e := CompareDocmostNative(source.Content, n.Content)
+	proof, e := CompareDocmostNativeProfile(source.Content, n.Content, profile)
 	if e != nil {
 		return p, e
 	}
-	p = NativeProof{Profile: DocmostNativeProfile, TargetVersion: n.UpdatedAt, SourceCanonicalHash: proof.SourceHash, TargetCanonicalHash: proof.TargetHash, TargetNativeRawHash: Hash(string(n.Content)), PlatformBehaviorHash: proof.PlatformHash, PlatformDifferences: proof.PlatformDifferences, MarkdownExportError: "readback_mismatch"}
+	p = NativeProof{Profile: profile, TargetVersion: n.UpdatedAt, SourceCanonicalHash: proof.SourceHash, TargetCanonicalHash: proof.TargetHash, TargetNativeRawHash: Hash(string(n.Content)), PlatformBehaviorHash: proof.PlatformHash, PlatformDifferences: proof.PlatformDifferences, MarkdownExportError: "readback_mismatch"}
+	if observed.BodyHash == BodyHash(source.Content) {
+		p.MarkdownExportError = ""
+	}
 	return p, nil
 }
 func (d *Docmost) CheckNativeBaseline(ctx context.Context, id string, observed Observation, proof NativeProof) error {
-	if proof.Profile != DocmostNativeProfile || proof.TargetNativeRawHash == "" || proof.SourceCanonicalHash != proof.TargetCanonicalHash {
+	if nativeProfileProvider(proof.Profile) != "docmost" || proof.TargetNativeRawHash == "" || proof.SourceCanonicalHash != proof.TargetCanonicalHash {
 		return Failure("invalid_native_receipt")
 	}
 	n, e := d.stableNative(ctx, id, observed)

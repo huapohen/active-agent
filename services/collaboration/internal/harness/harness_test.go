@@ -221,6 +221,7 @@ func workflowEnvironment(g *fakeGateway, p Planner) *testsuite.TestWorkflowEnvir
 	env.RegisterActivityWithOptions(a.Plan, activity.RegisterOptions{Name: planActivityName})
 	env.RegisterActivityWithOptions(a.Execute, activity.RegisterOptions{Name: actionActivityName})
 	env.RegisterActivityWithOptions(a.Terminal, activity.RegisterOptions{Name: terminalActivityName})
+	env.RegisterActivityWithOptions(a.Archive, activity.RegisterOptions{Name: archiveActivityName})
 	return env
 }
 

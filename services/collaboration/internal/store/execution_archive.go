@@ -16,7 +16,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const ExecutionArchiveRenderer = "renji-run-markdown-v1"
+const ExecutionArchiveRenderer = "renji-run-markdown-v2"
 const archiveChunkBytes = 200000
 
 type ExecutionArchivePart struct {
@@ -147,12 +147,13 @@ func renderExecutionArchive(run ExecutionRun, through int64, entries []Execution
 		add(fmt.Sprintf("证据 #%d · %s", entry.Seq, label), raw)
 	}
 	parts := make([]ExecutionArchivePart, 0, len(sections))
+	summary := archiveReadableSummary(run, through, entries)
 	// Each independently readable document stays well below source/provider limits.
 	for _, section := range sections {
 		if len(parts) == 0 || len(parts[len(parts)-1].Content)+len(section) > 500000 {
 			n := len(parts) + 1
-			title := fmt.Sprintf("人机执行档案 · %s · 游标 %d · %d", run.Context.RunID, through, n)
-			preface := fmt.Sprintf("# %s\n\n这是持久事实档案。模型输出、Agent 输出与工具文字属于执行器报告；只有动作账本证明本地提交，只有运输回执证明实际外发。unknown 保持未知，不以文字代替回执。\n\nRun：`%s`；归档至证据游标：`%d`；渲染契约：`%s`。完整来源范围见 Run 元数据；读取权限必须满足所有来源。\n\n", title, run.Context.RunID, through, ExecutionArchiveRenderer)
+			title := archiveReadableTitle(run, n)
+			preface := fmt.Sprintf("# %s\n\n%s\n\n这是持久事实档案。模型输出、Agent 输出与工具文字属于执行器报告；只有动作账本证明本地提交，只有运输回执证明实际外发。unknown 保持未知，不以文字代替回执。\n\nRun：`%s`；归档至证据游标：`%d`；渲染契约：`%s`。完整来源范围见 Run 元数据；读取权限必须满足所有来源。\n\n", title, summary, run.Context.RunID, through, ExecutionArchiveRenderer)
 			parts = append(parts, ExecutionArchivePart{Part: n, Title: title, Content: preface, State: "prepared"})
 		}
 		parts[len(parts)-1].Content += section + "\n"
@@ -201,7 +202,9 @@ func (s *Store) PrepareExecutionArchive(ctx context.Context, reader EvidenceRead
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
 	}
-	err = tx.QueryRow(ctx, `SELECT id::text FROM execution_archives WHERE run_id=$1 AND through_seq=$2 AND target_binding=$3 AND renderer_version=$4`, runID, through, targetBinding, ExecutionArchiveRenderer).Scan(&existing)
+	// Renderer upgrades must not create another target for an already frozen
+	// evidence prefix. Reuse the original bytes and identity across versions.
+	err = tx.QueryRow(ctx, `SELECT id::text FROM execution_archives WHERE run_id=$1 AND through_seq=$2 AND target_binding=$3 ORDER BY created_at,id LIMIT 1`, runID, through, targetBinding).Scan(&existing)
 	if err == nil {
 		out, err = readArchiveTx(ctx, tx, existing, false)
 		if err != nil {

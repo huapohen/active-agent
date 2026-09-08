@@ -103,7 +103,7 @@ func credential(path, provider string) (string, error) {
 }
 func run(ctx context.Context, path string) int { return runSelected(ctx, path, "", "", "", "") }
 func runSelected(ctx context.Context, path, onlyBinding, nativeProfile, nativeCodec, nativeNode string) int {
-	if nativeProfile != "" && nativeProfile != documents.DocmostNativeProfile && nativeProfile != documents.AffineNativeProfile {
+	if nativeProfile != "" && nativeProfile != documents.DocmostNativeProfile && nativeProfile != documents.AffineNativeProfile && nativeProfile != documents.DocmostCodeNativeProfile && nativeProfile != documents.AffineCodeNativeProfile {
 		emitError(documents.Failure("unsupported_native_profile"))
 		return 2
 	}
@@ -186,7 +186,7 @@ func runSelected(ctx context.Context, path, onlyBinding, nativeProfile, nativeCo
 				continue
 			}
 		}
-		if nativeProfile == documents.AffineNativeProfile && binding.Target == "affine" {
+		if (nativeProfile == documents.AffineNativeProfile || nativeProfile == documents.AffineCodeNativeProfile) && binding.Target == "affine" {
 			if err := target.(*documents.Affine).WithNativeCodec(nativeCodec, nativeNode); err != nil {
 				emitError(err)
 				code = 1

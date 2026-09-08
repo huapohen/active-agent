@@ -17,7 +17,7 @@ Doc Free 的源文档正文、标题、revision 和 exact SHA-256 是唯一主�
 | `docmost.prosemirror.gfm.goldmark-1.8.6.v1` | 当前 Docmost `pages/info` 的 ProseMirror JSON；源使用 Goldmark 1.8.6 的 GFM AST | markdown/native/markdown/native 四次读取必须同 ID、space、title、`updatedAt`；两份 Markdown raw hash 和两份 native JSON raw hash 分别相同；完整 canonical AST 相同 |
 | `affine.database-v3.rich-text.b4c8548c0.v1` | AFFiNE 部署源码 `b4c8548c0`；官方受鉴权 HTTP Yjs snapshot，配合 MCP 正文与 GraphQL 私有页面元数据 | 两份 snapshot 的字节与 ETag 相同；读取前后正文/标题一致；整棵原生树可识别且每个 block 都访问；源/目标 canonical AST 相同 |
 
-源 canonical 支持段落、标题、普通/有序列表、GFM 表格、强调、粗体、删除线、行内代码、链接及换行。图片、HTML、任务框、引用、代码块等尚未纳入此 profile，遇到即拒绝。节点/属性/marks 白名单、UTF-8/JSON 重复键与 UTF-16 转义检查，以及正文大小、递归深度、节点数量上限均不能被“导出格式差异”绕开。
+v1 源 canonical 支持段落、标题、普通/有序列表、GFM 表格、强调、粗体、删除线、行内代码、链接及换行。图片、HTML、任务框、引用、代码块等尚未纳入 v1，遇到即拒绝。下节 v2 单独扩展 fenced code；v1 的解释不改变。节点/属性/marks 白名单、UTF-8/JSON 重复键与 UTF-16 转义检查，以及正文大小、递归深度、节点数量上限均不能被“导出格式差异”绕开。
 
 Docmost 会附加链接的浏览器行为属性。仅当前已审计的默认组合可以单独记录为平台差异；不能因此忽略新的链接地址、标题、非默认属性或结构。只在同一容器中合并相邻、marks 完全相同的文本叶子，不压平段落、列表或表格。
 
@@ -71,3 +71,20 @@ npm --prefix internal/documents/affinecodec test
 ```
 
 测试包含真实本地 HTTP 协议、多次版本围栏、旧 journal 字节兼容、禁止跨 provider profile、同形伪 Y.Text、未知 props/sys/version、保留列 ID、parent secrets/Node 注入隔离、真实冻结整篇 fixture 的反解，以及 AFFiNE 源版本推进时 0 写入/0 journal 变动。运行验收需要另记录实际 ID、版本、hash、时间和单次副作用数。
+
+## v2：执行档案的 fenced code
+
+新增显式版本：
+
+- Docmost：`docmost.prosemirror.gfm-code.goldmark-1.8.6.v2`
+- AFFiNE：`affine.database-v3.code-v1.rich-text.b4c8548c0.v2`
+
+v2 延续 v1 全部结构限制，并增加 canonical `codeBlock`，仅保存精确 `language` 和 `text`。带围栏的代码块从源行读取，保留中文、Unicode、CRLF、内部空行、末尾换行数以及 EOF 没有换行的区别。Goldmark 为未闭合 EOF 代码块渲染时补的合成 LF 不进入本档案 profile。缺省语言为 null；明确语言为不超过 80 个 ASCII 字母/数字或 `_-.+#` 的标识。额外 fence metadata 不可由两个目标原生语言字段表达，故拒绝；缩进式 code block、HTML 与其他未支持格式仍拒绝。
+
+Docmost 只接受 `codeBlock` 的语言属性和普通、无 marks 的 text children；禁止用 paragraph、hardBreak、行内样式或隐藏属性替代代码正文。AFFiNE 只接受 `affine:code` schema v1、真实 Y.Text、无嵌入子块、无格式 delta；wrap/caption/preview/lineNumber/collapsed/comments 只接受当前明确的默认显示值，未知字段及非默认隐藏/预览行为拒绝。官方缺省语言的 `plain text`/空字符串映射为 null，不把明确语言名相互合并。
+
+**v2 即使既有 Markdown 比较通过，也必须获取完整原生证明。** `native_verified` 中的 `markdown_export_error` 反映实际比较结果：若 Markdown 比较仍失败则保留 `readback_mismatch`；若通过则为空字符串，不能捏造此前不存在的导出错误。源 exact hash、目标 raw hash 仍分别保存。旧 v1 journal 没有被迁移或重新解释，profile 不匹配不能复用旧原生证明。
+
+本阶段使用既有真实 Doc Free 档案 `9d62380a` r1 的只读快照建立独立 fixture。调用同部署 AFFiNE Rust `createDocWithMarkdown` 与 Docmost `markdownToHtml → htmlToJson` 的纯转换函数，生成的离线文档均通过完整 v2 canonical 比较；这不是目标页面已经创建的证据。6 个 JSON code blocks 的语言、每个 UTF-8 字节与尾 LF 均与源 fence 直接切片比较。AFFiNE 继续使用已有 H1 传输空行保护，没有修改源正文。
+
+运行 v2 的方式与上面的定向命令相同，只替换 profile 字符串。真实新投影必须使用单独、明确批准的 binding/config/journal，先冻结源 ID/revision/hash、namespace、身份与单次创建意图，再执行创建和读取核验。旧两个交付目标不会用于此新档案。针对 code-only 文档，当前 AFFiNE Markdown 导入可以表达 code blocks；已原生签收后的下一源 revision 仍受 `affine_native_write_plan_required` 保护，不因为本次成功就放开未经审阅的新版本写入。

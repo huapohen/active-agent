@@ -98,12 +98,14 @@ go build ./...
 - `cmd/auth-probe`：在线验证已配置的 Clerk 机器 token，仅输出身份与期限，不输出凭据。
 - `cmd/transport-probe`：显式合成 fixture、持久意图与逐次外部观察，未知结果不重试。已有 fixture 必须复用，不能删除映射后重建。
 - `cmd/document-sync`：对已授权的 Doc Free 源文档建立 AFFiNE/Docmost 投影并读回正文和标题；具体配置见阶段文档。
-- `cmd/run-archive --config /absolute/private/config.json --run <Run ID>`：从持久证据生成 doc_free 档案并校验实际正文、标题与受众；当前仅允许显式单来源合成配置，未知创建不重建。配置与边界见 [归档适配说明](../../docs/startup/2026-09-09/RUN_ARCHIVE_DOC_FREE_ADAPTER_0549.md)。此命令尚未接入持续自动调度。
+- `cmd/run-archive --config /absolute/private/config.json --run <Run ID>`：从持久证据生成 doc_free 档案并校验实际正文、标题与受众；当前仅允许显式单来源合成配置，未知创建不重建。配置与边界见 [归档适配说明](../../docs/startup/2026-09-09/RUN_ARCHIVE_DOC_FREE_ADAPTER_0549.md)。Worker 设置 `RENJI_RUN_ARCHIVE_CONFIG` 后，业务 Terminal 成功提交才启动独立 Archive Activity；也可通过 `renji.agent.archive.v1` 对既有终态 Run 归档，查询名为 `renji.archive.status.v1`。参见 [自动归档契约](../../docs/startup/2026-09-09/AUTOMATIC_TERMINAL_ARCHIVE_0621.md)。
+
+新建档案使用 `renji-run-markdown-v2`，先列任务原文预览、实际 Run 状态、服务端动作与融云运输统计，再保留完整原始 JSON。模型文字不计为业务提交，融云受理不计为设备送达或已读。已冻结的同 Run/游标/目标档案跨渲染器版本复用原 ID、正文、标题与 hash，不通过升级重建旧文档。包含代码块的 AFFiNE/Docmost 投影使用显式 v2 native profile，逐字验证语言、中文、空行与尾换行；原 v1 profile 保持拒绝代码块。
 
 详细结果见 [融云真实回执](../../docs/startup/2026-09-09/RONGCLOUD_OUTBOX_SYNTHETIC_PROBE_0356.md)、[文档双端同步](../../docs/startup/2026-09-09/DOCUMENT_SYNC_FOUNDATION.md)、[机器认证](../../docs/startup/2026-09-09/CLERK_MACHINE_AUTH_ADAPTER_0343.md)。
 
 ## 本阶段没有完成的商业要求
 
-Clerk 真人在所有端的登录/刷新、融云客户端接收与断线恢复、Flutter 迁移、完整飞书页面、生产签名与更新、A2A、全量办公插件、外设接入、真实模型成功多阶段执行、自主执行的持续调度和文档自动归档，均需继续实现和验收。Doc Free → AFFiNE/Docmost 已有真实合成验证，但旧 Docmost 3020 尚未迁移，生产目标权限撤回和全部复杂文档格式保真也未完成。
+Clerk 真人在所有端的登录/刷新、融云客户端接收与断线恢复、Flutter 迁移、完整飞书页面、生产签名与更新、A2A、全量办公插件、外设接入、真实模型成功多阶段执行、自主执行的持续调度与多来源生产归档，均需继续实现和验收。终态自动归档已在受限来源中接线并完成真实既有 Run 复核；尚未证明成功模型流程直接触发生产归档。Doc Free → AFFiNE/Docmost 已有真实合成验证，但旧 Docmost 3020 尚未迁移，生产目标权限撤回、持续自动发现全部新文档和全部复杂格式保真也未完成。
 
 Clerk 是首轮认证方案；Logto + OpenFGA 完整保留为第二方案，本阶段没有部署第二套身份系统。国内优先，海外和鸿蒙不在当前实施范围。

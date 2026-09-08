@@ -159,10 +159,11 @@ type RunInput struct {
 }
 
 type RunResult struct {
-	Status   string    `json:"status"`
-	Summary  string    `json:"summary"`
-	Stages   int       `json:"stages"`
-	Receipts []Receipt `json:"receipts"`
+	Status   string          `json:"status"`
+	Summary  string          `json:"summary"`
+	Stages   int             `json:"stages"`
+	Receipts []Receipt       `json:"receipts"`
+	Archive  *ArchiveOutcome `json:"archive,omitempty"`
 }
 
 type Planner interface {

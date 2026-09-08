@@ -1,0 +1,44 @@
+.message-interactions { display: contents; }
+.message-row:focus-visible { outline: 2px solid #3370ff; outline-offset: 5px; border-radius: 5px; }
+.message-action-layer { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
+.message-action-toolbar, .message-action-menu, .message-emoji-panel { position: fixed; pointer-events: auto; background: #fff; border: 1px solid #dee0e3; box-shadow: 0 4px 18px #1f232922; border-radius: 8px; color: #1f2329; }
+.message-action-toolbar { display: flex; align-items: center; padding: 3px; height: 36px; gap: 3px; }
+.message-action-toolbar button { display: grid; place-items: center; width: 38px; height: 28px; border-radius: 4px; color: #646a73; }
+.message-action-toolbar button:hover, .message-action-menu button:hover { background: #f2f3f5; }
+.message-action-layer button:focus-visible, .emoji-search input:focus-visible { outline: 2px solid #3370ff; outline-offset: 1px; }
+.message-action-layer button:disabled { opacity: .35; cursor: not-allowed; }
+.message-source-time { position: fixed; color: #8f959e; font-size: 11px; white-space: nowrap; background: #fff; border-radius: 3px; padding: 2px 4px; }
+.message-action-menu { width: 238px; max-width: calc(100vw - 16px); padding: 5px; }
+.message-action-menu time { display: block; padding: 7px 10px; font-size: 11px; color: #8f959e; border-bottom: 1px solid #eff0f1; margin-bottom: 4px; }
+.message-action-menu button { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 4px; width: 100%; text-align: left; font-size: 14px; }
+.message-action-menu svg { width: 18px; height: 18px; color: #646a73; }
+.message-emoji-panel { width: 344px; max-width: calc(100vw - 16px); overflow: hidden; }
+.emoji-picker { display: flex; flex-direction: column; height: 100%; }
+.emoji-picker header { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px 6px; font-size: 14px; }
+.emoji-picker header button { display: grid; place-items: center; padding: 4px; }
+.emoji-search { margin: 3px 12px 8px; display: flex; align-items: center; gap: 7px; padding: 6px 8px; background: #f4f5f6; border-radius: 5px; }
+.emoji-search input { border: 0; background: transparent; padding: 0; min-width: 0; width: 100%; font-size: 13px; }
+.emoji-category { display: flex; align-items: center; gap: 9px; margin: 0 12px 9px; font-size: 12px; color: #646a73; }
+.emoji-category select { flex: 1; min-width: 0; border: 1px solid #dee0e3; background: white; padding: 5px; border-radius: 4px; color: #1f2329; }
+.emoji-results { overflow: auto; min-height: 0; flex: 1; padding: 0 10px 8px; }
+.emoji-results > p { font-size: 13px; text-align: center; padding: 16px 8px; }
+.emoji-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 1px; }
+.emoji-grid button { height: 36px; min-width: 0; padding: 3px; display: grid; place-items: center; border-radius: 5px; overflow: hidden; }
+.emoji-grid button:hover { background: #f0f4ff; }
+.reaction-image { display: inline-block; width: 27px; height: 27px; object-fit: contain; vertical-align: middle; }
+.reaction-glyph { display: inline-block; font-size: 24px; line-height: 28px; }
+.emoji-load-more { width: 100%; padding: 9px; color: #3370ff; font-size: 12px; }
+.emoji-picker footer { display: flex; justify-content: space-between; gap: 4px; border-top: 1px solid #eff0f1; padding: 8px 12px; font-size: 10px; color: #8f959e; }
+.message-reactions { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+.message-reactions button { display: flex; align-items: center; gap: 4px; padding: 2px 7px; border: 1px solid #dee0e3; border-radius: 12px; color: #646a73; font-size: 12px; }
+.message-reactions button[aria-pressed="true"] { border-color: #bacefd; background: #edf3ff; color: #245bdb; }
+.message-reactions .reaction-image { width: 19px; height: 19px; }
+.message-reactions .reaction-glyph { font-size: 17px; line-height: 20px; }
+.message-reactions button:disabled { cursor: not-allowed; opacity: .5; }
+.message-reply-quote { display: block; padding: 4px 8px; margin: 0 0 7px; border-left: 3px solid #b8bec7; color: #646a73; font-size: 12px; line-height: 1.5; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.composer-reply { margin: 0 16px 8px; padding: 7px 10px; border-radius: 5px; background: #f5f6f7; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #646a73; }
+.composer-reply span { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.composer-reply button { display: grid; place-items: center; flex: none; }
+.reaction-status { padding: 4px 20px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+.reaction-status .error { margin: 0; }
+.reaction-status button { color: #3370ff; white-space: nowrap; }

@@ -8,7 +8,7 @@ afterEach(cleanup);
 const doc = { id: 'doc-one', roomId: 'room-a', roomIds: ['room-a', 'room-b'], title: '真实文档', revision: 2, updatedAt: '2026-09-09T00:00:00Z' };
 const body: DocumentContent = { ...doc, content: '## 阶段正文\n\n人和 Agent 共享这一段。', contentHash: 'a'.repeat(64) };
 function fake(read: CollaborationClient['document'] = vi.fn(async () => body)): CollaborationClient {
-  return { mode: 'legacy', endpoint: 'http://localhost:3218', capabilities: { directory: true, documents: true, roomPreferences: true, createRoom: true, mentions: true, liveEvents: false, readReceipts: true }, me: vi.fn(), rooms: vi.fn(async () => ({ rooms: [{ id: 'room-a', title: '所属产品群', kind: 'group', version: 1 }], cursor: 0 })), messages: vi.fn(), send: vi.fn(), members: vi.fn(), people: vi.fn(), preferences: vi.fn(), createRoom: vi.fn(), direct: vi.fn(), documents: vi.fn(async () => [doc]), document: read, events: vi.fn(), close: vi.fn() };
+  return { mode: 'legacy', endpoint: 'http://localhost:3218', capabilities: { directory: true, documents: true, roomPreferences: true, createRoom: true, mentions: true, liveEvents: false, readReceipts: true, reactions: true, replies: true }, me: vi.fn(), rooms: vi.fn(async () => ({ rooms: [{ id: 'room-a', title: '所属产品群', kind: 'group', version: 1 }], cursor: 0 })), messages: vi.fn(), send: vi.fn(), members: vi.fn(), people: vi.fn(), preferences: vi.fn(), createRoom: vi.fn(), direct: vi.fn(), documents: vi.fn(async () => [doc]), document: read, emoji: vi.fn(async () => ({ entries: [], categories: [], total: 0, catalogCount: 0 })), react: vi.fn(), events: vi.fn(), close: vi.fn() };
 }
 function setup(client: CollaborationClient) {
   const cache = new QueryClient({ defaultOptions: { queries: { retry: false } } });

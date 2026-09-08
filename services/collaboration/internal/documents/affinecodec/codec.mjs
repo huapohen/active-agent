@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import * as Y from "yjs";
 
 export const profile = "affine.database-v3.rich-text.b4c8548c0.v1";
+export const codeProfile = "affine.database-v3.code-v1.rich-text.b4c8548c0.v2";
 export const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const sorted = (x) =>
   Array.isArray(x)
@@ -132,15 +133,21 @@ const cell = (children, header) => ({
   children: [para(children)],
 });
 
-export function canonicalSnapshot(bytes, expectedTitle) {
+export function canonicalSnapshot(
+  bytes,
+  expectedTitle,
+  selectedProfile = profile,
+) {
+  if (![profile, codeProfile].includes(selectedProfile))
+    fail("unsupported_native_profile");
   const doc = load(bytes);
   try {
-    return canonicalDoc(doc, expectedTitle);
+    return canonicalDoc(doc, expectedTitle, selectedProfile);
   } finally {
     doc.destroy();
   }
 }
-function canonicalDoc(doc, expectedTitle) {
+function canonicalDoc(doc, expectedTitle, selectedProfile = profile) {
   const rawBlocks = doc.getMap("blocks");
   const blocks = plain(rawBlocks);
   const visited = new Set();
@@ -169,6 +176,7 @@ function canonicalDoc(doc, expectedTitle) {
       "affine:list": 1,
       "affine:table": 1,
       "affine:database": 3,
+      ...(selectedProfile === codeProfile ? { "affine:code": 1 } : {}),
     };
     if (
       versions[b["sys:flavour"]] === undefined ||
@@ -394,6 +402,48 @@ function canonicalDoc(doc, expectedTitle) {
   function convert(id) {
     const b = use(id);
     mappings.push({ id, flavour: b["sys:flavour"] });
+    if (b["sys:flavour"] === "affine:code") {
+      if (selectedProfile !== codeProfile) fail("unsupported_native_block");
+      props(b, [
+        "prop:text",
+        "prop:language",
+        "prop:wrap",
+        "prop:caption",
+        "prop:preview",
+        "prop:lineNumber",
+        "prop:collapsed",
+        "prop:comments",
+      ]);
+      equal(b["sys:children"], []);
+      for (const [key, expected] of Object.entries({
+        "prop:wrap": false,
+        "prop:caption": "",
+        "prop:preview": false,
+        "prop:lineNumber": true,
+        "prop:collapsed": false,
+        "prop:comments": {},
+      })) {
+        if (Object.hasOwn(b, key)) equal(b[key], expected);
+      }
+      let language = b["prop:language"] ?? null;
+      // The official block's absent-language display default is plain text.
+      if (language === "" || language === "plain text") language = null;
+      if (
+        language !== null &&
+        (typeof language !== "string" ||
+          !/^[A-Za-z0-9_.+#-]{1,80}$/.test(language))
+      )
+        fail("unsupported_code_language");
+      const text = delta(b["prop:text"]);
+      for (const n of text)
+        if (n.type !== "text" || n.marks.length)
+          fail("unsupported_native_code");
+      return {
+        type: "codeBlock",
+        language,
+        text: text.map((n) => n.text).join(""),
+      };
+    }
     if (b["sys:flavour"] === "affine:paragraph") {
       props(b, ["prop:type", "prop:text"]);
       equal(b["sys:children"] ?? [], []);

@@ -136,13 +136,13 @@ type Engine struct {
 
 func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 	var last Record
-	if e.NativeVerificationProfile != "" && e.NativeVerificationProfile != DocmostNativeProfile && e.NativeVerificationProfile != AffineNativeProfile {
+	if e.NativeVerificationProfile != "" && nativeProfileProvider(e.NativeVerificationProfile) == "" {
 		return last, Failure("unsupported_native_profile")
 	}
 	if err := b.Validate(); err != nil {
 		return last, err
 	}
-	if e.NativeVerificationProfile == DocmostNativeProfile && b.Target != "docmost" || e.NativeVerificationProfile == AffineNativeProfile && b.Target != "affine" {
+	if e.NativeVerificationProfile != "" && nativeProfileProvider(e.NativeVerificationProfile) != b.Target {
 		return last, Failure("native_profile_target_mismatch")
 	}
 	if e.Source == nil || e.Target == nil || e.Store == nil || e.Guard == nil || e.Target.Name() != b.Target {
@@ -187,7 +187,7 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 		return prior, err
 	}
 	if e.NativeVerificationProfile != "" {
-		if _, err := markdownTree(source.Content); err != nil {
+		if _, err := markdownTreeForProfile(source.Content, e.NativeVerificationProfile); err != nil {
 			return prior, err
 		}
 	}
@@ -240,7 +240,13 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 		if err := fence(); err != nil {
 			return r, err
 		}
-		proof, err := verifier.VerifyNative(ctx, r.ExternalID, source, observed)
+		var proof NativeProof
+		var err error
+		if versioned, ok := e.Target.(ProfiledNativeTarget); ok {
+			proof, err = versioned.VerifyNativeProfile(ctx, r.ExternalID, source, observed, e.NativeVerificationProfile)
+		} else {
+			proof, err = verifier.VerifyNative(ctx, r.ExternalID, source, observed)
+		}
 		if err != nil {
 			return r, err
 		}
@@ -275,6 +281,9 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 		// An interrupted known-ID write may only be reconciled by readback. It is
 		// never automatically resent, since provider APIs expose no version CAS.
 		if prior.State == "prepared" || prior.State == "submitted" || prior.State == "unknown" {
+			if codeProfile(e.NativeVerificationProfile) {
+				return tryNative(prior, observed)
+			}
 			if !sameDesired {
 				if e.NativeVerificationProfile != "" {
 					return tryNative(prior, observed)
@@ -302,6 +311,9 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 			}
 			// Return this recovered result; a later invocation handles a newer source.
 			return prior, nil
+		}
+		if codeProfile(e.NativeVerificationProfile) && (prior.State == "verified" || prior.State == "partial_verification") {
+			return tryNative(prior, observed)
 		}
 
 		// A newly connected metadata reader can complete a previously partial
@@ -355,7 +367,7 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 	// The provider's Markdown MCP explicitly does not support database blocks.
 	// A later source revision needs a frozen native write plan; never route it
 	// through that lossy fallback after a native database projection is signed.
-	if exists && prior.State == "native_verified" && prior.Native != nil && prior.Native.Profile == AffineNativeProfile {
+	if exists && prior.State == "native_verified" && prior.Native != nil && nativeProfileProvider(prior.Native.Profile) == "affine" {
 		return prior, Failure("affine_native_write_plan_required")
 	}
 	current := Record{BindingID: b.ID, BindingHash: b.fingerprint(), Sequence: prior.Sequence, ExternalID: prior.ExternalID, SourceRevision: source.Revision, SourceContentHash: source.ContentHash, DesiredBodyHash: BodyHash(source.Content), DesiredTitleHash: Hash(source.Title)}
@@ -427,6 +439,20 @@ func (e *Engine) Sync(ctx context.Context, b Binding) (Record, error) {
 			return tryNative(r, observed)
 		}
 		return r, Failure("readback_mismatch")
+	}
+	// Code-aware profiles always prove the native representation, including when
+	// Markdown happens to compare byte-for-byte. Matching exports are no reason
+	// to skip strict native code language/line-ending verification.
+	if codeProfile(e.NativeVerificationProfile) {
+		r, verifyErr := tryNative(current, observed)
+		if verifyErr != nil {
+			failed, saveErr := save(current, "unknown", Code(verifyErr))
+			if saveErr != nil {
+				return failed, saveErr
+			}
+			return failed, verifyErr
+		}
+		return r, nil
 	}
 	// A revoked/changed source after dispatch is an in-flight result, not a grant
 	// to continue. Record the effect and require reconciliation.

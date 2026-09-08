@@ -55,6 +55,9 @@ func sourceText(v []byte) string {
 	return string(util.ResolveEntityNames(util.ResolveNumericReferences(util.UnescapePunctuations(v))))
 }
 func markdownTree(body string) (tree, error) {
+	return markdownTreeVersion(body, false)
+}
+func markdownTreeVersion(body string, allowCode bool) (tree, error) {
 	if !utf8.ValidString(body) {
 		return nil, Failure("invalid_source_encoding")
 	}
@@ -150,6 +153,29 @@ func markdownTree(body string) (tree, error) {
 		switch x := n.(type) {
 		case *ast.Document:
 			result["type"] = "doc"
+		case *ast.FencedCodeBlock:
+			if !allowCode {
+				return nil, Failure("unsupported_markdown")
+			}
+			var language any
+			if x.Info != nil {
+				info := string(x.Info.Value(input))
+				if !codeLanguage(info) {
+					return nil, Failure("unsupported_code_language")
+				}
+				if info != "" {
+					language = info
+				}
+			}
+			var code strings.Builder
+			for i := 0; i < x.Lines().Len(); i++ {
+				line := x.Lines().At(i)
+				// CommonMark renders an unclosed EOF fence with a synthetic LF.
+				// This archival profile must retain the source code's actual EOF.
+				line.ForceNewline = false
+				code.Write(line.Value(input))
+			}
+			return tree{"type": "codeBlock", "language": language, "text": code.String()}, nil
 		case *ast.Paragraph, *ast.TextBlock:
 			v, e := inline(n, []tree{}, depth+1)
 			if e != nil {
@@ -326,6 +352,9 @@ func strictJSON(raw []byte) (any, error) {
 }
 
 func docmostTree(raw []byte) (tree, []tree, error) {
+	return docmostTreeVersion(raw, false)
+}
+func docmostTreeVersion(raw []byte, allowCode bool) (tree, []tree, error) {
 	decoded, e := strictJSON(raw)
 	if e != nil {
 		return nil, nil, e
@@ -383,6 +412,25 @@ func docmostTree(raw []byte) (tree, []tree, error) {
 		}
 		r := tree{"type": typ}
 		switch typ {
+		case "codeBlock":
+			if !allowCode {
+				return nil, Failure("unsupported_native_document")
+			}
+			language := take("language", nil)
+			if language != nil {
+				value, ok := language.(string)
+				if !ok || value == "" || !codeLanguage(value) {
+					return nil, Failure("unsupported_code_language")
+				}
+			}
+			var code strings.Builder
+			for _, child := range children {
+				if child["type"] != "text" || len(child["marks"].([]tree)) != 0 {
+					return nil, Failure("unsupported_native_code")
+				}
+				code.WriteString(child["text"].(string))
+			}
+			r["language"], r["text"] = language, code.String()
 		case "doc", "bulletList", "listItem", "table", "tableRow":
 			r["children"] = children
 		case "orderedList":
@@ -514,12 +562,18 @@ func docmostTree(raw []byte) (tree, []tree, error) {
 }
 
 func CompareDocmostNative(source string, native json.RawMessage) (NativeComparison, error) {
+	return CompareDocmostNativeProfile(source, native, DocmostNativeProfile)
+}
+func CompareDocmostNativeProfile(source string, native json.RawMessage, profile string) (NativeComparison, error) {
 	var proof NativeComparison
-	s, e := markdownTree(source)
+	if nativeProfileProvider(profile) != "docmost" {
+		return proof, Failure("unsupported_native_profile")
+	}
+	s, e := markdownTreeForProfile(source, profile)
 	if e != nil {
 		return proof, e
 	}
-	t, platform, e := docmostTree(native)
+	t, platform, e := docmostTreeVersion(native, codeProfile(profile))
 	if e != nil {
 		return proof, e
 	}

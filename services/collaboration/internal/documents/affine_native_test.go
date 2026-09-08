@@ -30,58 +30,60 @@ func (a *affineWriteGuardTarget) CheckNativeBaseline(context.Context, string, Ob
 }
 
 func TestAffineNativeNewSourceRevisionCannotUseMarkdownWriter(t *testing.T) {
-	for _, changed := range []string{"content", "title", "revision_only"} {
-		t.Run(changed, func(t *testing.T) {
-			f := newFixture(t)
-			f.currentBody, f.currentTitle = "provider export differs", f.source.Title
-			j := journal(t)
-			e := f.engine(j)
-			target := &affineWriteGuardTarget{Target: e.Target}
-			e.Target, e.NativeVerificationProfile = target, AffineNativeProfile
-			b := f.binding()
-			b.Target = "affine"
-			r := Record{
-				BindingID: b.ID, BindingHash: b.fingerprint(), Sequence: 1,
-				State: "native_verified", ExternalID: "external-1",
-				SourceRevision: f.source.Revision, SourceContentHash: f.source.ContentHash,
-				DesiredBodyHash: BodyHash(f.source.Content), DesiredTitleHash: Hash(f.source.Title),
-				ObservedBodyHash: BodyHash(f.currentBody), ObservedRawBodyHash: Hash(f.currentBody),
-				ObservedTitleHash: Hash(f.currentTitle), TitleVerified: true,
-				At:     time.Date(2026, 9, 9, 1, 0, 0, 0, time.UTC),
-				Native: &NativeProof{Profile: AffineNativeProfile, MarkdownExportError: "readback_mismatch"},
-			}
-			if err := j.Append(r); err != nil {
-				t.Fatal(err)
-			}
-			before, err := os.ReadFile(j.file.Name())
-			if err != nil {
-				t.Fatal(err)
-			}
-			// Same-version reconciliation remains read-only and idempotent.
-			if same, err := e.Sync(context.Background(), b); err != nil || same.Sequence != r.Sequence {
-				t.Fatalf("same source %+v: %v", same, err)
-			}
-			f.source.Revision++
-			switch changed {
-			case "content":
-				f.source.Content += "\n\nNew paragraph."
-				f.source.ContentHash = Hash(f.source.Content)
-			case "title":
-				f.source.Title = "New title"
-			}
-			got, err := e.Sync(context.Background(), b)
-			requireCode(t, err, "affine_native_write_plan_required")
-			if got.Sequence != r.Sequence || got.State != "native_verified" || target.checks != 2 {
-				t.Fatalf("lost signed baseline: %+v, checks=%d", got, target.checks)
-			}
-			after, err := os.ReadFile(j.file.Name())
-			if err != nil {
-				t.Fatal(err)
-			}
-			if f.creates != 0 || f.updates != 0 || !bytes.Equal(before, after) {
-				t.Fatal("new source was dispatched through the Markdown writer or journal was changed")
-			}
-		})
+	for _, profile := range []string{AffineNativeProfile, AffineCodeNativeProfile} {
+		for _, changed := range []string{"content", "title", "revision_only"} {
+			t.Run(profile+"/"+changed, func(t *testing.T) {
+				f := newFixture(t)
+				f.currentBody, f.currentTitle = "provider export differs", f.source.Title
+				j := journal(t)
+				e := f.engine(j)
+				target := &affineWriteGuardTarget{Target: e.Target}
+				e.Target, e.NativeVerificationProfile = target, profile
+				b := f.binding()
+				b.Target = "affine"
+				r := Record{
+					BindingID: b.ID, BindingHash: b.fingerprint(), Sequence: 1,
+					State: "native_verified", ExternalID: "external-1",
+					SourceRevision: f.source.Revision, SourceContentHash: f.source.ContentHash,
+					DesiredBodyHash: BodyHash(f.source.Content), DesiredTitleHash: Hash(f.source.Title),
+					ObservedBodyHash: BodyHash(f.currentBody), ObservedRawBodyHash: Hash(f.currentBody),
+					ObservedTitleHash: Hash(f.currentTitle), TitleVerified: true,
+					At:     time.Date(2026, 9, 9, 1, 0, 0, 0, time.UTC),
+					Native: &NativeProof{Profile: profile, MarkdownExportError: "readback_mismatch"},
+				}
+				if err := j.Append(r); err != nil {
+					t.Fatal(err)
+				}
+				before, err := os.ReadFile(j.file.Name())
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Same-version reconciliation remains read-only and idempotent.
+				if same, err := e.Sync(context.Background(), b); err != nil || same.Sequence != r.Sequence {
+					t.Fatalf("same source %+v: %v", same, err)
+				}
+				f.source.Revision++
+				switch changed {
+				case "content":
+					f.source.Content += "\n\nNew paragraph."
+					f.source.ContentHash = Hash(f.source.Content)
+				case "title":
+					f.source.Title = "New title"
+				}
+				got, err := e.Sync(context.Background(), b)
+				requireCode(t, err, "affine_native_write_plan_required")
+				if got.Sequence != r.Sequence || got.State != "native_verified" || target.checks != 2 {
+					t.Fatalf("lost signed baseline: %+v, checks=%d", got, target.checks)
+				}
+				after, err := os.ReadFile(j.file.Name())
+				if err != nil {
+					t.Fatal(err)
+				}
+				if f.creates != 0 || f.updates != 0 || !bytes.Equal(before, after) {
+					t.Fatal("new source was dispatched through the Markdown writer or journal was changed")
+				}
+			})
+		}
 	}
 }
 
