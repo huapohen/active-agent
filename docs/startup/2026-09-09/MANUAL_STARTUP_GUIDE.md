@@ -1,5 +1,7 @@
 # 人机本机手动启动教程
 
+2026-09-09 06:39 更新：当前实施提交为 `2fc663150ec66fa2c402e1a38668264f0d961e5a`（06:37:12+08:00，`feat(startup): automate execution archives and add native message actions`）。下列普通服务、电脑与模拟器启动步骤仍适用；本轮没有新增数据库迁移。Worker 增加 `RENJI_RUN_ARCHIVE_CONFIG` 私有部署配置，终态自动归档的启动条件、结果查询与有限重试见 [0621 专题](AUTOMATIC_TERMINAL_ARCHIVE_0621.md)。当前验收使用专用归档队列并已停止该 Worker；它不是打开电脑界面的前提。不要直接重跑验收工作流 start、旧 publisher 或 provisioning 来启动界面。
+
 记录时间：2026-09-09 04:25（Asia/Shanghai）。适用于本机 `startup` 分支，客户端实现提交 `71b80f8181fa243b7477ebac0c35c6ce13e2c960`（04:11:17），内核提交 `a9005c01ee059b3f093d877ae1eb13828075d692`（04:15:30）。依据当前根 `package.json`、`services/collaboration/README.md`、`apps/desktop/README.md` 和旧 Flutter 启动脚本编写。
 
 ## 先分清现在的两套客户端

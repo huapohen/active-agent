@@ -1,0 +1,60 @@
+{
+  "targets": [
+    {
+      "binding_id": "startup-fixture-affine-20260909-initialized",
+      "provider": "affine",
+      "target_id": "2T4haLdQHZ5IkzU2mSJBG",
+      "namespace_id": "a901cbc0-59ac-40b6-86bf-fcca7ff7b619",
+      "title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+      "native_snapshot_hash": "7f9daa1e91bdf1a4439e703d2d1de707fcf0ad7f90ed6080aa390b2a818f84f9",
+      "public": false
+    },
+    {
+      "binding_id": "startup-fixture-affine-h1-20260909",
+      "provider": "affine",
+      "target_id": "pLxvvvqAYXsM7iuxUGIeR",
+      "namespace_id": "a901cbc0-59ac-40b6-86bf-fcca7ff7b619",
+      "title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+      "native_snapshot_hash": "a667865d5c306352eee0faf0b7e32277d68521835646723deca23001322d0aea",
+      "public": false
+    },
+    {
+      "binding_id": "startup-fixture-docmost-20260909-initialized",
+      "provider": "docmost",
+      "target_id": "01a08286-d73b-76c5-922f-7e1204ba8b2d",
+      "namespace_id": "01a08286-d2ee-75a6-82b2-cb68157cd32a",
+      "title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+      "native_json_hash": "aa5d5c7957a79b784bb7823ee876f0dba93aa27ad3dde52f6766c84ac829feaa",
+      "updated_at": "2026-09-08T19:39:19.447Z"
+    },
+    {
+      "binding_id": "startup-fixture-docmost-h1-20260909",
+      "provider": "docmost",
+      "target_id": "01a08286-d78b-7621-ba89-e26e5c6fbb10",
+      "namespace_id": "01a08286-d2ee-75a6-82b2-cb68157cd32a",
+      "title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+      "native_json_hash": "8d348b738d883c884d45588cfb403d866b52a867f7588902d80571a78e03a2ba",
+      "updated_at": "2026-09-08T19:37:50.218Z"
+    },
+    {
+      "binding_id": "startup-stage-publication-20260909-0418-affine",
+      "provider": "affine",
+      "target_id": "SLrA9aXyZV-vehgtC91W-",
+      "namespace_id": "a901cbc0-59ac-40b6-86bf-fcca7ff7b619",
+      "title_hash": "b2a1ad8b6dd1974d70422e4e0dc9c1f8123bb3924563d44ef8753326c2f34f4e",
+      "native_snapshot_hash": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+      "public": false
+    },
+    {
+      "binding_id": "startup-stage-publication-20260909-0418-docmost",
+      "provider": "docmost",
+      "target_id": "01a082b6-bade-7ef2-8bfc-02b75fcd97de",
+      "namespace_id": "01a08286-d2ee-75a6-82b2-cb68157cd32a",
+      "title_hash": "b2a1ad8b6dd1974d70422e4e0dc9c1f8123bb3924563d44ef8753326c2f34f4e",
+      "native_json_hash": "e34119fe1cbfde259d720a66ffb7d55c635c986664d56cf79afeaee25b8a9e5a",
+      "updated_at": "2026-09-08T20:30:08.605Z"
+    }
+  ],
+  "old_configs_journals_unchanged": true,
+  "read_only": true
+}

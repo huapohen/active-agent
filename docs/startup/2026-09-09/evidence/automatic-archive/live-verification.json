@@ -1,0 +1,32 @@
+{
+  "at": "2026-09-08T22:32:28.384260+00:00",
+  "workflow_id": "renji-archive-case2-20260909-0620-final",
+  "history_events": 11,
+  "activities": [
+    "renji.agent.archive.v1"
+  ],
+  "result": {
+    "status": "verified",
+    "archive_id": "75ae64e9-7234-4293-8b15-8cbfb70faefb",
+    "through": 5,
+    "verified_through": 5,
+    "parts": [
+      {
+        "part": 1,
+        "state": "verified",
+        "external_id": "9d62380a"
+      }
+    ],
+    "attempts": 1
+  },
+  "state_before_after_exact": true,
+  "source_run_status": "failed",
+  "source_evidence_count": 5,
+  "business_actions": 0,
+  "target_document_count": 4,
+  "archive_renderer": "renji-run-markdown-v1",
+  "write_attempts": 1,
+  "history_sha256": "5e49dc1e627bb6cf5596bad5ea41f5f780da6c04d767ceab1b49e81217497e07",
+  "model_success_claimed": false,
+  "initial_observation_note": "The first optional baseline read used an unsupported documents-list route and failed before capture. Final binary validation used successful room-detail snapshots before and after its separate reconciliation workflow."
+}

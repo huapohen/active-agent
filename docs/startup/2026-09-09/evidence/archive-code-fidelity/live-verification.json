@@ -1,0 +1,89 @@
+{
+  "at": "2026-09-09T06:25:06.346948+08:00",
+  "source_id": "9d62380a",
+  "source_revision": 1,
+  "source_exact_sha256": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+  "source_current_acl_and_version_verified": true,
+  "new_config_sha256": "26001902b95c5531852e5ca744167c1df9db744e3fb36b57c9e705d5bc231d58",
+  "new_journal_sha256": "5b73e016d09508eda0756475f32f498b7a26aeafca45f84fa320abc2a386dce0",
+  "new_journal_lines": 7,
+  "second_pass_no_append": true,
+  "second_pass_no_write": true,
+  "old_six_targets_unchanged": true,
+  "old_configs_and_journals_unchanged": true,
+  "total_new_create_requests": 2,
+  "total_update_requests": 0,
+  "targets": [
+    {
+      "provider": "affine",
+      "target_id": "KfTj5XXxNr39dXMML9eff",
+      "record": {
+        "binding_id": "startup-archive-code-20260909-0618-affine",
+        "binding_hash": "1ccda6fc27e75650815d2dafcb6d8e413b6986b7ace503381db8fc99ccd7e202",
+        "sequence": 4,
+        "state": "native_verified",
+        "external_id": "KfTj5XXxNr39dXMML9eff",
+        "source_revision": 1,
+        "source_content_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+        "desired_body_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+        "desired_title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "observed_body_hash": "244078d1263600ac3426492becdd13586f2a88d7a7912a4799b429cd61debc7c",
+        "observed_title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "title_verified": true,
+        "at": "2026-09-08T22:22:59.611068Z",
+        "observed_raw_body_hash": "a6e04cc26ff2533fde6dc0f481b67eb21517219b98f5ec76fcd7c1801a505672",
+        "native": {
+          "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "target_version": "sha256:cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d",
+          "source_canonical_hash": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+          "target_canonical_hash": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+          "target_native_raw_hash": "cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d",
+          "platform_behavior_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "platform_differences": 0,
+          "markdown_export_error": "readback_mismatch"
+        }
+      },
+      "second_pass_same_record": true,
+      "create_requests": 1,
+      "update_requests": 0,
+      "native_write_delta_requests": 0,
+      "url": "http://127.0.0.1:3010/workspace/a901cbc0-59ac-40b6-86bf-fcca7ff7b619/KfTj5XXxNr39dXMML9eff"
+    },
+    {
+      "provider": "docmost",
+      "target_id": "01a0831e-38e3-76d9-8c34-0466c871bb42",
+      "record": {
+        "binding_id": "startup-archive-code-20260909-0618-docmost",
+        "binding_hash": "95fc8fe9531b8adcd9492d9420ee4f97a893540127ce131068d8ef0497a8de9b",
+        "sequence": 3,
+        "state": "native_verified",
+        "external_id": "01a0831e-38e3-76d9-8c34-0466c871bb42",
+        "source_revision": 1,
+        "source_content_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+        "desired_body_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+        "desired_title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "observed_body_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+        "observed_title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "title_verified": true,
+        "at": "2026-09-08T22:23:11.239387Z",
+        "observed_raw_body_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+        "native": {
+          "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "target_version": "2026-09-08T22:23:11.073Z",
+          "source_canonical_hash": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+          "target_canonical_hash": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+          "target_native_raw_hash": "f23d48a2f4dbe551643587d38699f5ef55d3b792df1a26018400a90e226bfd72",
+          "platform_behavior_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "platform_differences": 0,
+          "markdown_export_error": ""
+        }
+      },
+      "second_pass_same_record": true,
+      "create_requests": 1,
+      "update_requests": 0,
+      "native_write_delta_requests": 0,
+      "url": "http://127.0.0.1:3021/p/l8xzi5wOsi",
+      "slug_id": "l8xzi5wOsi"
+    }
+  ]
+}

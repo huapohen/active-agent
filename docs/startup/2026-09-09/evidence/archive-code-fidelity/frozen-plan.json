@@ -1,0 +1,83 @@
+{
+  "schema": "renji.archive-code-projection-plan.v2",
+  "frozen_at": "2026-09-09T06:17:35.736392+08:00",
+  "execution_state": "prepared_only_no_target_created",
+  "source_id": "9d62380a",
+  "source_revision": 1,
+  "source_room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+  "source_title": "人机执行档案 · 76dedd18-1ddf-4fc0-abfa-19aee795b034 · 游标 5 · 1",
+  "source_exact_sha256": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+  "source_title_sha256": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+  "source_canonical_sha256": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+  "source_acl_reads": [
+    {
+      "identity": "human",
+      "status": 200,
+      "document_id": "9d62380a",
+      "revision": 1,
+      "content_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+      "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887"
+    },
+    {
+      "identity": "agent",
+      "status": 200,
+      "document_id": "9d62380a",
+      "revision": 1,
+      "content_hash": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+      "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887"
+    },
+    {
+      "identity": "peer",
+      "status": 403
+    }
+  ],
+  "private_config_path": "data/startup/publications/archive-code-20260909-0618/config.json",
+  "config_sha256": "26001902b95c5531852e5ca744167c1df9db744e3fb36b57c9e705d5bc231d58",
+  "new_journal_path": "data/startup/publications/archive-code-20260909-0618/receipts.jsonl",
+  "new_journal_exists": false,
+  "preserved_existing_configs_journals": [
+    {
+      "config": "data/startup/document-sync/config.json",
+      "config_sha256": "3c908e3398464da65a2dc9a02e63d81f2ff2e091d22a61e80d679b3c38fc0187",
+      "journal_path": "data/startup/document-sync/receipts.jsonl",
+      "journal_sha256": "b0015ed81500829a5a1e14876d64bccbd2727271ba7aedaa041afbf0d4b5a948",
+      "journal_bytes": 21386,
+      "journal_lines": 28
+    },
+    {
+      "config": "data/startup/publications/startup-stage-publication-20260909-0418/config.json",
+      "config_sha256": "87def3b98f0b703faa210b34a00839f192c148c3b916801db798180d9ce922df",
+      "journal_path": "data/startup/publications/startup-stage-publication-20260909-0418/receipts.jsonl",
+      "journal_sha256": "8c11808d31b561b2b530853fc46351be7e75345da3d84e6449acb7160fec4abf",
+      "journal_bytes": 7779,
+      "journal_lines": 8
+    }
+  ],
+  "targets": [
+    {
+      "binding_id": "startup-archive-code-20260909-0618-affine",
+      "provider": "affine",
+      "endpoint": "http://127.0.0.1:3010",
+      "namespace_id": "a901cbc0-59ac-40b6-86bf-fcca7ff7b619",
+      "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+      "external_id": null,
+      "create_request_budget": 1,
+      "subsequent_attempts": "known-ID read-only reconcile; unknown-ID stops; no blind retry"
+    },
+    {
+      "binding_id": "startup-archive-code-20260909-0618-docmost",
+      "provider": "docmost",
+      "endpoint": "http://127.0.0.1:3021",
+      "namespace_id": "01a08286-d2ee-75a6-82b2-cb68157cd32a",
+      "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+      "external_id": null,
+      "create_request_budget": 1,
+      "subsequent_attempts": "known-ID read-only reconcile; unknown-ID stops; no blind retry"
+    }
+  ],
+  "transport": "Existing Markdown create; AFFiNE existing leading-blank H1 protection; source never modified; no native delta planned",
+  "native_requirement": "v2 always requires complete same-version native proof even when exported Markdown hashes match",
+  "old_target_write_budget": 0,
+  "chat_or_model_calls": 0,
+  "requires_root_review_before_execution": true
+}

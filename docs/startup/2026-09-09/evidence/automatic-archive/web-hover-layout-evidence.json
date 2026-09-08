@@ -1,0 +1,453 @@
+{
+  "before": {
+    "documentScroll": {
+      "x": 0,
+      "y": 0
+    },
+    "rows": [
+      {
+        "id": "msg-8800364c-029d-4ca1-8d4a-0d3ad6f6172a",
+        "rect": {
+          "bottom": -416.40625,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -483,
+          "width": 720,
+          "x": 534,
+          "y": -483
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-bdf9f0fe-c9c7-4cf0-8e2e-ace234e12115",
+        "rect": {
+          "bottom": -326.8125,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -393.40625,
+          "width": 720,
+          "x": 534,
+          "y": -393.40625
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-e9e9f7ad-5e48-4bd3-8ea2-e3813a8afd24",
+        "rect": {
+          "bottom": -237.21875,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -303.8125,
+          "width": 720,
+          "x": 534,
+          "y": -303.8125
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-9dcfc941-c4ca-4066-a698-d655ed1696fa",
+        "rect": {
+          "bottom": -147.625,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -214.21875,
+          "width": 720,
+          "x": 534,
+          "y": -214.21875
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-706afeed-3232-4ae0-a3b5-05a343198d9e",
+        "rect": {
+          "bottom": -58.03125,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -124.625,
+          "width": 720,
+          "x": 534,
+          "y": -124.625
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-2e11b220-f82d-4e52-a20b-1c838aac008e",
+        "rect": {
+          "bottom": 28.265625,
+          "height": 63.296875,
+          "left": 534,
+          "right": 1254,
+          "top": -35.03125,
+          "width": 720,
+          "x": 534,
+          "y": -35.03125
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-66853e50-dc21-4d99-9b2e-f0a2cade995b",
+        "rect": {
+          "bottom": 117.859375,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": 51.265625,
+          "width": 720,
+          "x": 534,
+          "y": 51.265625
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-b76de29d-e9b5-4c9e-9646-793b078810d7",
+        "rect": {
+          "bottom": 240.453125,
+          "height": 99.59375,
+          "left": 534,
+          "right": 1254,
+          "top": 140.859375,
+          "width": 720,
+          "x": 534,
+          "y": 140.859375
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-099b7c38-7ea2-4fa8-8b2b-53e7c6c60aef",
+        "rect": {
+          "bottom": 373.140625,
+          "height": 109.6875,
+          "left": 534,
+          "right": 1254,
+          "top": 263.453125,
+          "width": 720,
+          "x": 534,
+          "y": 263.453125
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-2a24e614-032a-4617-a9c1-ea43d0f56599",
+        "rect": {
+          "bottom": 482.734375,
+          "height": 86.59375,
+          "left": 534,
+          "right": 1254,
+          "top": 396.140625,
+          "width": 720,
+          "x": 534,
+          "y": 396.140625
+        },
+        "text": "target"
+      }
+    ],
+    "viewport": {
+      "h": 720,
+      "w": 1280
+    }
+  },
+  "palette": {
+    "documentScroll": {
+      "x": 0,
+      "y": 0
+    },
+    "portalOutsideRows": true,
+    "rows": [
+      {
+        "id": "msg-8800364c-029d-4ca1-8d4a-0d3ad6f6172a",
+        "rect": {
+          "bottom": -416.40625,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -483,
+          "width": 720,
+          "x": 534,
+          "y": -483
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-bdf9f0fe-c9c7-4cf0-8e2e-ace234e12115",
+        "rect": {
+          "bottom": -326.8125,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -393.40625,
+          "width": 720,
+          "x": 534,
+          "y": -393.40625
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-e9e9f7ad-5e48-4bd3-8ea2-e3813a8afd24",
+        "rect": {
+          "bottom": -237.21875,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -303.8125,
+          "width": 720,
+          "x": 534,
+          "y": -303.8125
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-9dcfc941-c4ca-4066-a698-d655ed1696fa",
+        "rect": {
+          "bottom": -147.625,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -214.21875,
+          "width": 720,
+          "x": 534,
+          "y": -214.21875
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-706afeed-3232-4ae0-a3b5-05a343198d9e",
+        "rect": {
+          "bottom": -58.03125,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -124.625,
+          "width": 720,
+          "x": 534,
+          "y": -124.625
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-2e11b220-f82d-4e52-a20b-1c838aac008e",
+        "rect": {
+          "bottom": 28.265625,
+          "height": 63.296875,
+          "left": 534,
+          "right": 1254,
+          "top": -35.03125,
+          "width": 720,
+          "x": 534,
+          "y": -35.03125
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-66853e50-dc21-4d99-9b2e-f0a2cade995b",
+        "rect": {
+          "bottom": 117.859375,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": 51.265625,
+          "width": 720,
+          "x": 534,
+          "y": 51.265625
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-b76de29d-e9b5-4c9e-9646-793b078810d7",
+        "rect": {
+          "bottom": 240.453125,
+          "height": 99.59375,
+          "left": 534,
+          "right": 1254,
+          "top": 140.859375,
+          "width": 720,
+          "x": 534,
+          "y": 140.859375
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-099b7c38-7ea2-4fa8-8b2b-53e7c6c60aef",
+        "rect": {
+          "bottom": 373.140625,
+          "height": 109.6875,
+          "left": 534,
+          "right": 1254,
+          "top": 263.453125,
+          "width": 720,
+          "x": 534,
+          "y": 263.453125
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-2a24e614-032a-4617-a9c1-ea43d0f56599",
+        "rect": {
+          "bottom": 482.734375,
+          "height": 86.59375,
+          "left": 534,
+          "right": 1254,
+          "top": 396.140625,
+          "width": 720,
+          "x": 534,
+          "y": 396.140625
+        },
+        "text": "target"
+      }
+    ]
+  },
+  "closed": {
+    "documentScroll": {
+      "x": 0,
+      "y": 0
+    },
+    "paletteCount": 0,
+    "rows": [
+      {
+        "id": "msg-8800364c-029d-4ca1-8d4a-0d3ad6f6172a",
+        "rect": {
+          "bottom": -416.40625,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -483,
+          "width": 720,
+          "x": 534,
+          "y": -483
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-bdf9f0fe-c9c7-4cf0-8e2e-ace234e12115",
+        "rect": {
+          "bottom": -326.8125,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -393.40625,
+          "width": 720,
+          "x": 534,
+          "y": -393.40625
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-e9e9f7ad-5e48-4bd3-8ea2-e3813a8afd24",
+        "rect": {
+          "bottom": -237.21875,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -303.8125,
+          "width": 720,
+          "x": 534,
+          "y": -303.8125
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-9dcfc941-c4ca-4066-a698-d655ed1696fa",
+        "rect": {
+          "bottom": -147.625,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -214.21875,
+          "width": 720,
+          "x": 534,
+          "y": -214.21875
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-706afeed-3232-4ae0-a3b5-05a343198d9e",
+        "rect": {
+          "bottom": -58.03125,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": -124.625,
+          "width": 720,
+          "x": 534,
+          "y": -124.625
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-2e11b220-f82d-4e52-a20b-1c838aac008e",
+        "rect": {
+          "bottom": 28.265625,
+          "height": 63.296875,
+          "left": 534,
+          "right": 1254,
+          "top": -35.03125,
+          "width": 720,
+          "x": 534,
+          "y": -35.03125
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-66853e50-dc21-4d99-9b2e-f0a2cade995b",
+        "rect": {
+          "bottom": 117.859375,
+          "height": 66.59375,
+          "left": 534,
+          "right": 1254,
+          "top": 51.265625,
+          "width": 720,
+          "x": 534,
+          "y": 51.265625
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-b76de29d-e9b5-4c9e-9646-793b078810d7",
+        "rect": {
+          "bottom": 240.453125,
+          "height": 99.59375,
+          "left": 534,
+          "right": 1254,
+          "top": 140.859375,
+          "width": 720,
+          "x": 534,
+          "y": 140.859375
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-099b7c38-7ea2-4fa8-8b2b-53e7c6c60aef",
+        "rect": {
+          "bottom": 373.140625,
+          "height": 109.6875,
+          "left": 534,
+          "right": 1254,
+          "top": 263.453125,
+          "width": 720,
+          "x": 534,
+          "y": 263.453125
+        },
+        "text": ""
+      },
+      {
+        "id": "msg-2a24e614-032a-4617-a9c1-ea43d0f56599",
+        "rect": {
+          "bottom": 482.734375,
+          "height": 86.59375,
+          "left": 534,
+          "right": 1254,
+          "top": 396.140625,
+          "width": 720,
+          "x": 534,
+          "y": 396.140625
+        },
+        "text": "target"
+      }
+    ],
+    "toolbarCount": 0
+  }
+}

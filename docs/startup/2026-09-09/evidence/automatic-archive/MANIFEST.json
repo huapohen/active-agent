@@ -1,0 +1,77 @@
+{
+  "schema": "renji.phase-evidence.v1",
+  "at": "2026-09-08T22:39:06.800045+00:00",
+  "implementation_commit": "2fc663150ec66fa2c402e1a38668264f0d961e5a",
+  "files": [
+    {
+      "path": "desktop-agent-reply.png",
+      "bytes": 107642,
+      "sha256": "e89787870e73c353ce0433479dbf4c0a8b9017e5465e5352cf1635b4c928534d"
+    },
+    {
+      "path": "desktop-final-logged-in.png",
+      "bytes": 101765,
+      "sha256": "f549ea6eaa459d5969e444264a4bc1b2c3a4e802306073b96efa3b3a03f78223"
+    },
+    {
+      "path": "desktop-reply-before-layout-fix.png",
+      "bytes": 89060,
+      "sha256": "7e7a0fc540bc408707839be07374fff2cd6ead527a73d8ce2a7e877827757868"
+    },
+    {
+      "path": "full-go-checks.json",
+      "bytes": 80026,
+      "sha256": "82f52576b38771d6d14be4f83c74d1cf620c45a9d816bff7c4973a1591ef856a"
+    },
+    {
+      "path": "independent-harness-review.md",
+      "bytes": 4702,
+      "sha256": "d85a13c2f58fdc62deafd483ff0d8d1c1b81d1c4658bad424b0b9a529f583a41"
+    },
+    {
+      "path": "live-verification.json",
+      "bytes": 1066,
+      "sha256": "cc8aecc62cba550a1f43806f16667917934509b88cac4aca334dbb96cbc61a08"
+    },
+    {
+      "path": "web-hover-closed.png",
+      "bytes": 67052,
+      "sha256": "48aa85c6990b1e9f4962af028aafa568277b42c48a1b216098fa004b2d564731"
+    },
+    {
+      "path": "web-hover-independent-check.json",
+      "bytes": 211,
+      "sha256": "ad8b5a9236f2118e67bbeed9787753e00f6e70367615523e7b82ce88d4355799"
+    },
+    {
+      "path": "web-hover-layout-evidence.json",
+      "bytes": 10325,
+      "sha256": "f57e7015deaf11d830bcc881fd4df6b6cc3ef3d2c4ca68be1ddd9fe0de562c3d"
+    },
+    {
+      "path": "web-palette-loaded.json",
+      "bytes": 10115,
+      "sha256": "77616ab18bc27db3d39bb03ee2bf8e4824038d76d371154051c47b180bca6b04"
+    },
+    {
+      "path": "web-palette-loaded.png",
+      "bytes": 74994,
+      "sha256": "58a668c253a3dce7a9cec1d1dda2da20c89bbf8c3e14a7ffea9e79c0716fc2cb"
+    },
+    {
+      "path": "web-reaction-committed.png",
+      "bytes": 69159,
+      "sha256": "29958fdc15ebc85fb44935abe914bcc4c2509b1c071658d108a036111eea0b22"
+    },
+    {
+      "path": "workflow-final-history.json",
+      "bytes": 7339,
+      "sha256": "5e49dc1e627bb6cf5596bad5ea41f5f780da6c04d767ceab1b49e81217497e07"
+    },
+    {
+      "path": "workflow-final-start.json",
+      "bytes": 235,
+      "sha256": "2366fa4d91a6d430a83bf3a790b8b5c0a7a6700274ad080868448b85c080606e"
+    }
+  ]
+}

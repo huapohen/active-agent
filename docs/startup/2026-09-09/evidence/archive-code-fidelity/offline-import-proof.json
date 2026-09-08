@@ -1,0 +1,56 @@
+{
+  "at": "2026-09-08T22:16:35.022Z",
+  "source_id": "9d62380a",
+  "source_revision": 1,
+  "source_exact_sha256": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+  "source_title_sha256": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+  "source_canonical_sha256": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+  "native_offline_snapshot_sha256": "5a11ad753e8488afd5f54ff33ff89edd3aff68d60afe4ee664b7a514aa814e11",
+  "native_blocks": 24,
+  "code_blocks": [
+    {
+      "index": 0,
+      "language": "json",
+      "bytes": 1759,
+      "sha256": "2bdba6af01c359bc5053fed9446052e3e0330704f6288ded7d8f88f45511e2a9",
+      "terminal_lf": true
+    },
+    {
+      "index": 1,
+      "language": "json",
+      "bytes": 2234,
+      "sha256": "b5ac4896ad9223233077459953a28b91cd4028ed6cba4544006e10b40b7731f4",
+      "terminal_lf": true
+    },
+    {
+      "index": 2,
+      "language": "json",
+      "bytes": 2234,
+      "sha256": "c115d0cbbb80d14c065ee28ae0c5efbbd77c872496b87e168471ee244d05fc10",
+      "terminal_lf": true
+    },
+    {
+      "index": 3,
+      "language": "json",
+      "bytes": 2234,
+      "sha256": "b75fa979e9a56cc2deb498598bb2d2777291a8c670da73f5f201cfd83e82a471",
+      "terminal_lf": true
+    },
+    {
+      "index": 4,
+      "language": "json",
+      "bytes": 707,
+      "sha256": "6f79bff6604d12684bdc67a9f8db39ba167b7662c4e77a2bea9c7f3dcabfc79a",
+      "terminal_lf": true
+    },
+    {
+      "index": 5,
+      "language": "json",
+      "bytes": 249,
+      "sha256": "ec46693038c74c391172403c83df23fa71dccc331f649d6e47ae21306f4e70a9",
+      "terminal_lf": true
+    }
+  ],
+  "go_full_docmost_and_affine_profile_fixture_comparison": "passed TestArchiveNativeCodeProfilesFullOfficialOfflineImport",
+  "target_writes": 0
+}

@@ -1,0 +1,7 @@
+{
+  "workflowId": "renji-archive-case2-20260909-0620-final",
+  "runId": "01a08326-40e2-75c8-a828-02d55a3c76ca",
+  "type": "renji.agent.archive.v1",
+  "namespace": "renji-startup",
+  "taskQueue": "renji-startup-archive-20260909-0620"
+}

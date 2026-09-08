@@ -1,0 +1,70 @@
+{
+  "created_at": "2026-09-09T06:27:34.810344+08:00",
+  "scope": "Real source 9d62380a r1; two new code-aware native projections; old six targets unchanged; offline import fixtures are distinct from actual live snapshots. No chat/model calls or source modifications.",
+  "new_file_bytes": 65352,
+  "files": [
+    {
+      "path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/frozen-plan.json",
+      "bytes": 3768,
+      "sha256": "ea6e3c5067b8a447dd1808a627918230d689b10816dcee3933c255f7a08d7e0e"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/offline-import-proof.json",
+      "bytes": 1795,
+      "sha256": "c66e4c663ff65a0684a57855fa04a03fdc568082a48aab30e19ddd6d284d5624"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/live-verification.json",
+      "bytes": 4686,
+      "sha256": "aaedd0f45f8a3076f5a22c3e54e493443df94e976dc5ebd65d77686ab8e2edbb"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/live-code-byte-proof.json",
+      "bytes": 2639,
+      "sha256": "f5a81c443fba767b7707d8bb2ff39ac66b0f4da8c6482be390b9483455d98266"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/old-targets-before.json",
+      "bytes": 2719,
+      "sha256": "1de7618f0b84e94ea7e64850c183097deb2ceec8c1acd85fe51fdeae4916a06d"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/old-targets-after.json",
+      "bytes": 2719,
+      "sha256": "1de7618f0b84e94ea7e64850c183097deb2ceec8c1acd85fe51fdeae4916a06d"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/affine-live-snapshot.bin",
+      "bytes": 17779,
+      "sha256": "cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/docmost-live-native.json",
+      "bytes": 14822,
+      "sha256": "f23d48a2f4dbe551643587d38699f5ef55d3b792df1a26018400a90e226bfd72"
+    },
+    {
+      "path": "docs/startup/2026-09-09/evidence/archive-code-fidelity/archive.canonical.json",
+      "bytes": 14425,
+      "sha256": "8915e2fd6aea046b36bd970b4aab1ed18dacf9ebd79894c16ec782f8fa4ceb49"
+    },
+    {
+      "path": "services/collaboration/internal/documents/testdata/native/archive.md",
+      "bytes": 11374,
+      "sha256": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+      "fixture": "source"
+    },
+    {
+      "path": "services/collaboration/internal/documents/testdata/native/archive-docmost-import.json",
+      "bytes": 18646,
+      "sha256": "285974cf665d43b4a38adb6a28d2fea2e1f9a015d9200b5b516f2fcb365cde9a",
+      "fixture": "official offline import"
+    },
+    {
+      "path": "services/collaboration/internal/documents/testdata/native/archive-affine-import.bin",
+      "bytes": 17779,
+      "sha256": "5a11ad753e8488afd5f54ff33ff89edd3aff68d60afe4ee664b7a514aa814e11",
+      "fixture": "official offline import"
+    }
+  ]
+}
