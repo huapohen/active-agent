@@ -781,127 +781,160 @@ class _OfficeShellState extends State<OfficeShell> {
         },
         child: Focus(
           autofocus: true,
-          child: Scaffold(
-            body: SafeArea(
-              child: mobile
-                  ? Column(
-                      children: [
-                        if (_media.activeMeeting != null && _nav != 6)
-                          _callStrip(),
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              ExcludeSemantics(
-                                excluding: _moreVisible,
-                                child: TickerMode(
-                                  enabled: !_moreVisible,
-                                  child: _mobile(),
+          child: _withMoreChromeScrim(
+            mobile: mobile,
+            child: Scaffold(
+              backgroundColor: mobile ? Colors.white : null,
+              body: SafeArea(
+                child: mobile
+                    ? Column(
+                        children: [
+                          if (_media.activeMeeting != null && _nav != 6)
+                            _callStrip(),
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                ExcludeSemantics(
+                                  excluding: _moreVisible,
+                                  child: TickerMode(
+                                    enabled: !_moreVisible,
+                                    child: _mobile(),
+                                  ),
                                 ),
-                              ),
-                              if (_moreVisible)
-                                OfficeMobileMoreMenu(
-                                  key: ValueKey('mobile-more-$_identityKey'),
-                                  onClose: _closeMore,
-                                  child: _more(),
-                                ),
-                            ],
+                                if (_moreVisible)
+                                  OfficeMobileMoreMenu(
+                                    key: ValueKey('mobile-more-$_identityKey'),
+                                    onClose: _closeMore,
+                                    child: _more(),
+                                  ),
+                              ],
+                            ),
                           ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          _rail(),
+                          if (_nav == 0 &&
+                              s.moduleAvailable('im') &&
+                              _desktopGroupsOpen)
+                            Container(
+                              width: 160,
+                              margin: const EdgeInsets.fromLTRB(0, 10, 8, 10),
+                              child: _groupPanel(),
+                            ),
+                          if (_nav == 0 && s.moduleAvailable('im'))
+                            Container(
+                              width: constraints.maxWidth < 1050 ? 260 : 290,
+                              margin: const EdgeInsets.fromLTRB(0, 10, 9, 10),
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: _roomList(),
+                            ),
+                          if (_nav == 3 && s.moduleAvailable('docs'))
+                            _documentSidebar(),
+                          Expanded(
+                            child: Container(
+                              margin: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Material(
+                                color: Colors.white,
+                                child: _searchOpen
+                                    ? _searchResults()
+                                    : _main(false),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+              bottomNavigationBar:
+                  mobile &&
+                      _nav != 11 &&
+                      !(_roomOpen && _nav == 0) &&
+                      !(_nav == 6 && _media.activeMeeting != null)
+                  ? NavigationBar(
+                      height: 74,
+                      labelTextStyle: const WidgetStatePropertyAll(
+                        TextStyle(
+                          fontSize: OfficeMobileType.navigation,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      backgroundColor: Colors.white,
+                      indicatorColor: Colors.transparent,
+                      selectedIndex: _moreVisible
+                          ? _mobileNav.length - 1
+                          : _mobileNav.contains(_nav)
+                          ? _mobileNav.indexOf(_nav)
+                          : _mobileNav.length - 1,
+                      onDestinationSelected: (index) {
+                        final route = _mobileNav[index];
+                        route == 12 ? _toggleMore() : _changeNav(route);
+                      },
+                      destinations: [
+                        for (final item in officeMobileNavigation(s))
+                          NavigationDestination(
+                            icon: Badge(
+                              key: ValueKey('nav-badge-${item.id}'),
+                              isLabelVisible:
+                                  item.route == 0 &&
+                                  s.rooms.any(
+                                    (room) => officeNotificationCount(room) > 0,
+                                  ),
+                              child: Icon(item.icon, size: 24),
+                            ),
+                            label: item.label,
+                          ),
+                        const NavigationDestination(
+                          icon: Icon(Icons.widgets_rounded, size: 24),
+                          label: '更多',
                         ),
                       ],
                     )
-                  : Row(
-                      children: [
-                        _rail(),
-                        if (_nav == 0 &&
-                            s.moduleAvailable('im') &&
-                            _desktopGroupsOpen)
-                          Container(
-                            width: 160,
-                            margin: const EdgeInsets.fromLTRB(0, 10, 8, 10),
-                            child: _groupPanel(),
-                          ),
-                        if (_nav == 0 && s.moduleAvailable('im'))
-                          Container(
-                            width: constraints.maxWidth < 1050 ? 260 : 290,
-                            margin: const EdgeInsets.fromLTRB(0, 10, 9, 10),
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: _roomList(),
-                          ),
-                        if (_nav == 3 && s.moduleAvailable('docs'))
-                          _documentSidebar(),
-                        Expanded(
-                          child: Container(
-                            margin: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Material(
-                              color: Colors.white,
-                              child: _searchOpen
-                                  ? _searchResults()
-                                  : _main(false),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  : null,
             ),
-            bottomNavigationBar:
-                mobile &&
-                    _nav != 11 &&
-                    !(_roomOpen && _nav == 0) &&
-                    !(_nav == 6 && _media.activeMeeting != null)
-                ? NavigationBar(
-                    height: 65,
-                    labelTextStyle: const WidgetStatePropertyAll(
-                      TextStyle(
-                        fontSize: OfficeMobileType.navigation,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    backgroundColor: Colors.white,
-                    indicatorColor: selectedColor,
-                    selectedIndex: _moreVisible
-                        ? _mobileNav.length - 1
-                        : _mobileNav.contains(_nav)
-                        ? _mobileNav.indexOf(_nav)
-                        : _mobileNav.length - 1,
-                    onDestinationSelected: (index) {
-                      final route = _mobileNav[index];
-                      route == 12 ? _toggleMore() : _changeNav(route);
-                    },
-                    destinations: [
-                      for (final item in officeMobileNavigation(s))
-                        NavigationDestination(
-                          icon: Badge(
-                            key: ValueKey('nav-badge-${item.id}'),
-                            isLabelVisible:
-                                item.route == 0 &&
-                                s.rooms.any(
-                                  (room) => officeNotificationCount(room) > 0,
-                                ),
-                            child: Icon(item.icon, size: 20),
-                          ),
-                          label: item.label,
-                        ),
-                      const NavigationDestination(
-                        icon: Icon(Icons.more_horiz, size: 20),
-                        label: '更多',
-                      ),
-                    ],
-                  )
-                : null,
           ),
         ),
       );
     },
   );
+  Widget _withMoreChromeScrim({required bool mobile, required Widget child}) {
+    final padding = MediaQuery.paddingOf(context);
+    return Stack(
+      children: [
+        child,
+        if (mobile && _moreVisible)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: padding.top,
+            child: const IgnorePointer(
+              child: ColoredBox(color: Color(0x66000000)),
+            ),
+          ),
+        if (mobile && _moreVisible)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 74 + padding.bottom,
+            child: const IgnorePointer(
+              child: ColoredBox(color: Color(0x11000000)),
+            ),
+          ),
+      ],
+    );
+  }
+
   void _desktopMenu(
     BuildContext itemContext,
     OfficeNavigationItem item, [
@@ -1568,7 +1601,7 @@ class _OfficeShellState extends State<OfficeShell> {
       children: [
         Padding(
           padding: mobile
-              ? const EdgeInsets.fromLTRB(12, 12, 12, 12)
+              ? const EdgeInsets.fromLTRB(16, 8, 12, 8)
               : const EdgeInsets.fromLTRB(7, 10, 8, 10),
           child: Row(
             children: [
@@ -1577,7 +1610,7 @@ class _OfficeShellState extends State<OfficeShell> {
                   PersonAvatar(
                     name: str(s.me?['name']),
                     agent: s.me?['kind'] == 'agent',
-                    size: 36,
+                    size: 38,
                   ),
                 ),
                 const SizedBox(width: 11),
@@ -1635,7 +1668,7 @@ class _OfficeShellState extends State<OfficeShell> {
                 IconButton(
                   tooltip: '全局搜索',
                   onPressed: () => setState(() => _searchOpen = true),
-                  icon: const Icon(Icons.search, size: 22),
+                  icon: const Icon(Icons.search, size: 28),
                 ),
               if (mobile)
                 _quickMenu()
@@ -1655,7 +1688,7 @@ class _OfficeShellState extends State<OfficeShell> {
         if (favorites.isNotEmpty && _messageGroups.selectedId == 'messages')
           SizedBox(
             key: const ValueKey('pinned-conversations-shelf'),
-            height: mobile ? 91 : 78,
+            height: mobile ? 87 : 78,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 17),
@@ -1672,7 +1705,7 @@ class _OfficeShellState extends State<OfficeShell> {
                         PersonAvatar(
                           name: str(r['name']),
                           group: r['kind'] != 'direct',
-                          size: mobile ? 42 : 36,
+                          size: mobile ? 44 : 36,
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -1755,6 +1788,17 @@ class _OfficeShellState extends State<OfficeShell> {
                                 ),
                               ),
                               selected: _messageGroups.selectedId == id,
+                              color: mobile
+                                  ? WidgetStateProperty.resolveWith(
+                                      (states) =>
+                                          states.contains(WidgetState.selected)
+                                          ? Colors.white
+                                          : Colors.transparent,
+                                    )
+                                  : null,
+                              surfaceTintColor: mobile
+                                  ? Colors.transparent
+                                  : null,
                               selectedColor: mobile ? Colors.white : null,
                               backgroundColor: mobile
                                   ? Colors.transparent

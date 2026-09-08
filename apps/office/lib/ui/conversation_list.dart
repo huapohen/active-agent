@@ -123,8 +123,8 @@ class OfficeConversationRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: mobile ? 10 : 12,
+              horizontal: mobile ? 12 : 10,
+              vertical: mobile ? 9 : 12,
             ),
             child: Row(
               children: [
@@ -135,7 +135,7 @@ class OfficeConversationRow extends StatelessWidget {
                     PersonAvatar(
                       name: str(room['name']),
                       group: room['kind'] != 'direct',
-                      size: mobile ? 48 : 39,
+                      size: mobile ? 50 : 39,
                     ),
                     if (unread > 0)
                       Positioned(
@@ -222,7 +222,7 @@ class OfficeConversationRow extends StatelessWidget {
                             ),
                             key: ValueKey('conversation-time-${room['id']}'),
                             style: TextStyle(
-                              fontSize: mobile ? OfficeMobileType.caption : 9,
+                              fontSize: mobile ? 13 : 9,
                               color: mobile
                                   ? mutedColor
                                   : const Color(0xffb0b6c0),
@@ -273,9 +273,7 @@ class OfficeConversationRow extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: mobile
-                                    ? OfficeMobileType.secondary
-                                    : 10,
+                                fontSize: mobile ? 15 : 10,
                                 height: mobile ? 1.3 : null,
                                 color: mobile
                                     ? mutedColor

@@ -28,7 +28,7 @@ Future<String?> showOfficeProfileMenu(
       return Align(
         alignment: Alignment.centerLeft,
         child: SizedBox(
-          width: math.min(size.width * .9, 390),
+          width: math.min(size.width * .875, 390),
           height: double.infinity,
           child: panel,
         ),
@@ -290,18 +290,19 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
     }) => InkWell(
       onTap: enabled ? () => _open(action) : null,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 56),
+        constraints: const BoxConstraints(minHeight: 57),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
-              Icon(icon, size: 24, color: enabled ? color : mutedColor),
+              Icon(icon, size: 22, color: enabled ? color : mutedColor),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
                     fontSize: 17,
+                    height: 1.3,
                     color: enabled ? inkColor : mutedColor,
                   ),
                 ),
@@ -321,13 +322,14 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          width: 92,
+          key: const ValueKey('mobile-profile-account-rail'),
+          width: 98,
           child: ColoredBox(
             color: const Color(0xfff5f6f7),
             child: SafeArea(
               right: false,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(9, 22, 9, 16),
+                padding: const EdgeInsets.fromLTRB(9, 24, 9, 16),
                 child: Column(
                   children: [
                     Semantics(
@@ -407,7 +409,7 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
           child: SafeArea(
             left: false,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -417,25 +419,32 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
                       InkWell(
                         onTap: () => _open('card'),
                         child: PersonAvatar(
+                          key: const ValueKey('mobile-profile-avatar'),
                           name: name,
                           agent: identity['kind'] == 'agent',
                           size: 70,
                         ),
                       ),
-                      const Spacer(),
-                      OutlinedButton(
-                        onPressed: () => _open('status'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: const Size(58, 30),
-                          side: const BorderSide(color: accentColor),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.topRight,
+                          child: OutlinedButton(
+                            onPressed: () => _open('status'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              minimumSize: const Size(58, 30),
+                              side: const BorderSide(color: accentColor),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            child: const Text(
+                              '+ 状态',
+                              style: TextStyle(fontSize: 14),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          '+ 状态',
-                          style: TextStyle(fontSize: 14),
                         ),
                       ),
                     ],
@@ -452,6 +461,7 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w600,
+                              height: 1.2,
                             ),
                           ),
                         ),
@@ -468,36 +478,38 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
                     organization.isEmpty ? '当前工作空间' : organization,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, color: mutedColor),
-                  ),
-                  if (role.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        '$role${status.isEmpty ? '' : ' · $status'}',
-                        style: const TextStyle(fontSize: 13, color: mutedColor),
-                      ),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.35,
+                      color: mutedColor,
                     ),
-                  const SizedBox(height: 14),
+                  ),
+                  const SizedBox(height: 8),
                   InkWell(
                     onTap: () => _open('card'),
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 9,
-                        vertical: 8,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xfff5f6f7),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
-                        '查看我的工作身份…',
-                        style: TextStyle(fontSize: 14, color: mutedColor),
+                      child: Text(
+                        role.isEmpty
+                            ? '查看我的工作身份…'
+                            : '$role${status.isEmpty ? '' : ' · $status'}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.4,
+                          color: mutedColor,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   row('我的个人名片', Icons.person_outline, accentColor, 'card'),
                   row(
                     '钱包',

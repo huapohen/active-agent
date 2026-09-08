@@ -27,6 +27,7 @@ Future<void> mountProfile(
   List<String?> results, {
   double width = 402,
   double scale = 1,
+  double safeTop = 44,
 }) async {
   tester.view.physicalSize = Size(width, 874);
   tester.view.devicePixelRatio = 1;
@@ -40,7 +41,7 @@ Future<void> mountProfile(
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context).copyWith(
           textScaler: TextScaler.linear(scale),
-          padding: const EdgeInsets.only(top: 44, bottom: 34),
+          padding: EdgeInsets.only(top: safeTop, bottom: 34),
         ),
         child: child!,
       ),
@@ -70,6 +71,44 @@ Finder actionInk(String label) => find
     .first;
 
 void main() {
+  testWidgets('profile matches the mobile reference panel geometry', (
+    tester,
+  ) async {
+    final state = ProfileMobileFixture(admin: true);
+    state.me = {...state.me!, 'name': '测试员'};
+    state.enterpriseSummary = {
+      ...state.enterpriseSummary,
+      'enterprise': {'name': '合成协作科技有限公司'},
+      'membership': {'role': 'admin', 'status': 'active'},
+    };
+    final results = <String?>[];
+    await mountProfile(tester, state, results, safeTop: 62);
+    final panel = tester.getRect(
+      find.byKey(const ValueKey('mobile-profile-layout')),
+    );
+    final rail = tester.getRect(
+      find.byKey(const ValueKey('mobile-profile-account-rail')),
+    );
+    final avatar = tester.getRect(
+      find.byKey(const ValueKey('mobile-profile-avatar')),
+    );
+    // Measured from the visible display in reference 8.png and the later
+    // native capture, normalized to a 402-point mobile display.
+    expect(panel.width, closeTo(352, 2));
+    expect(rail.width, closeTo(99, 2));
+    expect(avatar.left, closeTo(115, 2));
+    expect(avatar.top, closeTo(78, 2));
+    expect(avatar.size, const Size(70, 70));
+    final card = tester.getRect(actionInk('我的个人名片'));
+    final wallet = tester.getRect(actionInk('钱包'));
+    expect(card.center.dy, closeTo(289, 5));
+    expect(wallet.center.dy - card.center.dy, closeTo(57, 2));
+    expect(find.text('企业管理员 · 正常'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    state.dispose();
+  });
+
   for (final width in [320.0, 402.0]) {
     for (final scale in [1.0, 1.3]) {
       testWidgets(

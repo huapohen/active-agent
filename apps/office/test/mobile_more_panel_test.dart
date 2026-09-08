@@ -1,4 +1,5 @@
 import 'package:active_office/ui/mobile_more_panel.dart';
+import 'package:active_office/ui/mobile_more_menu.dart';
 import 'package:active_office/ui/mobile_navigation.dart';
 import 'package:active_office/ui/office_theme.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +43,71 @@ Future<void> mountPanel(
 }
 
 void main() {
+  testWidgets(
+    'recent rows and four-column grid match the measured 402px reference',
+    (tester) async {
+      final recent = officeNavigationItems.sublist(7, 11);
+      await mountPanel(tester, recent: recent);
+      Rect box(String key) => tester.getRect(find.byKey(ValueKey(key)));
+      final first = box('mobile-recent-open-calendar');
+      final second = box('mobile-recent-open-mail');
+      // Native screenshot review keeps the recent section above the wider grid;
+      // include the menu's separate 13px handle area when comparing sheet crops.
+      expect(first.left, 24);
+      expect(first.top, 54);
+      expect(first.width, 354);
+      expect(first.height, 44);
+      expect(second.top - first.bottom, 6);
+      expect(box('mobile-more-recent-icon-calendar').size, const Size(22, 22));
+      final icon = box('mobile-more-grid-icon-messages');
+      final nextIcon = box('mobile-more-grid-icon-agents');
+      expect(icon.size, const Size(48, 48));
+      expect(icon.left, 32.25);
+      expect(icon.top, 334);
+      expect(nextIcon.center.dx - icon.center.dx, 96.5);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'sheet height follows the viewport while fitting a short parent',
+    (tester) async {
+      tester.view.physicalSize = const Size(402, 874);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      Future<void> mount(double availableHeight) => tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(402, 874)),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                height: availableHeight,
+                child: OfficeMobileMoreMenu(
+                  onClose: () {},
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await mount(713);
+      final sheet = find.byKey(const ValueKey('mobile-more-sheet'));
+      expect(tester.getSize(sheet).height, closeTo(874 * .64, .01));
+      expect(
+        tester.getSize(find.byKey(const ValueKey('mobile-more-sheet-handle'))),
+        const Size(40, 4),
+      );
+      await mount(420);
+      expect(tester.getSize(sheet).height, 420);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'empty history stays empty while authorized Agent and edit entries remain usable',
     (tester) async {

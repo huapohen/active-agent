@@ -26,7 +26,7 @@ class OfficeMobileMoreMenu extends StatelessWidget {
           children: [
             Positioned.fill(
               child: ModalBarrier(
-                color: Colors.black26,
+                color: const Color(0x66000000),
                 dismissible: true,
                 onDismiss: onClose,
                 semanticsLabel: '关闭更多菜单',
@@ -34,24 +34,28 @@ class OfficeMobileMoreMenu extends StatelessWidget {
             ),
             Align(
               alignment: Alignment.bottomCenter,
-              child: FractionallySizedBox(
-                heightFactor: .80,
-                widthFactor: 1,
+              child: SizedBox(
+                // Match the sheet to the screen, independent of the height of
+                // the shell's safe area and editable bottom navigation.
+                height: MediaQuery.sizeOf(context).height * .64,
+                width: double.infinity,
                 child: Material(
-                  color: const Color(0xfff4f4f6),
+                  key: const ValueKey('mobile-more-sheet'),
+                  color: const Color(0xfff4f4f4),
                   elevation: 12,
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(18),
+                    top: Radius.circular(14),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       const SizedBox(height: 9),
                       Container(
-                        width: 32,
+                        key: const ValueKey('mobile-more-sheet-handle'),
+                        width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: const Color(0xffd8dce4),
+                          color: const Color(0xffc9c9cb),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),

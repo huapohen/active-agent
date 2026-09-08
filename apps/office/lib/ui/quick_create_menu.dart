@@ -131,7 +131,7 @@ class OfficeQuickCreateMenu extends StatefulWidget {
     this.isModuleAvailable,
     this.scopeKey,
     this.enabled = true,
-    this.menuWidth = 240,
+    this.menuWidth = 180,
     this.mobileMenuWidth = 180,
     this.actions = officeQuickCreateActions,
   });
@@ -218,8 +218,13 @@ class _OfficeQuickCreateMenuState extends State<OfficeQuickCreateMenu> {
         color: Colors.white,
         surfaceTintColor: Colors.transparent,
         shadowColor: const Color(0x26000000),
-        elevation: 12,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: mobile ? 12 : 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: mobile
+              ? BorderSide.none
+              : const BorderSide(color: Color(0xffd6d7d9), width: .5),
+        ),
         menuPadding: const EdgeInsets.symmetric(vertical: 4),
         semanticLabel: '新建与添加',
         popUpAnimationStyle: MediaQuery.disableAnimationsOf(context)
@@ -242,9 +247,9 @@ class _OfficeQuickCreateMenuState extends State<OfficeQuickCreateMenu> {
           return PopupMenuItem<String>(
             key: ValueKey('quick-create-${action.id}'),
             value: action.id,
-            height: mobile ? 50 : 42,
+            height: mobile ? 50 : 38,
             padding: EdgeInsets.symmetric(
-              horizontal: mobile ? 12 : 16,
+              horizontal: 12,
               vertical: mobile ? 4 : 0,
             ),
             child: Tooltip(
@@ -258,14 +263,14 @@ class _OfficeQuickCreateMenuState extends State<OfficeQuickCreateMenu> {
                   children: [
                     Icon(
                       action.icon,
-                      size: mobile ? 24 : 20,
+                      size: mobile ? 24 : 18,
                       color: const Color(0xff777c83),
                     ),
-                    SizedBox(width: mobile ? 10 : 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         action.label,
-                        maxLines: mobile ? 2 : 1,
+                        maxLines: mobile ? 2 : 3,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: mobile ? 17 : 14,

@@ -218,7 +218,7 @@ void main() {
   );
 
   testWidgets(
-    'desktop menu has icons from the first frame and is fully visible and clickable by 120ms',
+    'desktop menu has reference density and all actions are clickable by 48ms',
     (tester) async {
       final selected = <String>[];
       await mount(
@@ -244,12 +244,20 @@ void main() {
           findsOneWidget,
         );
       }
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pump(const Duration(milliseconds: 48));
       final first = tester.getRect(
         find.byKey(const ValueKey('quick-create-group')),
       );
       expect(first.top, closeTo(button.top + 4, .1));
       expect(first.left, closeTo(button.right + 8, .1));
+      expect(first.width, 180);
+      expect(first.height, 38);
+      final firstIcon = find.descendant(
+        of: find.byKey(const ValueKey('quick-create-group')),
+        matching: find.byType(Icon),
+      );
+      expect(tester.getSize(firstIcon), const Size(18, 18));
+      expect(tester.getTopLeft(firstIcon).dx - first.left, 12);
       final last = find.byKey(const ValueKey('quick-create-mail'));
       final fades = tester.widgetList<FadeTransition>(
         find.ancestor(of: last, matching: find.byType(FadeTransition)),
@@ -260,7 +268,7 @@ void main() {
       }
       expect(last.hitTestable(), findsOneWidget);
       await tester.tap(last);
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pump(const Duration(milliseconds: 36));
       expect(selected, ['mail']);
       expect(tester.takeException(), isNull);
     },
@@ -290,6 +298,42 @@ void main() {
     expect(selected, ['mail']);
   });
 
+  testWidgets('compact desktop menu retains complete labels at 130 percent', (
+    tester,
+  ) async {
+    final selected = <String>[];
+    await mount(
+      tester,
+      selected: selected.add,
+      size: const Size(1512, 982),
+      textScale: 1.3,
+      anchorLeft: 180,
+    );
+    await tester.tap(find.byTooltip('新建与添加'));
+    await tester.pumpAndSettle();
+    for (final action in officeQuickCreateActions.where(
+      (a) => a.id != 'scan',
+    )) {
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(
+          of: find.descendant(
+            of: find.byKey(ValueKey('quick-create-${action.id}')),
+            matching: find.text(action.label),
+          ),
+          matching: find.byType(RichText),
+        ),
+      );
+      expect(paragraph.didExceedMaxLines, isFalse, reason: action.label);
+    }
+    final last = find.byKey(const ValueKey('quick-create-mail'));
+    await tester.ensureVisible(last);
+    await tester.pumpAndSettle();
+    await tester.tap(last);
+    await tester.pumpAndSettle();
+    expect(selected, ['mail']);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'desktop side popup flips left near the screen edge and scrolls without dropping below its trigger',
     (tester) async {
@@ -308,7 +352,7 @@ void main() {
       );
       expect(first.top, closeTo(button.top + 4, .1));
       expect(first.right, closeTo(button.left - 8, .1));
-      expect(first.width, 240);
+      expect(first.width, 180);
       final menu = find
           .ancestor(
             of: find.byKey(const ValueKey('quick-create-group')),
@@ -394,7 +438,14 @@ void main() {
           await material.load();
         });
         final capture = GlobalKey();
-        await mount(tester, selected: (_) {}, capture: capture);
+        final desktop = Platform.environment['RENJI_QUICK_MENU_DESKTOP'] == '1';
+        await mount(
+          tester,
+          selected: (_) {},
+          capture: capture,
+          size: desktop ? const Size(1000, 820) : const Size(402, 874),
+          anchorLeft: desktop ? 122 : null,
+        );
         await tester.tap(find.byTooltip('新建与添加'));
         await tester.pumpAndSettle();
         await tester.runAsync(() async {
