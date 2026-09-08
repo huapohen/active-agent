@@ -1,0 +1,405 @@
+{
+  "schema": "renji.startup.phase-evidence.v1",
+  "recorded_at": "2026-09-09T04:22:06+08:00",
+  "implementation_commits": {
+    "desktop": "71b80f8181fa243b7477ebac0c35c6ce13e2c960",
+    "core": "a9005c01ee059b3f093d877ae1eb13828075d692"
+  },
+  "go_suite": {
+    "source": "/tmp/renji-startup-full-go-20260909.jsonl",
+    "sha256": "c1fd54e2516d70c2efd926b0ec46e5dfbea44a026cf4b33f6ea2ea06bf37c371",
+    "top_level_passed": 100,
+    "subtests_passed": 95,
+    "failed_events": 0,
+    "skipped_tests": [],
+    "packages": {
+      "github.com/huapohen/active-agent/services/collaboration/cmd/document-sync": {
+        "top_level": [
+          "TestPrivateCredentialLoadingDoesNotAcceptPublicFilesOrSymlinks",
+          "TestDocmostCookieFileLoadsOnlyAuthToken",
+          "TestConfigRejectsUnknownAndTrailingJSON"
+        ],
+        "subtests": []
+      },
+      "github.com/huapohen/active-agent/services/collaboration/cmd/execution-probe": {
+        "top_level": [
+          "TestExecutionManifestDeterministicAndBound",
+          "TestSourceRejectsNonSyntheticOrDuplicatePrincipal",
+          "TestHTTPReceiptChecksRejectChangedCanonicalMessage",
+          "TestSuccessfulChecksResumeWithoutHTTP",
+          "TestCheckPersistenceDoesNotSaveRawHTTPBody",
+          "TestRedirectPolicyDoesNotForwardCredentials"
+        ],
+        "subtests": []
+      },
+      "github.com/huapohen/active-agent/services/collaboration/cmd/transport-probe": {
+        "top_level": [
+          "TestManifestPreparedBeforeSideEffectsAndReused",
+          "TestJournalNeverRetriesStartedOrCompletedOperation",
+          "TestMessengerRejectsEverythingOutsideExactFixture",
+          "TestKnownAndUnknownProviderErrorsArePreservedWithoutToken",
+          "TestProbePostgresSeedReplayAndUnrelatedPendingGuard"
+        ],
+        "subtests": []
+      },
+      "github.com/huapohen/active-agent/services/collaboration/cmd/worker": {
+        "top_level": [
+          "TestWorkerDisabledByDefault",
+          "TestWorkerRejectsAbsentServerMachineBindingBeforeDialingTemporal"
+        ],
+        "subtests": []
+      },
+      "github.com/huapohen/active-agent/services/collaboration/internal/auth": {
+        "top_level": [
+          "TestSessionClaimsCannotImpersonateOrCrossInstance",
+          "TestMachineVerifyOfficialHTTPProtocol",
+          "TestMachineVerifyRejectsInvalidSecurityFields",
+          "TestMachineVerifyExplicitNonExpiringPolicy",
+          "TestMachineVerifyNoSuccessCache",
+          "TestMachineVerifyRejectsOtherFormatsWithoutNetwork",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials",
+          "TestMachineVerifyCancellationAndNetworkFailure",
+          "TestMachineConfigurationIsServerBound"
+        ],
+        "subtests": [
+          "TestSessionClaimsCannotImpersonateOrCrossInstance/valid",
+          "TestSessionClaimsCannotImpersonateOrCrossInstance/wrong_issuer",
+          "TestSessionClaimsCannotImpersonateOrCrossInstance/wrong_origin",
+          "TestSessionClaimsCannotImpersonateOrCrossInstance/missing_origin",
+          "TestSessionClaimsCannotImpersonateOrCrossInstance/expired",
+          "TestSessionClaimsCannotImpersonateOrCrossInstance/missing_expiry",
+          "TestSessionClaimsCannotImpersonateOrCrossInstance/missing_session",
+          "TestSessionClaimsCannotImpersonateOrCrossInstance/pending",
+          "TestSessionClaimsCannotImpersonateOrCrossInstance/actor_token",
+          "TestMachineVerifyRejectsInvalidSecurityFields/revoked",
+          "TestMachineVerifyRejectsInvalidSecurityFields/missing_revoked",
+          "TestMachineVerifyRejectsInvalidSecurityFields/null_revoked",
+          "TestMachineVerifyRejectsInvalidSecurityFields/expired",
+          "TestMachineVerifyRejectsInvalidSecurityFields/missing_expired",
+          "TestMachineVerifyRejectsInvalidSecurityFields/null_expired",
+          "TestMachineVerifyRejectsInvalidSecurityFields/wrong_object",
+          "TestMachineVerifyRejectsInvalidSecurityFields/missing_subject",
+          "TestMachineVerifyRejectsInvalidSecurityFields/human_subject",
+          "TestMachineVerifyRejectsInvalidSecurityFields/subject_control",
+          "TestMachineVerifyRejectsInvalidSecurityFields/missing_token_ID",
+          "TestMachineVerifyRejectsInvalidSecurityFields/bad_token_ID",
+          "TestMachineVerifyRejectsInvalidSecurityFields/wrong_recipient",
+          "TestMachineVerifyRejectsInvalidSecurityFields/custom_aud_cannot_replace_scope",
+          "TestMachineVerifyRejectsInvalidSecurityFields/business_scope_is_not_audience",
+          "TestMachineVerifyRejectsInvalidSecurityFields/missing_scopes",
+          "TestMachineVerifyRejectsInvalidSecurityFields/null_scopes",
+          "TestMachineVerifyRejectsInvalidSecurityFields/string_scopes",
+          "TestMachineVerifyRejectsInvalidSecurityFields/duplicate_scopes",
+          "TestMachineVerifyRejectsInvalidSecurityFields/too_many_scopes",
+          "TestMachineVerifyRejectsInvalidSecurityFields/missing_expiration",
+          "TestMachineVerifyRejectsInvalidSecurityFields/null_expiration_default_policy",
+          "TestMachineVerifyRejectsInvalidSecurityFields/past_expiration",
+          "TestMachineVerifyRejectsInvalidSecurityFields/equal_expiration",
+          "TestMachineVerifyRejectsInvalidSecurityFields/seconds_are_not_milliseconds",
+          "TestMachineVerifyRejectsInvalidSecurityFields/string_expiration",
+          "TestMachineVerifyRejectsInvalidSecurityFields/fraction_expiration",
+          "TestMachineVerifyRejectsInvalidSecurityFields/overflow_expiration",
+          "TestMachineVerifyRejectsInvalidSecurityFields/out_of_range_expiration",
+          "TestMachineVerifyRejectsInvalidSecurityFields/missing_creation",
+          "TestMachineVerifyRejectsInvalidSecurityFields/future_creation",
+          "TestMachineVerifyRejectsInvalidSecurityFields/future_update",
+          "TestMachineVerifyRejectsInvalidSecurityFields/update_before_creation",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/empty",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/HTML",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/null",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/array",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/truncated",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/duplicate_subject",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/case_alias_subject",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/case_alias_revoked",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/trailing_JSON",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/oversized",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/unauthorized",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/forbidden_HTML",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/not_found",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/rate_limit",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/server_error",
+          "TestMachineVerifyMalformedResponseAndHTTPFailure/unexpected_success",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_301_same_false",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_301_same_true",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_302_same_false",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_302_same_true",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_303_same_false",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_303_same_true",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_307_same_false",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_307_same_true",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_308_same_false",
+          "TestMachineVerifyRedirectNeverTransmitsCredentials/status_308_same_true"
+        ]
+      },
+      "github.com/huapohen/active-agent/services/collaboration/internal/documents": {
+        "top_level": [
+          "TestAffineBodyReadbackIsExplicitlyPartialAndTitleHasSeparateFence",
+          "TestAffineH1IsProtectedInTransportAndSourceIsUnchanged",
+          "TestAffineToolErrorBodyIsNotMistakenForReadback",
+          "TestEndpointsRejectNonLoopbackPlaintextUserinfoAndPathConfusion",
+          "TestBodyHashPreservesMeaningfulWhitespace",
+          "TestAffineMetadataCompletesPartialReceiptWithoutAnotherWrite",
+          "TestProjectionRealHTTPCreateReadbackIdempotentAndUpdate",
+          "TestProjectionUnknownCreateNeverDuplicatesAfterRestart",
+          "TestProjectionUnknownKnownIDReconcilesWithoutRepeatingWrite",
+          "TestProjectionDetectsDownstreamEditInsteadOfOverwriting",
+          "TestProjectionRevocationAtAdmissionAndAfterEffect",
+          "TestProjectionRequiresApprovedNamespaceAndBoundIdentity",
+          "TestProjectionRejectsWrongDocmostSpaceReceipt",
+          "TestProjectionApprovalRaceBeforeSendIsRetryable",
+          "TestProjectionBindingGenerationChangeRequiresReconciliation",
+          "TestProjectionStoreSerializesConcurrentEngines",
+          "TestJournalLockRecoveryAndCorruption",
+          "TestHTTPDoesNotFollowCredentialRedirect",
+          "TestSourceHashMismatchNeverWrites",
+          "TestFailureCodeNeverIncludesProviderMessage"
+        ],
+        "subtests": [
+          "TestProjectionRevocationAtAdmissionAndAfterEffect/admission",
+          "TestProjectionRevocationAtAdmissionAndAfterEffect/after-effect",
+          "TestProjectionRequiresApprovedNamespaceAndBoundIdentity/unapproved",
+          "TestProjectionRequiresApprovedNamespaceAndBoundIdentity/public",
+          "TestProjectionRequiresApprovedNamespaceAndBoundIdentity/principal",
+          "TestProjectionRequiresApprovedNamespaceAndBoundIdentity/namespace",
+          "TestProjectionRequiresApprovedNamespaceAndBoundIdentity/source-endpoint"
+        ]
+      },
+      "github.com/huapohen/active-agent/services/collaboration/internal/harness": {
+        "top_level": [
+          "TestEinoDeepAgentConstructsAndUsesExplicitSkill",
+          "TestEinoDiscardsModelOutputAfterScopeStop",
+          "TestEinoTemporarySubagentProducesSeparateTrace",
+          "TestEinoReductionOffloadsAndReadsPrivateEvidence",
+          "TestEinoSummaryMiddlewareRunsAtConfiguredThreshold",
+          "TestTemporalEinoLostActionReplyDoesNotDuplicateEffect",
+          "TestTemporalReplanPreservesLogicalActionID",
+          "TestTemporalUnknownReceiptStopsWithoutNextAction",
+          "TestTemporalStoppedOriginRejectsBeforeModel",
+          "TestTemporalDurableWaitRechecksStoppedOrigin",
+          "TestTemporalCancellationEndsDurableWait",
+          "TestTemporalActionKeyCannotChangePayload",
+          "TestDecodeRejectsChangedScopeOrUnsupportedActionFields",
+          "TestHTTPGatewayBindsMachineAndRejectsRedirect",
+          "TestHTTPGatewayRequiresAllServerReadinessAcknowledgements",
+          "TestHTTPModelTransportsEinoToolSchemaAndNoSecretErrors"
+        ],
+        "subtests": []
+      },
+      "github.com/huapohen/active-agent/services/collaboration/internal/httpapi": {
+        "top_level": [
+          "TestMachineRoutesRequireServerRunAndInheritedStopScope",
+          "TestRongCloudSessionIsNotGenerallyIssuedBeforeWritePolicyVerification",
+          "TestReviewWorkspaceCanonicalReceiptAcrossAPIAndMCP",
+          "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI",
+          "TestReviewMCPParameterlessToolsPermitOmittedArguments",
+          "TestReviewMCPUnknownToolIsProtocolError",
+          "TestReviewCurrentPermissionsAndCrossResourceActionFence",
+          "TestReviewPaginationAcrossAPIAndMCP",
+          "TestAPIAndMCPShareActionsAndCurrentPermissions",
+          "TestMCPProtocolAndOriginBoundaries"
+        ],
+        "subtests": [
+          "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/invalid",
+          "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/forbidden",
+          "TestReviewMCPParameterlessToolsPermitOmittedArguments/identity_read",
+          "TestReviewMCPParameterlessToolsPermitOmittedArguments/room_list"
+        ]
+      },
+      "github.com/huapohen/active-agent/services/collaboration/internal/store": {
+        "top_level": [
+          "TestCreateAndStopActionsAreDurableAndCurrentlyAuthorized",
+          "TestExecutionReadsStayInsideInheritedScopeAndUseCurrentEpoch",
+          "TestExecutionReadHoldsAllScopeChecksInTheReadingTransaction",
+          "TestExecutorBindingCannotReadAnotherWorkspaceOfSameAgent",
+          "TestExecutionBindingRequiresCurrentWorkspaceAdministrationAndMachineIdentity",
+          "TestExecutionAgentOwnerHasEqualAdministrationAndProactiveSelfControl",
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction",
+          "TestExecutionConcurrentActionCommitsOneMessageAndPayloadCollisionConflicts",
+          "TestExecutionStopAndResumeNeverRevivesInheritedEpoch",
+          "TestExecutionChecksAllScopesInsideMessageTransaction",
+          "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion",
+          "TestExecutionEvidenceAfterStopIsIdempotentButCannotInventSuccess",
+          "TestExecutionCompletedRunMayDeliverAlreadyCommittedAction",
+          "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads",
+          "TestOutboxHeartbeatProtectsHealthyOldClaim",
+          "TestOutboxExpiredClaimCannotSendButCanRecordItsLateResponse",
+          "TestOutboxReplacementClaimRejectsOldReceiptAndReportsZeroRows",
+          "TestOutboxClaimExpiredWhileWaitingForAuthorizationCannotCallProvider",
+          "TestOutboxStopBlocksPendingAgentDeliveryAndHumanCanIntervene",
+          "TestOutboxResumeDoesNotReviveOldEpochAndMissingEpochFailsClosed",
+          "TestOutboxRevokedWorkspaceMemberCannotPublish",
+          "TestOutboxGroupRegistrationRechecksEachMember",
+          "TestOutboxUnknownPublishIsNotRetried",
+          "TestOutboxReceiptSurvivesCallerCancellationAfterProviderSuccess",
+          "TestIdentityIsolation",
+          "TestConcurrentMessageReceiptAndRevocation"
+        ],
+        "subtests": [
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/root",
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/epoch",
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/runtime",
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/principal",
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/executor",
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/run",
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/origins_deleted",
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/origin_epoch",
+          "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/workflow",
+          "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/source_stop",
+          "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/policy_version",
+          "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/executor_version",
+          "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/principal",
+          "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/workspace",
+          "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/origin_member",
+          "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/executor"
+        ]
+      },
+      "github.com/huapohen/active-agent/services/collaboration/internal/transport": {
+        "top_level": [
+          "TestSignedTransportAndCanonicalMetadata",
+          "TestAmbiguousDeliveryNeverCountsAsSuccess"
+        ],
+        "subtests": []
+      }
+    }
+  },
+  "machine_read_live": {
+    "checked_at": "2026-09-08T20:13:30.184232+00:00",
+    "all_passed": true,
+    "checks": [
+      {
+        "name": "bound_workspace_history",
+        "passed": true,
+        "status": 200,
+        "error": null
+      },
+      {
+        "name": "stale_source_run_message_read",
+        "passed": true,
+        "status": 409,
+        "error": "scope_stopped_or_stale"
+      },
+      {
+        "name": "stale_source_run_room_list",
+        "passed": true,
+        "status": 409,
+        "error": "scope_stopped_or_stale"
+      },
+      {
+        "name": "machine_catalog_scope",
+        "passed": true,
+        "tools": [
+          "run_create",
+          "run_read",
+          "identity_read",
+          "room_list",
+          "message_read",
+          "message_send"
+        ]
+      },
+      {
+        "name": "machine_send_schema",
+        "passed": true
+      },
+      {
+        "name": "mcp_stale_run_read",
+        "passed": true
+      }
+    ]
+  },
+  "document_projection_live": {
+    "source": "output/startup-document-sync-20260909/dual-provider-final-readback-receipt.json",
+    "sha256": "e671711264712e9f7fa9e8d276bd4b641c9421a7be84afe689c4c487e59b5c4d",
+    "at": "2026-09-08T19:45:18.579077+00:00",
+    "passed": 69,
+    "total": 69,
+    "all_passed": true,
+    "canonical_documents": [
+      {
+        "id": "25ae13fb",
+        "revision": 3,
+        "content_hash": "8370a0f0d4c504b0eb15e1601b02749aff59bedac69f6b4c77a1c3b2fa9ae2e2"
+      },
+      {
+        "id": "f6b5ff58",
+        "revision": 2,
+        "content_hash": "a29c4f01f8d8185304feef4163c396f3b35f5075340f2322f5a1a7e70737ee43"
+      }
+    ],
+    "projection_records": [
+      {
+        "binding_id": "startup-fixture-affine-20260909-initialized",
+        "binding_hash": "bf1f98e9e95088877291471864575be257c9e2e9e2a3652499406f42f0b6b153",
+        "sequence": 10,
+        "state": "verified",
+        "external_id": "2T4haLdQHZ5IkzU2mSJBG",
+        "source_revision": 3,
+        "source_content_hash": "8370a0f0d4c504b0eb15e1601b02749aff59bedac69f6b4c77a1c3b2fa9ae2e2",
+        "desired_body_hash": "8370a0f0d4c504b0eb15e1601b02749aff59bedac69f6b4c77a1c3b2fa9ae2e2",
+        "desired_title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "observed_body_hash": "8370a0f0d4c504b0eb15e1601b02749aff59bedac69f6b4c77a1c3b2fa9ae2e2",
+        "observed_title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "title_verified": true,
+        "at": "2026-09-08T19:39:19.356706Z"
+      },
+      {
+        "binding_id": "startup-fixture-affine-h1-20260909",
+        "binding_hash": "921b45857f959debfdbc2b6f381c1fd1b474381ae3c3b084fc266b76022cba0b",
+        "sequence": 7,
+        "state": "verified",
+        "external_id": "pLxvvvqAYXsM7iuxUGIeR",
+        "source_revision": 2,
+        "source_content_hash": "a29c4f01f8d8185304feef4163c396f3b35f5075340f2322f5a1a7e70737ee43",
+        "desired_body_hash": "a29c4f01f8d8185304feef4163c396f3b35f5075340f2322f5a1a7e70737ee43",
+        "desired_title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "observed_body_hash": "a29c4f01f8d8185304feef4163c396f3b35f5075340f2322f5a1a7e70737ee43",
+        "observed_title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "title_verified": true,
+        "at": "2026-09-08T19:25:35.702463Z"
+      },
+      {
+        "binding_id": "startup-fixture-docmost-20260909-initialized",
+        "binding_hash": "e1bd5f257c92db2af46b5a28b926fe0dfddf4ea8e7c358f4927c356db839aa63",
+        "sequence": 6,
+        "state": "verified",
+        "external_id": "01a08286-d73b-76c5-922f-7e1204ba8b2d",
+        "source_revision": 3,
+        "source_content_hash": "8370a0f0d4c504b0eb15e1601b02749aff59bedac69f6b4c77a1c3b2fa9ae2e2",
+        "desired_body_hash": "8370a0f0d4c504b0eb15e1601b02749aff59bedac69f6b4c77a1c3b2fa9ae2e2",
+        "desired_title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "observed_body_hash": "8370a0f0d4c504b0eb15e1601b02749aff59bedac69f6b4c77a1c3b2fa9ae2e2",
+        "observed_title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "title_verified": true,
+        "at": "2026-09-08T19:39:19.52693Z"
+      },
+      {
+        "binding_id": "startup-fixture-docmost-h1-20260909",
+        "binding_hash": "bb1618d16272986f39a3b01e65047547f4e32962d89b5fdc0ff03a3f2a11c105",
+        "sequence": 3,
+        "state": "verified",
+        "external_id": "01a08286-d78b-7621-ba89-e26e5c6fbb10",
+        "source_revision": 2,
+        "source_content_hash": "a29c4f01f8d8185304feef4163c396f3b35f5075340f2322f5a1a7e70737ee43",
+        "desired_body_hash": "a29c4f01f8d8185304feef4163c396f3b35f5075340f2322f5a1a7e70737ee43",
+        "desired_title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "observed_body_hash": "a29c4f01f8d8185304feef4163c396f3b35f5075340f2322f5a1a7e70737ee43",
+        "observed_title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "title_verified": true,
+        "at": "2026-09-08T19:37:50.243816Z"
+      }
+    ],
+    "historical_business_documents_preserved": 26,
+    "historical_objects_exactly_unchanged": 25,
+    "accounted_runtime_metadata_additions": [
+      {
+        "document_id": "5ddcd4f4",
+        "added_field": "applied_operations",
+        "value": {},
+        "all_existing_fields_exactly_match_baseline": true
+      }
+    ],
+    "scope": "Two canonical synthetic Doc Free documents; dedicated AFFiNE workspace and isolated new Docmost instance. No full migration, production isolation, automatic continuous sync, or complete revocation claim."
+  },
+  "scope_note": "Historical real verification evidence, not an additional external execution. Full platform login, client transport receipt, continuous execution and full Feishu UI parity remain incomplete."
+}
