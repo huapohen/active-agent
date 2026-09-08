@@ -422,6 +422,39 @@ void main() {
   );
 
   testWidgets(
+    'reaction hover closes on another tool or outside, but bridges into picker',
+    (tester) async {
+      tester.view.physicalSize = const Size(1100, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final state = HoverFixture();
+      addTearDown(state.dispose);
+      await mountHover(tester, state, []);
+      final mouse = await enterMessage(tester);
+      await mouse.moveTo(tester.getCenter(find.byTooltip('表情回应')));
+      await loadOpenPicker(tester);
+      await mouse.moveTo(tester.getCenter(find.byType(OfficeEmojiPicker)));
+      await tester.pump(const Duration(milliseconds: 240));
+      expect(find.byType(OfficeEmojiPicker), findsOneWidget);
+      await mouse.moveTo(tester.getCenter(find.byTooltip('转发')));
+      await tester.pump(const Duration(milliseconds: 240));
+      expect(find.byType(OfficeEmojiPicker), findsNothing);
+      expect(toolbar(), findsOneWidget);
+      await mouse.moveTo(tester.getCenter(find.byTooltip('表情回应')));
+      await loadOpenPicker(tester);
+      await mouse.moveTo(const Offset(10, 550));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump();
+      expect(find.byType(OfficeEmojiPicker), findsNothing);
+      expect(toolbar(), findsNothing);
+      await mouse.removePointer();
+      await tester.pump(const Duration(milliseconds: 220));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'unmounting with the emoji menu open leaves no overlay assertion',
     (tester) async {
       final state = HoverFixture();

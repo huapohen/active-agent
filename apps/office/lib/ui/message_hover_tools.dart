@@ -34,21 +34,40 @@ class OfficeMessageHoverTools extends StatefulWidget {
 class _OfficeMessageHoverToolsState extends State<OfficeMessageHoverTools> {
   final _portal = OverlayPortalController();
   final _reactions = MenuController();
-  Timer? _leave;
+  Timer? _leave, _reactionLeave;
+  bool _hovered = false;
   bool _menuOpen = false, _active = true;
   void _enter() {
+    _hovered = true;
     _leave?.cancel();
-    if (widget.enabled && mounted && _active) _portal.show();
+    if (widget.enabled && mounted && _active && !_portal.isShowing) {
+      _portal.show();
+    }
   }
 
   void _exit() {
+    _hovered = false;
     _leave?.cancel();
     _leave = Timer(const Duration(milliseconds: 180), () {
       if (mounted && !_menuOpen) _portal.hide();
     });
   }
 
+  void _enterReactions() {
+    _reactionLeave?.cancel();
+    _enter();
+  }
+
+  void _exitReactions() {
+    _reactionLeave?.cancel();
+    // Allow crossing the small gap between the trigger and popup.
+    _reactionLeave = Timer(const Duration(milliseconds: 180), () {
+      if (mounted && _reactions.isOpen) _reactions.close();
+    });
+  }
+
   void _hide() {
+    _reactionLeave?.cancel();
     if (_reactions.isOpen) _reactions.close();
     _portal.hide();
   }
@@ -84,6 +103,7 @@ class _OfficeMessageHoverToolsState extends State<OfficeMessageHoverTools> {
   @override
   void dispose() {
     _leave?.cancel();
+    _reactionLeave?.cancel();
     super.dispose();
   }
 
@@ -213,7 +233,7 @@ class _OfficeMessageHoverToolsState extends State<OfficeMessageHoverTools> {
                           },
                           onClose: () {
                             _menuOpen = false;
-                            _exit();
+                            if (!_hovered) _exit();
                           },
                           menuChildren: [
                             SizedBox(
@@ -222,14 +242,23 @@ class _OfficeMessageHoverToolsState extends State<OfficeMessageHoverTools> {
                                 430,
                                 info.overlaySize.height - 100,
                               ),
-                              child: OfficeEmojiPicker(
-                                state: widget.state,
-                                onSelected: (emoji) => _act('react:$emoji'),
+                              child: MouseRegion(
+                                onEnter: (_) => _enterReactions(),
+                                onExit: (_) {
+                                  _exitReactions();
+                                  _exit();
+                                },
+                                child: OfficeEmojiPicker(
+                                  state: widget.state,
+                                  onSelected: (emoji) => _act('react:$emoji'),
+                                ),
                               ),
                             ),
                           ],
                           builder: (context, controller, child) => MouseRegion(
+                            onExit: (_) => _exitReactions(),
                             onEnter: (_) {
+                              _enterReactions();
                               if (!controller.isOpen) controller.open();
                             },
                             child: IconButton(
