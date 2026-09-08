@@ -378,6 +378,8 @@ void main() {
             'job_title': '方案负责人',
           });
           await tester.ensureVisible(find.text(oldName).first);
+          await tester.pumpAndSettle();
+          expect(find.text(oldName).first.hitTestable(), findsOneWidget);
           await tester.tap(find.text(oldName).first);
           await tester.pumpAndSettle();
           expect(office.calls, contains('GET /enterprise/admin/members/$id'));

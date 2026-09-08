@@ -94,7 +94,14 @@ class _OfficePeopleState extends State<OfficePeople> {
                     const SizedBox(height: 6),
                     Text(
                       widget.agent ? '你的工作伙伴，共同参与、主动推进。' : '找到工作伙伴，开始一次讨论。',
-                      style: const TextStyle(fontSize: 11, color: mutedColor),
+                      style: TextStyle(
+                        fontSize: officeFontSize(
+                          context,
+                          desktop: 11,
+                          mobile: 14,
+                        ),
+                        color: mutedColor,
+                      ),
                     ),
                   ],
                 ),
@@ -108,7 +115,13 @@ class _OfficePeopleState extends State<OfficePeople> {
                   ),
                   label: Text(
                     _store ? 'Agent 好友' : 'Agent 商店',
-                    style: const TextStyle(fontSize: 12),
+                    style: TextStyle(
+                      fontSize: officeFontSize(
+                        context,
+                        desktop: 12,
+                        mobile: 14,
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -120,7 +133,16 @@ class _OfficePeopleState extends State<OfficePeople> {
             child: Row(
               children: [
                 ChoiceChip(
-                  label: const Text('Agent 好友', style: TextStyle(fontSize: 11)),
+                  label: Text(
+                    'Agent 好友',
+                    style: TextStyle(
+                      fontSize: officeFontSize(
+                        context,
+                        desktop: 11,
+                        mobile: 14,
+                      ),
+                    ),
+                  ),
                   selected: !_store,
                   onSelected: (_) => setState(() => _store = false),
                   side: BorderSide.none,
@@ -128,7 +150,16 @@ class _OfficePeopleState extends State<OfficePeople> {
                 ),
                 const SizedBox(width: 9),
                 ChoiceChip(
-                  label: const Text('Agent 商店', style: TextStyle(fontSize: 11)),
+                  label: Text(
+                    'Agent 商店',
+                    style: TextStyle(
+                      fontSize: officeFontSize(
+                        context,
+                        desktop: 11,
+                        mobile: 14,
+                      ),
+                    ),
+                  ),
                   selected: _store,
                   onSelected: (_) => setState(() => _store = true),
                   side: BorderSide.none,
@@ -144,13 +175,31 @@ class _OfficePeopleState extends State<OfficePeople> {
               spacing: 9,
               children: [
                 ChoiceChip(
-                  label: const Text('我的联系人', style: TextStyle(fontSize: 11)),
+                  label: Text(
+                    '我的联系人',
+                    style: TextStyle(
+                      fontSize: officeFontSize(
+                        context,
+                        desktop: 11,
+                        mobile: 14,
+                      ),
+                    ),
+                  ),
                   selected: !_directory,
                   showCheckmark: false,
                   onSelected: (_) => setState(() => _directory = false),
                 ),
                 ChoiceChip(
-                  label: const Text('工作空间成员', style: TextStyle(fontSize: 11)),
+                  label: Text(
+                    '工作空间成员',
+                    style: TextStyle(
+                      fontSize: officeFontSize(
+                        context,
+                        desktop: 11,
+                        mobile: 14,
+                      ),
+                    ),
+                  ),
                   selected: _directory,
                   showCheckmark: false,
                   onSelected: (_) => setState(() => _directory = true),
@@ -218,7 +267,12 @@ class _OfficePeopleState extends State<OfficePeople> {
   Widget _otherAgent(Json person) => ListTile(
     contentPadding: EdgeInsets.zero,
     leading: PersonAvatar(name: str(person['name']), agent: true),
-    title: Text(str(person['name']), style: const TextStyle(fontSize: 13)),
+    title: Text(
+      str(person['name']),
+      style: TextStyle(
+        fontSize: officeFontSize(context, desktop: 13, mobile: 17),
+      ),
+    ),
     trailing: TextButton(
       onPressed: _busy.contains(personId(person))
           ? null
@@ -267,8 +321,12 @@ class _OfficePeopleState extends State<OfficePeople> {
                       child: Text(
                         '${str(p['name'])}${self ? '（你）' : ''}',
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
+                        style: TextStyle(
+                          fontSize: officeFontSize(
+                            context,
+                            desktop: 13,
+                            mobile: 17,
+                          ),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -285,7 +343,7 @@ class _OfficePeopleState extends State<OfficePeople> {
                       ? 'Agent 工作身份 · ${p['relationship'] == 'installed' ? '来自 Agent 商店' : '工作伙伴'}'
                       : '独立工作身份',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: officeFontSize(context, desktop: 10, mobile: 14),
                     color: online ? const Color(0xff34a575) : mutedColor,
                   ),
                 ),
@@ -308,7 +366,12 @@ class _OfficePeopleState extends State<OfficePeople> {
                   vertical: 10,
                 ),
               ),
-              child: const Text('发消息', style: TextStyle(fontSize: 11)),
+              child: Text(
+                '发消息',
+                style: TextStyle(
+                  fontSize: officeFontSize(context, desktop: 11, mobile: 14),
+                ),
+              ),
             ),
           if (canAddContact || canInvite || p['kind'] == 'agent')
             PopupMenuButton<String>(

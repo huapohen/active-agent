@@ -58,8 +58,8 @@ class ProfessionalIdentity extends StatelessWidget {
             .map(
               (entry) => Text(
                 '${entry.key}：${entry.value}',
-                style: const TextStyle(
-                  fontSize: 11,
+                style: TextStyle(
+                  fontSize: officeFontSize(context, desktop: 11, mobile: 14),
                   height: 1.6,
                   color: mutedColor,
                 ),

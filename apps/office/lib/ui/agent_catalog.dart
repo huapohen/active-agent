@@ -87,7 +87,7 @@ class _AgentCatalogState extends State<AgentCatalog> {
               ),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -98,7 +98,7 @@ class _AgentCatalogState extends State<AgentCatalog> {
                 Text(
                   '按职业、职位与技能选择工作伙伴。添加好友后，可私聊或邀请加入项目工作群。',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: officeFontSize(context, desktop: 12, mobile: 14),
                     color: Color(0xff737f99),
                     height: 1.9,
                   ),
@@ -147,7 +147,10 @@ class _AgentCatalogState extends State<AgentCatalog> {
           const SizedBox(height: 18),
           Text(
             '找到 ${matches.length} 位 Agent · 目录共 ${catalog.length} 位',
-            style: const TextStyle(fontSize: 12, color: mutedColor),
+            style: TextStyle(
+              fontSize: officeFontSize(context, desktop: 12, mobile: 14),
+              color: mutedColor,
+            ),
           ),
           const SizedBox(height: 16),
           if (matches.isEmpty)
@@ -157,7 +160,10 @@ class _AgentCatalogState extends State<AgentCatalog> {
                 catalog.isEmpty
                     ? '商店暂时没有可添加的 Agent。'
                     : '没有匹配的 Agent，试试其他关键词或筛选条件。',
-                style: const TextStyle(fontSize: 12, color: mutedColor),
+                style: TextStyle(
+                  fontSize: officeFontSize(context, desktop: 12, mobile: 14),
+                  color: mutedColor,
+                ),
               ),
             ),
           ...matches.map(_card),
@@ -229,16 +235,24 @@ class _AgentCatalogState extends State<AgentCatalog> {
                       children: [
                         Text(
                           str(agent['name']),
-                          style: const TextStyle(
-                            fontSize: 15,
+                          style: TextStyle(
+                            fontSize: officeFontSize(
+                              context,
+                              desktop: 15,
+                              mobile: 17,
+                            ),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         if (category.isNotEmpty)
                           Text(
                             category,
-                            style: const TextStyle(
-                              fontSize: 10,
+                            style: TextStyle(
+                              fontSize: officeFontSize(
+                                context,
+                                desktop: 10,
+                                mobile: 12,
+                              ),
                               color: mutedColor,
                             ),
                           ),
@@ -252,7 +266,13 @@ class _AgentCatalogState extends State<AgentCatalog> {
                         : () => _install(agent),
                     child: Text(
                       _busy.contains(id) ? '正在添加' : '添加好友',
-                      style: const TextStyle(fontSize: 11),
+                      style: TextStyle(
+                        fontSize: officeFontSize(
+                          context,
+                          desktop: 11,
+                          mobile: 14,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -261,8 +281,8 @@ class _AgentCatalogState extends State<AgentCatalog> {
               const SizedBox(height: 12),
               Text(
                 str(agent['description']),
-                style: const TextStyle(
-                  fontSize: 12,
+                style: TextStyle(
+                  fontSize: officeFontSize(context, desktop: 12, mobile: 14),
                   color: mutedColor,
                   height: 1.8,
                 ),
@@ -288,8 +308,12 @@ class _AgentCatalogState extends State<AgentCatalog> {
                               ),
                               child: Text(
                                 skill,
-                                style: const TextStyle(
-                                  fontSize: 10,
+                                style: TextStyle(
+                                  fontSize: officeFontSize(
+                                    context,
+                                    desktop: 10,
+                                    mobile: 12,
+                                  ),
                                   color: Color(0xff667494),
                                 ),
                               ),
@@ -302,17 +326,28 @@ class _AgentCatalogState extends State<AgentCatalog> {
               if (str(agent['instructions']).isNotEmpty)
                 ExpansionTile(
                   tilePadding: EdgeInsets.zero,
-                  title: const Text(
+                  title: Text(
                     '查看工作约定',
-                    style: TextStyle(fontSize: 11, color: accentColor),
+                    style: TextStyle(
+                      fontSize: officeFontSize(
+                        context,
+                        desktop: 11,
+                        mobile: 14,
+                      ),
+                      color: accentColor,
+                    ),
                   ),
                   children: [
                     Align(
                       alignment: Alignment.centerLeft,
                       child: SelectableText(
                         str(agent['instructions']),
-                        style: const TextStyle(
-                          fontSize: 11,
+                        style: TextStyle(
+                          fontSize: officeFontSize(
+                            context,
+                            desktop: 11,
+                            mobile: 14,
+                          ),
                           color: mutedColor,
                           height: 1.8,
                         ),

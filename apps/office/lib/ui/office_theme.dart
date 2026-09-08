@@ -9,6 +9,22 @@ const selectedColor = Color(0xffe8eeff);
 
 typedef Json = Map<String, dynamic>;
 
+/// Native mobile baselines at 100%; user accessibility scaling applies on top.
+abstract final class OfficeMobileType {
+  static const double title = 17;
+  static const double body = 17;
+  static const double secondary = 14;
+  static const double caption = 12;
+  static const double tab = 14;
+  static const double navigation = 11;
+}
+
+double officeFontSize(
+  BuildContext context, {
+  required double desktop,
+  required double mobile,
+}) => MediaQuery.sizeOf(context).width < 760 ? mobile : desktop;
+
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = 44});
   final double size;
@@ -174,10 +190,7 @@ class PersonAvatar extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(size * .25),
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       alignment: Alignment.center,
       child: group
           ? Icon(Icons.forum_rounded, color: Colors.white, size: size * .51)
@@ -281,14 +294,19 @@ class OfficeSearch extends StatelessWidget {
   final TextEditingController? controller;
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 33,
+    height: officeFontSize(context, desktop: 33, mobile: 36),
     child: TextField(
       controller: controller,
       onChanged: onChanged,
-      style: const TextStyle(fontSize: 12),
+      style: TextStyle(
+        fontSize: officeFontSize(context, desktop: 12, mobile: 16),
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 12, color: Color(0xffa4a9b2)),
+        hintStyle: TextStyle(
+          fontSize: officeFontSize(context, desktop: 12, mobile: 16),
+          color: const Color(0xffa4a9b2),
+        ),
         prefixIcon: const Icon(Icons.search, size: 17),
         prefixIconConstraints: const BoxConstraints(minWidth: 33),
         contentPadding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),

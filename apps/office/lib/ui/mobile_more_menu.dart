@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'office_theme.dart';
-
 /// A menu above the navigation bar. The bar stays interactive, so tapping
 /// More again dismisses the menu without replacing the underlying page.
 class OfficeMobileMoreMenu extends StatelessWidget {
@@ -37,10 +35,10 @@ class OfficeMobileMoreMenu extends StatelessWidget {
             Align(
               alignment: Alignment.bottomCenter,
               child: FractionallySizedBox(
-                heightFactor: .74,
+                heightFactor: .80,
                 widthFactor: 1,
                 child: Material(
-                  color: Colors.white,
+                  color: const Color(0xfff4f4f6),
                   elevation: 12,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(18),
@@ -55,31 +53,6 @@ class OfficeMobileMoreMenu extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: const Color(0xffd8dce4),
                           borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(22, 4, 10, 0),
-                        child: Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                '更多',
-                                style: TextStyle(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: '关闭更多菜单',
-                              onPressed: onClose,
-                              icon: const Icon(
-                                Icons.close,
-                                size: 20,
-                                color: mutedColor,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                       Expanded(child: child),

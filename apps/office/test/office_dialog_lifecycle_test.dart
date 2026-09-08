@@ -44,7 +44,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byTooltip('新建与添加'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('创建群组 · 人与 Agent'));
+        await tester.tap(find.byKey(const ValueKey('quick-create-group')));
         await tester.pumpAndSettle();
         await tester.enterText(
           find.byWidgetPredicate(

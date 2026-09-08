@@ -710,19 +710,15 @@ class _MessageGroupDisplaySettingsState
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(0, 0, 0, 5),
-          child: Text(
-            '设置“${group == null ? '标签' : str(group['name'])}”下的会话在“消息”分组中的展示效果',
-            style: const TextStyle(fontSize: 12, color: mutedColor),
-          ),
-        ),
-        if (group != null)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
+          child: Semantics(
+            key: const ValueKey('message-display-description'),
+            hint: group == null ? null : '完成后应用当前选项',
             child: Text(
-              '完成后应用当前选项',
-              style: TextStyle(fontSize: 12, color: mutedColor),
+              '设置“${group == null ? '标签' : str(group['name'])}”下的会话在“消息”分组中的展示效果',
+              style: const TextStyle(fontSize: 12, color: mutedColor),
             ),
           ),
+        ),
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: Material(

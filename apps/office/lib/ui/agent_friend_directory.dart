@@ -275,11 +275,14 @@ class _OfficeAgentFriendDirectoryState
             if (identity == _currentIdentity) _reset();
           },
         ),
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(12, 2, 12, 10),
           child: Text(
             '按好友任职信息分组',
-            style: TextStyle(fontSize: 10, color: mutedColor),
+            style: TextStyle(
+              fontSize: officeFontSize(context, desktop: 10, mobile: 12),
+              color: mutedColor,
+            ),
           ),
         ),
         for (final dimension in ['organization', 'profession', 'category'])
@@ -293,7 +296,10 @@ class _OfficeAgentFriendDirectoryState
                 'profession' => '职业 / 职位',
                 _ => '工作分类',
               },
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: officeFontSize(context, desktop: 12, mobile: 17),
+                fontWeight: FontWeight.w600,
+              ),
             ),
             children: [
               for (final group in agentFriendGroups(
@@ -338,11 +344,16 @@ class _OfficeAgentFriendDirectoryState
         node.name,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 11),
+        style: TextStyle(
+          fontSize: officeFontSize(context, desktop: 11, mobile: 17),
+        ),
       ),
       trailing: Text(
         '${node.count}',
-        style: const TextStyle(fontSize: 10, color: mutedColor),
+        style: TextStyle(
+          fontSize: officeFontSize(context, desktop: 10, mobile: 12),
+          color: mutedColor,
+        ),
       ),
       onTap: () {
         if (identity == _currentIdentity) {
@@ -389,7 +400,9 @@ class _OfficeAgentFriendDirectoryState
               key: ValueKey('agent-friends-selected-${entry.$1}'),
               label: Text(
                 label(entry.$1, entry.$2!, entry.$3),
-                style: const TextStyle(fontSize: 10),
+                style: TextStyle(
+                  fontSize: officeFontSize(context, desktop: 10, mobile: 12),
+                ),
               ),
               onDeleted: () => _select(entry.$1, null),
             ),
@@ -427,11 +440,14 @@ class _OfficeAgentFriendDirectoryState
             child: widget.itemBuilder(person),
           ),
         if (others.isNotEmpty) ...[
-          () => const Padding(
+          () => Padding(
             padding: EdgeInsets.symmetric(vertical: 15),
             child: Text(
               '工作空间中的其他 Agent',
-              style: TextStyle(fontSize: 12, color: mutedColor),
+              style: TextStyle(
+                fontSize: officeFontSize(context, desktop: 12, mobile: 17),
+                color: mutedColor,
+              ),
             ),
           ),
           for (final person in others) () => widget.otherBuilder(person),
@@ -477,7 +493,10 @@ class _OfficeAgentFriendDirectoryState
                 Text(
                   '${friends.length} / ${widget.friends.length} 位好友',
                   key: const ValueKey('agent-friends-result-count'),
-                  style: const TextStyle(fontSize: 11, color: mutedColor),
+                  style: TextStyle(
+                    fontSize: officeFontSize(context, desktop: 11, mobile: 12),
+                    color: mutedColor,
+                  ),
                 ),
               ],
             ),

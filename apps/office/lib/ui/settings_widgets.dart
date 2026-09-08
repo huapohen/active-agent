@@ -69,15 +69,28 @@ class OfficeSettingsRow extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
     leading: icon == null ? null : Icon(icon, size: 20, color: mutedColor),
-    title: Text(title, style: const TextStyle(fontSize: 14)),
+    title: Text(
+      title,
+      style: TextStyle(
+        fontSize: officeFontSize(
+          context,
+          desktop: 14,
+          mobile: OfficeMobileType.title,
+        ),
+      ),
+    ),
     subtitle: description == null
         ? null
         : Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               description!,
-              style: const TextStyle(
-                fontSize: 11,
+              style: TextStyle(
+                fontSize: officeFontSize(
+                  context,
+                  desktop: 11,
+                  mobile: OfficeMobileType.secondary,
+                ),
                 height: 1.6,
                 color: mutedColor,
               ),
@@ -94,7 +107,11 @@ class OfficeSettingsRow extends StatelessWidget {
                 value!,
                 textAlign: TextAlign.end,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: officeFontSize(
+                    context,
+                    desktop: 12,
+                    mobile: OfficeMobileType.secondary,
+                  ),
                   color: unavailable ? mutedColor : const Color(0xff646a73),
                 ),
               ),
@@ -319,7 +336,14 @@ class OfficeFontSizePreview extends StatelessWidget {
               Text(
                 '人与 Agent 在共同文档里读懂上下文，一起推进工作。\n预览时间：09:41',
                 textScaler: TextScaler.linear(scale),
-                style: const TextStyle(fontSize: 14, height: 1.9),
+                style: TextStyle(
+                  fontSize: officeFontSize(
+                    context,
+                    desktop: 14,
+                    mobile: OfficeMobileType.body,
+                  ),
+                  height: MediaQuery.sizeOf(context).width < 760 ? 1.5 : 1.9,
+                ),
               ),
             ],
           ),

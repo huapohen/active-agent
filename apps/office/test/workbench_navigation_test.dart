@@ -39,6 +39,9 @@ class WorkbenchFixture extends OfficeState {
     ];
   }
   int generation = 0;
+  final visits = <String>[];
+  @override
+  Future<void> recordWorkbenchVisit(String appId) async => visits.add(appId);
   @override
   int get identityGeneration => generation;
   void changed() => notifyListeners();
@@ -320,6 +323,55 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'recents only record visible registered available pages after opening',
+    (tester) async {
+      final state = WorkbenchFixture(), harness = WorkbenchHarness();
+      await mountWorkbench(tester, state, harness);
+      expect(state.visits, isEmpty);
+      harness.key.currentState!.openApp('/office#docs');
+      await tester.pumpAndSettle();
+      expect(state.visits, ['docs']);
+      harness.key.currentState!.navigate(3);
+      await tester.pumpAndSettle();
+      expect(state.visits, ['docs'], reason: 'current app is not opened again');
+      harness.navigation[3]!(4);
+      await tester.pumpAndSettle();
+      expect(state.visits, ['docs', 'tasks']);
+      harness.navigation[4]!(3);
+      await tester.pumpAndSettle();
+      expect(state.visits, ['docs', 'tasks', 'docs']);
+      harness.key.currentState!.close();
+      await tester.pumpAndSettle();
+      for (final path in [
+        '/office#fixture-0',
+        'https://external.example/#docs',
+        '/office#calendar', // Built-in route, absent from this registry.
+        '/office#enterprise', // Current member is not an administrator.
+      ]) {
+        harness.key.currentState!.openApp(path);
+        await tester.pumpAndSettle();
+        harness.key.currentState!.close();
+        await tester.pumpAndSettle();
+      }
+      state.unavailableModules.add('meetings');
+      harness.key.currentState!.navigate(6);
+      await tester.pumpAndSettle();
+      expect(state.visits, ['docs', 'tasks', 'docs']);
+      harness.key.currentState!.close();
+      harness.key.currentState!.navigate(3);
+      harness.key.currentState!.navigate(4);
+      await tester.pumpAndSettle();
+      expect(state.visits, [
+        'docs',
+        'tasks',
+        'docs',
+        'tasks',
+      ], reason: 'an app replaced before its first frame was never visited');
+      await finishWorkbench(tester);
+    },
+  );
 
   testWidgets(
     'temporary offline and reconnect keep application draft and allow local back',

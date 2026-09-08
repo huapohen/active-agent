@@ -5,6 +5,8 @@ There is no private conversation history or worker database: restart discovers w
 and completed receipts from the room. Model invocation is at-least-once after crashes;
 publication and bounded native actions have durable receipts. No shell, web or external messaging tools.
 """
+import base64
+import hashlib
 import json
 import re
 import logging
@@ -130,7 +132,26 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def _http_error_code(error):
+    # Doc Free HTTP uses {error: text, code}; adapters may use {error: {code}}.
+    # Keep only a bounded machine identifier, never arbitrary remote error text.
+    try:
+        data = json.loads(error.read(4096))
+        if isinstance(data, dict):
+            nested = data.get("error")
+            candidate = data.get("code") or (nested.get("code") if isinstance(nested, dict) else None)
+            if isinstance(candidate, str) and re.fullmatch(r"[a-z_]{1,64}", candidate):
+                return candidate
+    except (ValueError, AttributeError, OSError):
+        pass
+    finally:
+        error.close()
+    return "request_failed"
+
+
 class IMClient:
+    MAX_ATTACHMENT_BYTES = 12 * 1024 * 1024
+
     def __init__(self, base_url, token, timeout=35):
         if not token:
             raise ValueError("AA_IM_TOKEN must be an independent agent credential")
@@ -160,18 +181,119 @@ class IMClient:
                     raise IMError(502, "invalid_response")
                 return result
         except urllib.error.HTTPError as exc:
-            # Retain only a bounded identifier; arbitrary remote error text is never logged.
-            code = "request_failed"
-            try:
-                data = json.loads(exc.read(4096))
-                candidate = data.get("error", {}).get("code", "")
-                if isinstance(candidate, str) and re.fullmatch(r"[a-z_]{1,64}", candidate):
-                    code = candidate
-            except (ValueError, AttributeError, OSError):
-                pass
-            raise IMError(exc.code, code) from None
+            raise IMError(exc.code, _http_error_code(exc)) from None
         except (OSError, ValueError):
             raise IMError(503, "connection_failed") from None
+
+    @staticmethod
+    def _media_id(value, prefix):
+        if not isinstance(value, str) or not re.fullmatch(prefix + r"[A-Za-z0-9-]{1,100}", value):
+            raise ValueError("Invalid native media resource ID")
+        return value
+
+    def _media_identity(self, identity):
+        if identity != (self.base_url, self.token):
+            raise IMError(409, "identity_changed")
+
+    def _attachment_metadata(self, result, room_id, attachment_id=None):
+        item = result.get("attachment")
+        if (not isinstance(item, dict) or item.get("room_id") != room_id
+                or not isinstance(item.get("id"), str)
+                or not re.fullmatch(r"attachment-[A-Za-z0-9-]{1,100}", item["id"])
+                or attachment_id is not None and item["id"] != attachment_id
+                or isinstance(item.get("size"), bool) or not isinstance(item.get("size"), int)
+                or not 1 <= item["size"] <= self.MAX_ATTACHMENT_BYTES
+                or not isinstance(item.get("sha256"), str)
+                or not re.fullmatch(r"[a-f0-9]{64}", item["sha256"])):
+            raise IMError(502, "invalid_attachment_metadata")
+        if item.get("status") != "active":
+            raise IMError(410, "attachment_unavailable")
+        return item
+
+    def upload_attachment(self, room_id, data, *, filename, client_id,
+                          mime_type="application/octet-stream"):
+        """Upload bounded bytes with a caller-owned stable intent, returning metadata.
+
+        Retry with the same client_id and bytes after a lost response. This never
+        sends a message, records a device, or inserts media bytes into model context.
+        """
+        room_id = self._media_id(room_id, "room-")
+        if not isinstance(data, (bytes, bytearray, memoryview)):
+            raise ValueError("Attachment data must be bytes")
+        size = data.nbytes if isinstance(data, memoryview) else len(data)
+        if not 1 <= size <= self.MAX_ATTACHMENT_BYTES:
+            raise ValueError("Attachment must contain 1 byte to 12 MiB")
+        for value, maximum in [(filename, 200), (client_id, 160), (mime_type, 100)]:
+            if not isinstance(value, str) or not value.strip() or len(value) > maximum:
+                raise ValueError("Invalid native attachment descriptor")
+        raw = bytes(data)
+        identity = (self.base_url, self.token)
+        result = self.request("POST", "/rooms/" + room_id + "/attachments", {
+            "client_id": client_id, "filename": filename, "mime_type": mime_type,
+            "data_base64": base64.b64encode(raw).decode("ascii")})
+        self._media_identity(identity)
+        item = self._attachment_metadata(result, room_id)
+        if item["size"] != len(raw) or item["sha256"] != hashlib.sha256(raw).hexdigest():
+            raise IMError(502, "attachment_integrity")
+        return item
+
+    def download_attachment(self, room_id, attachment_id, *, max_bytes=MAX_ATTACHMENT_BYTES):
+        """Read fresh authorized media bytes, checking bounds, digest and current access.
+
+        The route is built from scoped IDs. A server-provided download_path is
+        never followed; credentials remain in headers and redirects stay disabled.
+        """
+        room_id = self._media_id(room_id, "room-")
+        attachment_id = self._media_id(attachment_id, "attachment-")
+        if isinstance(max_bytes, bool) or not isinstance(max_bytes, int) or not 1 <= max_bytes <= self.MAX_ATTACHMENT_BYTES:
+            raise ValueError("Invalid attachment byte limit")
+        identity = (self.base_url, self.token)
+        route = "/rooms/" + room_id + "/attachments/" + attachment_id
+        item = self._attachment_metadata(self.request("GET", route), room_id, attachment_id)
+        self._media_identity(identity)
+        if item["size"] > max_bytes:
+            raise IMError(413, "attachment_too_large")
+        request = urllib.request.Request(identity[0] + "/api/im" + route + "/content",
+            headers={"Authorization": "Bearer " + identity[1], "Accept": "application/octet-stream"})
+        try:
+            with self.opener.open(request, timeout=self.timeout) as response:
+                if response.status != 200:
+                    raise IMError(502, "invalid_media_response")
+                length = response.headers.get("Content-Length")
+                if length is not None and (not length.isdecimal() or int(length) != item["size"]):
+                    raise IMError(502, "attachment_integrity")
+                raw = response.read(item["size"] + 1)
+        except urllib.error.HTTPError as exc:
+            raise IMError(exc.code, _http_error_code(exc)) from None
+        except (OSError, ValueError):
+            raise IMError(503, "connection_failed") from None
+        self._media_identity(identity)
+        if len(raw) != item["size"] or hashlib.sha256(raw).hexdigest() != item["sha256"]:
+            raise IMError(502, "attachment_integrity")
+        # Membership or the attachment may have been revoked during a long read.
+        current = self._attachment_metadata(self.request("GET", route), room_id, attachment_id)
+        self._media_identity(identity)
+        if any(current[key] != item[key] for key in ("id", "room_id", "sha256", "size")):
+            raise IMError(409, "attachment_changed")
+        return raw
+
+    def send_voice(self, room_id, attachment_id, *, client_id, content="", mentions=None, reply_to=None):
+        """Send an already uploaded voice coordinate; the server derives audio facts."""
+        room_id = self._media_id(room_id, "room-")
+        attachment_id = self._media_id(attachment_id, "attachment-")
+        if not isinstance(client_id, str) or not client_id.strip() or len(client_id) > 160:
+            raise ValueError("A stable voice message client_id is required")
+        if not isinstance(content, str) or len(content) > 12000:
+            raise ValueError("Invalid voice caption")
+        body = {"client_id": client_id, "content": content, "voice": {"attachment_id": attachment_id}}
+        if mentions is not None:
+            body["mentions"] = mentions
+        if reply_to is not None:
+            body["reply_to"] = reply_to
+        identity = (self.base_url, self.token)
+        result = self.request("POST", "/rooms/" + room_id + "/messages", body)
+        self._media_identity(identity)
+        return result
 
 
 def _id(value):

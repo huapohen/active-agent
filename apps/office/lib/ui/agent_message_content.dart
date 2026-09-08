@@ -27,7 +27,14 @@ class AgentMessageContent extends StatefulWidget {
 
 class _AgentMessageContentState extends State<AgentMessageContent> {
   bool _expanded = false;
-  static const _bodyStyle = TextStyle(fontSize: 13, height: 1.7);
+  TextStyle get _bodyStyle => TextStyle(
+    fontSize: officeFontSize(
+      context,
+      desktop: 13,
+      mobile: OfficeMobileType.body,
+    ),
+    height: MediaQuery.sizeOf(context).width < 760 ? 1.5 : 1.7,
+  );
 
   Widget _selectable(String content) => OfficeEmojiText(
     content: content,

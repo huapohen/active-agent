@@ -87,7 +87,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(NavigationDestination, '更多'));
       await tester.pumpAndSettle();
-      final minutesTile = find.widgetWithText(ListTile, '人机妙记');
+      final minutesTile = find.byKey(
+        const ValueKey('mobile-more-open-minutes'),
+      );
       await tester.ensureVisible(minutesTile);
       await tester.tap(minutesTile);
       await tester.pumpAndSettle();
@@ -98,8 +100,12 @@ void main() {
 
       await tester.tap(find.widgetWithText(NavigationDestination, '更多'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('编辑底栏'));
-      await tester.tap(find.text('编辑底栏'));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('mobile-more-edit-navigation')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('mobile-more-edit-navigation')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('移除云文档'));
       await tester.pump();
@@ -165,7 +171,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(NavigationDestination, '更多'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('编辑底栏'));
+      await tester.tap(
+        find.byKey(const ValueKey('mobile-more-edit-navigation')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('移除云文档'));
       await tester.pump();
@@ -189,7 +197,10 @@ void main() {
         'base_revision': 7,
       });
       expect(labels(tester), ['Agent', '消息', '工作台', '邮箱', '更多']);
-      expect(find.widgetWithText(ListTile, '云文档'), findsOneWidget);
+      final documents = find.byKey(const ValueKey('mobile-more-open-docs'));
+      await tester.ensureVisible(documents);
+      await tester.pumpAndSettle();
+      expect(documents.hitTestable(), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpWidget(ActiveOfficeApp(state: state));
       await tester.pumpAndSettle();
@@ -209,7 +220,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(NavigationDestination, '更多'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('编辑底栏'));
+      await tester.tap(
+        find.byKey(const ValueKey('mobile-more-edit-navigation')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('上移Agent'));
       await tester.pump();
@@ -255,12 +268,29 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byTooltip('我的与设置').first);
         await tester.pumpAndSettle();
-        expect(find.text('我的'), findsOneWidget);
-        expect(find.text('真实协作企业'), findsOneWidget);
-        expect(find.text('账号：test.member'), findsOneWidget);
+        if (admin) {
+          expect(find.text('我的'), findsOneWidget);
+          expect(find.text('真实协作企业'), findsOneWidget);
+          expect(find.text('账号：test.member'), findsOneWidget);
+        } else {
+          expect(
+            find.byKey(const ValueKey('mobile-profile-layout')),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: find.byKey(const ValueKey('mobile-profile-layout')),
+              matching: find.text('真实协作企业'),
+            ),
+            findsNWidgets(2),
+          );
+          expect(find.text('我的个人名片'), findsOneWidget);
+          expect(find.text('登录更多账号'), findsNWidgets(2));
+        }
         expect(find.text('企业管理'), admin ? findsOneWidget : findsNothing);
         expect(find.text('编辑手机底栏'), findsNothing);
         expect(find.text('个人设置'), findsNothing);
+        await tester.ensureVisible(find.text('设置').last);
         await tester.tap(find.text('设置').last);
         await tester.pumpAndSettle();
         if (!admin) {

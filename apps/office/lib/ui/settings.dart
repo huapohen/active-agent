@@ -227,10 +227,16 @@ class _OfficeSettingsState extends State<OfficeSettings> {
     _section(mobile, mobile ? null : '时间显示', [
       SwitchListTile(
         key: const ValueKey('settings-time-format'),
-        title: const Text('24 小时制', style: TextStyle(fontSize: 14)),
+        title: Text(
+          '24 小时制',
+          style: TextStyle(fontSize: mobile ? OfficeMobileType.title : 14),
+        ),
         subtitle: Text(
           values['time_format'] == '12h' ? '例如：下午 2:30' : '例如：14:30',
-          style: const TextStyle(fontSize: 11, color: mutedColor),
+          style: TextStyle(
+            fontSize: mobile ? OfficeMobileType.secondary : 11,
+            color: mutedColor,
+          ),
         ),
         value: values['time_format'] != '12h',
         onChanged: editable
@@ -264,10 +270,26 @@ class _OfficeSettingsState extends State<OfficeSettings> {
   ];
 
   Widget _previewToggle() => SwitchListTile(
-    title: const Text('会话列表显示消息预览', style: TextStyle(fontSize: 14)),
-    subtitle: const Text(
+    title: Text(
+      '会话列表显示消息预览',
+      style: TextStyle(
+        fontSize: officeFontSize(
+          context,
+          desktop: 14,
+          mobile: OfficeMobileType.title,
+        ),
+      ),
+    ),
+    subtitle: Text(
       '关闭后，列表隐藏最近一条消息的正文。',
-      style: TextStyle(fontSize: 11, color: mutedColor),
+      style: TextStyle(
+        fontSize: officeFontSize(
+          context,
+          desktop: 11,
+          mobile: OfficeMobileType.secondary,
+        ),
+        color: mutedColor,
+      ),
     ),
     value: values['show_message_preview'] != false,
     onChanged: editable

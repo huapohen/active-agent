@@ -7,9 +7,17 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
 import 'conversation_unread.dart';
+import 'voice_audio.dart';
 export 'conversation_unread.dart';
 
 typedef Json = Map<String, dynamic>;
+typedef OfficeVoiceRecorderFactory = OfficeVoiceRecorder Function(
+  bool Function() isCurrent,
+  Duration maxDuration,
+);
+typedef OfficeVoicePlaybackFactory = OfficeVoicePlayback Function(
+  bool Function() isCurrent,
+);
 
 class OfficeExternalLogin {
   const OfficeExternalLogin({
@@ -34,8 +42,39 @@ class OfficeException implements Exception {
 /// Humans and agents use this same authenticated office protocol.
 /// Credentials live in memory, never in compiled assets or browser storage.
 class OfficeState extends ChangeNotifier {
-  OfficeState({http.Client? client}) : _client = client ?? http.Client();
+  OfficeState({
+    http.Client? client,
+    this.voiceRecorderFactory,
+    this.voicePlaybackFactory,
+  }) : _client = client ?? http.Client();
   final http.Client _client;
+  final OfficeVoiceRecorderFactory? voiceRecorderFactory;
+  final OfficeVoicePlaybackFactory? voicePlaybackFactory;
+  OfficeVoiceRecorder createVoiceRecorder(
+    bool Function() isCurrent, {
+    Duration maxDuration = const Duration(seconds: 60),
+  }) =>
+      voiceRecorderFactory?.call(isCurrent, maxDuration) ??
+      OfficeVoiceRecorder(isCurrent: isCurrent, maxDuration: maxDuration);
+  OfficeVoicePlayback createVoicePlayback(bool Function() isCurrent) =>
+      voicePlaybackFactory?.call(isCurrent) ??
+      OfficeVoicePlayback(isCurrent: isCurrent);
+
+  OfficeVoicePlayback? _voicePlayback;
+  OfficeVoicePlayback get voicePlayback =>
+      _voicePlayback ??= createVoicePlayback(() => _voiceScopeCurrent);
+  ({int generation, String endpoint, String? principalId})? _voiceIdentity;
+  String? _voiceRoomId, _voiceAttachmentId, _voiceError;
+  int _voiceSelection = -1, _voiceOperation = 0;
+  bool _voiceLoading = false;
+  String? get voiceAttachmentId => _voiceAttachmentId;
+  String? get voicePlaybackError => _voiceError;
+  bool get voiceLoading => _voiceLoading;
+  bool get _voiceScopeCurrent =>
+      !_disposed &&
+      _voiceIdentity == _identity &&
+      _voiceRoomId == selectedRoomId &&
+      _voiceSelection == _selection;
   String endpoint = '';
   String _token = '';
   String? _loginSessionId;
@@ -47,11 +86,22 @@ class OfficeState extends ChangeNotifier {
       searchResults = [];
   List<Json> allDocuments = [], allTasks = [], libraryRooms = [];
   List<Json> meetings = [], calendarEvents = [], apps = [];
-  List<String> appFavorites = [];
+  List<String> appFavorites = [], appRecents = [];
+  Future<void> _workbenchQueue = Future<void>.value();
+  int _workbenchPending = 0, _workbenchChange = 0, _workbenchRead = 0;
   Json settings = {}, accountInfo = {}, currentAttendance = {};
   Json enterpriseSummary = {};
-  bool get canManageEnterprise =>
-      (enterpriseSummary['capabilities'] as Map?)?['access_admin'] == true;
+  bool get canManageEnterprise {
+    final capabilities = enterpriseSummary['capabilities'];
+    final membership = enterpriseSummary['membership'];
+    final status = membership is Map ? membership['status'] : null;
+    // Capabilities are issued by the server, but a stale summary must not
+    // leave a disabled or revoked identity with a live admin entry point.
+    return capabilities is Map &&
+        capabilities['access_admin'] == true &&
+        (status == null || status == 'active');
+  }
+
   List<Json> contacts = [], plugins = [], capabilities = [];
   List<Json> attendanceRecords = [],
       approvalTemplates = [],
@@ -108,6 +158,9 @@ class OfficeState extends ChangeNotifier {
   }
 
   void _notify() {
+    if (_voiceAttachmentId != null && !_voiceScopeCurrent) {
+      unawaited(stopVoicePlayback());
+    }
     if (!_disposed) notifyListeners();
   }
 
@@ -245,6 +298,7 @@ class OfficeState extends ChangeNotifier {
       case 'workbench':
         apps = [];
         appFavorites = [];
+        appRecents = [];
     }
     if (['docs', 'tasks', 'meetings', 'calendar'].contains(id)) {
       detail?['runs'] = [];
@@ -353,6 +407,11 @@ class OfficeState extends ChangeNotifier {
     calendarEvents = [];
     apps = [];
     appFavorites = [];
+    appRecents = [];
+    _workbenchQueue = Future<void>.value();
+    _workbenchPending = 0;
+    _workbenchChange++;
+    _workbenchRead++;
     settings = {};
     accountInfo = {};
     enterpriseSummary = {};
@@ -382,7 +441,7 @@ class OfficeState extends ChangeNotifier {
 
   Future<void> refresh() async {
     final generation = _generation;
-    final results = await Future.wait([
+    final results = await Future.wait<dynamic>([
       _backgroundRequest('/rooms', plugin: 'im'),
       _backgroundRequest('/principals', plugin: 'im'),
       _backgroundRequest('/agents', plugin: 'im'),
@@ -390,7 +449,7 @@ class OfficeState extends ChangeNotifier {
       _request('/library'),
       _backgroundRequest('/meetings', plugin: 'meetings'),
       _backgroundRequest('/calendar', plugin: 'calendar'),
-      _backgroundRequest('/workbench', plugin: 'workbench'),
+      _refreshWorkbench(),
     ]);
     if (generation != _generation) return;
     rooms = _list(results[0]['rooms']);
@@ -402,8 +461,6 @@ class OfficeState extends ChangeNotifier {
     libraryRooms = _list(results[4]['rooms']);
     meetings = _list(results[5]['meetings']);
     calendarEvents = _list(results[6]['events']);
-    apps = _list(results[7]['apps']);
-    appFavorites = List<String>.from(results[7]['favorites'] ?? []);
     if (_cursor == 0) _cursor = (results[0]['cursor'] as num?)?.toInt() ?? 0;
     if (selectedRoomId != null &&
         !rooms.any((r) => r['id'] == selectedRoomId)) {
@@ -825,6 +882,7 @@ class OfficeState extends ChangeNotifier {
     if (_disposed) return;
     if (!visible) {
       if (_visibleConversationRoomId == roomId) _clearConversationVisibility();
+      if (_voiceRoomId == roomId) await stopVoicePlayback();
       return;
     }
     if (selectedRoomId != roomId || me == null || _token.isEmpty) return;
@@ -1944,6 +2002,167 @@ class OfficeState extends ChangeNotifier {
     }, 'attachment');
   }
 
+  void _requireVoiceSource({
+    required String roomId,
+    required int identityGeneration,
+    required int conversationSelection,
+  }) {
+    if (_disposed ||
+        identityGeneration != _generation ||
+        conversationSelection != _selection ||
+        selectedRoomId != roomId ||
+        me == null) {
+      throw OfficeException(409, '录音所属身份或会话已变化，请重新录制');
+    }
+  }
+
+  /// Stage bytes in the original room. The caller owns the stable upload ID
+  /// and checks its UI scope again before it can dispatch a message.
+  Future<Json> uploadVoiceAttachment(
+    OfficeVoiceClip clip, {
+    required String sourceRoomId,
+    required int identityGeneration,
+    required int conversationSelection,
+    required String clientId,
+  }) async {
+    _requireVoiceSource(
+      roomId: sourceRoomId,
+      identityGeneration: identityGeneration,
+      conversationSelection: conversationSelection,
+    );
+    if (clip.bytes.isEmpty || clip.bytes.length > 12 * 1024 * 1024) {
+      throw OfficeException(422, '录音文件大小需为 1 字节至 12 MB');
+    }
+    final identity = _identity;
+    final result = await _request(
+      '/rooms/${Uri.encodeComponent(sourceRoomId)}/attachments',
+      method: 'POST',
+      data: {
+        'client_id': clientId,
+        'filename': clip.filename,
+        'mime_type': clip.mimeType,
+        'data_base64': base64Encode(clip.bytes),
+      },
+    );
+    _requireIdentity(identity);
+    return {...Json.from(result['attachment']), 'room_id': sourceRoomId};
+  }
+
+  /// Humans and agents submit the same voice reference. Codec, duration and
+  /// kind come from the server's validation of the actual attachment bytes.
+  Future<Json> sendVoiceAttachment({
+    required String attachmentId,
+    required String sourceRoomId,
+    required int identityGeneration,
+    required int conversationSelection,
+    required String clientId,
+  }) async {
+    _requireVoiceSource(
+      roomId: sourceRoomId,
+      identityGeneration: identityGeneration,
+      conversationSelection: conversationSelection,
+    );
+    final identity = _identity;
+    final result = await _request(
+      '/rooms/${Uri.encodeComponent(sourceRoomId)}/messages',
+      method: 'POST',
+      data: {
+        'client_id': clientId,
+        'content': '',
+        'voice': {'attachment_id': attachmentId},
+      },
+    );
+    _requireIdentity(identity);
+    await _updated();
+    _requireIdentity(identity);
+    return Json.from(result['message']);
+  }
+
+  /// Only an unsubmitted recording may be discarded automatically. The UI
+  /// never calls this after a send with an uncertain acknowledgement.
+  Future<void> discardVoiceAttachment(
+    Json attachment, {
+    required int identityGeneration,
+  }) async {
+    if (_disposed || identityGeneration != _generation) return;
+    final roomId = attachment['room_id'], id = attachment['id'];
+    if (roomId is! String || id is! String) return;
+    await _request(
+      '/rooms/${Uri.encodeComponent(roomId)}/attachments/${Uri.encodeComponent(id)}',
+      method: 'DELETE',
+      data: {},
+    );
+  }
+
+  Future<void> playVoiceAttachment(Json attachment) async {
+    final roomId = attachment['room_id'] ?? selectedRoomId;
+    final id = attachment['id'];
+    if (roomId is! String || id is! String || roomId != selectedRoomId) {
+      throw OfficeException(409, '请在语音所属会话中播放');
+    }
+    if ((attachment['status'] ?? attachment['availability'] ?? 'active') !=
+        'active') {
+      throw OfficeException(410, '这条语音已不可用');
+    }
+    final player = voicePlayback;
+    if (_voiceAttachmentId == id && _voiceScopeCurrent && !_voiceLoading) {
+      if (player.phase == OfficeVoicePlaybackPhase.playing) {
+        await player.pause();
+        return;
+      }
+      if (player.phase == OfficeVoicePlaybackPhase.paused) {
+        await player.resume();
+        return;
+      }
+    }
+    final operation = ++_voiceOperation;
+    _voiceIdentity = _identity;
+    _voiceSelection = _selection;
+    _voiceRoomId = roomId;
+    _voiceAttachmentId = id;
+    _voiceLoading = true;
+    _voiceError = null;
+    _notify();
+    try {
+      await player.stop();
+      if (operation != _voiceOperation || !_voiceScopeCurrent) return;
+      final bytes = await getAttachmentBytes({
+        ...attachment,
+        'room_id': roomId,
+      });
+      if (operation != _voiceOperation || !_voiceScopeCurrent) return;
+      await player.playBytes(id: '$roomId:$id', bytes: bytes);
+    } catch (e) {
+      if (operation == _voiceOperation && _voiceScopeCurrent) {
+        _voiceError = '语音暂时无法播放，请重试';
+      }
+    } finally {
+      if (operation == _voiceOperation) {
+        _voiceLoading = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<void> stopVoicePlayback({String? attachmentId}) async {
+    if (attachmentId != null && attachmentId != _voiceAttachmentId) return;
+    final operation = ++_voiceOperation;
+    _voiceAttachmentId = null;
+    _voiceRoomId = null;
+    _voiceIdentity = null;
+    _voiceLoading = false;
+    _voiceError = null;
+    // Invalidate downloads synchronously, but do not notify a sibling audio
+    // bubble while Flutter is disposing a removed message's widget subtree.
+    await Future<void>.value();
+    if (operation != _voiceOperation) return;
+    try {
+      await _voicePlayback?.stop();
+    } finally {
+      _notify();
+    }
+  }
+
   Future<Uint8List> getAttachmentBytes(Json attachment) async {
     final room = attachment['room_id'] ?? selectedRoomId;
     if (room == null) throw OfficeException(422, '请先选择文件所属会话');
@@ -1976,16 +2195,14 @@ class OfficeState extends ChangeNotifier {
 
   Future<void> refreshOffice() async {
     final generation = _generation;
-    final results = await Future.wait([
+    final results = await Future.wait<dynamic>([
       _backgroundRequest('/meetings', plugin: 'meetings'),
       _backgroundRequest('/calendar', plugin: 'calendar'),
-      _backgroundRequest('/workbench', plugin: 'workbench'),
+      _refreshWorkbench(),
     ]);
     if (generation != _generation) return;
     meetings = _list(results[0]['meetings']);
     calendarEvents = _list(results[1]['events']);
-    apps = _list(results[2]['apps']);
-    appFavorites = List<String>.from(results[2]['favorites'] ?? []);
     _notify();
   }
 
@@ -2072,14 +2289,87 @@ class OfficeState extends ChangeNotifier {
     await _updated();
   }
 
-  Future<void> setAppFavorites(List<String> favorites) async {
-    await _request(
-      '/workbench',
-      method: 'PATCH',
-      data: {'favorites': favorites},
-    );
-    await _updated();
+  void _acceptWorkbench(Json result) {
+    apps = _list(result['apps']);
+    appFavorites = List<String>.from(result['favorites'] ?? []);
+    appRecents = List<String>.from(result['recents'] ?? []);
   }
+
+  Future<void> _refreshWorkbench() async {
+    // A mutation returns the complete view. Reading while it is in flight can
+    // only replace that view with an older snapshot from before the write.
+    if (_workbenchPending > 0) return;
+    final identity = _identity,
+        read = ++_workbenchRead,
+        change = _workbenchChange;
+    final result = await _backgroundRequest('/workbench', plugin: 'workbench');
+    if (_disposed ||
+        identity != _identity ||
+        read != _workbenchRead ||
+        change != _workbenchChange ||
+        _workbenchPending > 0) {
+      return;
+    }
+    _acceptWorkbench(Json.from(result));
+    _notify();
+  }
+
+  Future<void> _mutateWorkbench(
+    String path, {
+    required String method,
+    Json? data,
+    String? visitAppId,
+  }) {
+    final identity = _identity;
+    _workbenchPending++;
+    _workbenchChange++;
+    // Serialize personal preference writes, retaining click order even if the
+    // network would otherwise process or return them in the opposite order.
+    final operation = _workbenchQueue
+        .then((_) async {
+          _requireIdentity(identity);
+          if (visitAppId != null) {
+            final app = apps
+                .where((item) => item['id'] == visitAppId)
+                .firstOrNull;
+            if (app == null) {
+              throw OfficeException(404, '此应用已不存在', code: 'app_not_found');
+            }
+            if (!moduleAvailable('workbench') || app['available'] != true) {
+              throw OfficeException(403, '当前身份暂时无法使用此应用');
+            }
+          }
+          final result = await _request(path, method: method, data: data);
+          _requireIdentity(identity);
+          _acceptWorkbench(Json.from(result));
+          _notify();
+        })
+        .whenComplete(() {
+          if (!_disposed && identity == _identity) {
+            _workbenchPending--;
+            _workbenchChange++;
+          }
+        });
+    // A failed write must surface to its caller without poisoning later writes.
+    _workbenchQueue = operation.catchError((Object _) {});
+    return operation;
+  }
+
+  Future<void> setAppFavorites(List<String> favorites) => _mutateWorkbench(
+    '/workbench',
+    method: 'PATCH',
+    data: {'favorites': List<String>.of(favorites)},
+  );
+
+  Future<void> recordWorkbenchVisit(String appId) => _mutateWorkbench(
+    '/workbench/recents',
+    method: 'POST',
+    data: {'app_id': appId},
+    visitAppId: appId,
+  );
+
+  Future<void> clearWorkbenchRecents() =>
+      _mutateWorkbench('/workbench/recents', method: 'DELETE');
 
   Future<String> exportRoom() async =>
       await _request(_room('/export'), text: true) as String;
@@ -2087,6 +2377,8 @@ class OfficeState extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _voiceOperation++;
+    _voicePlayback?.dispose();
     _clearConversationVisibility();
     _generation++;
     _client.close();

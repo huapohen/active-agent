@@ -28,7 +28,7 @@ class CompanionAvatar extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [Color(0xffe9e4ff), Color(0xffdcecff)],
             ),
-            borderRadius: BorderRadius.circular(size * .28),
+            shape: BoxShape.circle,
           ),
           child: Stack(
             alignment: Alignment.center,
@@ -93,16 +93,20 @@ class CompanionCapabilities extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 11,
+                  style: TextStyle(
+                    fontSize: officeFontSize(context, desktop: 11, mobile: 14),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 if (description.isNotEmpty)
                   Text(
                     description,
-                    style: const TextStyle(
-                      fontSize: 11,
+                    style: TextStyle(
+                      fontSize: officeFontSize(
+                        context,
+                        desktop: 11,
+                        mobile: 14,
+                      ),
                       height: 1.7,
                       color: mutedColor,
                     ),
@@ -123,16 +127,23 @@ class CompanionCapabilities extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '机伴运行范围',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: officeFontSize(context, desktop: 12, mobile: 17),
+              fontWeight: FontWeight.w600,
+            ),
           ),
           if (capabilities['installation_grants_device_access'] == false)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 6),
               child: Text(
                 '添加好友后可开始办公协作。设备操作需要另行连接运行环境并获得授权。',
-                style: TextStyle(fontSize: 11, height: 1.7, color: mutedColor),
+                style: TextStyle(
+                  fontSize: officeFontSize(context, desktop: 11, mobile: 14),
+                  height: 1.7,
+                  color: mutedColor,
+                ),
               ),
             ),
           for (final mode in supported)
@@ -153,9 +164,12 @@ class CompanionCapabilities extends StatelessWidget {
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: EdgeInsets.zero,
-                title: const Text(
+                title: Text(
                   '查看接入要求',
-                  style: TextStyle(fontSize: 11, color: accentColor),
+                  style: TextStyle(
+                    fontSize: officeFontSize(context, desktop: 11, mobile: 14),
+                    color: accentColor,
+                  ),
                 ),
                 children: [
                   for (final requirement in requirements)
@@ -165,8 +179,12 @@ class CompanionCapabilities extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           requirement,
-                          style: const TextStyle(
-                            fontSize: 11,
+                          style: TextStyle(
+                            fontSize: officeFontSize(
+                              context,
+                              desktop: 11,
+                              mobile: 14,
+                            ),
                             height: 1.7,
                             color: mutedColor,
                           ),

@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import '../office_state.dart' hide Json;
 import 'office_dialogs.dart';
 import 'office_theme.dart';
+import 'voice_message.dart';
 
 class PendingOfficeAttachment {
   PendingOfficeAttachment({
@@ -89,6 +90,14 @@ class _MessageAttachmentState extends State<MessageAttachment> {
           '${str(a['filename'])} · 附件已不可用',
           style: const TextStyle(fontSize: 11, color: mutedColor),
         ),
+      );
+    }
+    if (a['audio'] is Map && str(a['mime_type']) == 'audio/wav') {
+      return OfficeVoiceMessage(
+        state: widget.state,
+        attachment: a,
+        onDownload: _save,
+        saving: _saving,
       );
     }
     return Container(

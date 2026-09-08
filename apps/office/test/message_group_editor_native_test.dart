@@ -281,7 +281,24 @@ void main() {
           findsOneWidget,
         );
         await tapVisible(tester, label);
-        expect(find.text('完成后应用当前选项'), findsOneWidget);
+        expect(find.text('完成后应用当前选项'), findsNothing);
+        final description = find
+            .byKey(const ValueKey('message-display-description'))
+            .last;
+        expect(
+          tester
+                  .getRect(find.byKey(const ValueKey('display-rule-always')))
+                  .top -
+              tester.getRect(description).bottom,
+          closeTo(5, .01),
+        );
+        final semantics = tester.ensureSemantics();
+        await tester.pump();
+        expect(
+          tester.getSemantics(description).getSemanticsData().hint,
+          '完成后应用当前选项',
+        );
+        semantics.dispose();
         await tester.tap(find.text(complete ? '完成' : '取消').last);
         await tester.pumpAndSettle();
         expect(

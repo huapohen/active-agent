@@ -69,7 +69,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>仅在你加入会议并开启摄像头时向会议成员共享画面。</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>仅在你加入会议并开启麦克风时向会议成员共享声音。</string>
+	<string>仅在你主动录制语音消息，或加入会议并开启麦克风时采集声音。</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>在会议中连接你的协作服务与已加入的会议成员。</string>
 </dict>

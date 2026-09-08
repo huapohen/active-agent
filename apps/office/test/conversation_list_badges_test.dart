@@ -73,6 +73,51 @@ Finder readCheck() =>
     find.byKey(const ValueKey('conversation-read-badge-room'));
 
 void main() {
+  test('list activity time uses real message time or an empty room creation timestamp', () {
+    expect(
+      officeConversationActivityAt({
+        'last_message': {'at': '2026-09-07T05:04:00Z'},
+        'created_at': '2026-09-06T00:00:00Z',
+      }),
+      '2026-09-07T05:04:00Z',
+    );
+    expect(
+      officeConversationActivityAt({
+        'last_message': null,
+        'created_at': '2026-09-06T00:00:00Z',
+      }),
+      '2026-09-06T00:00:00Z',
+    );
+    expect(
+      officeConversationActivityAt({
+        'last_message': {'at': 'invalid'},
+        'created_at': '2026-09-06T00:00:00Z',
+      }),
+      isNull,
+    );
+    expect(officeConversationActivityAt({}), isNull);
+  });
+  testWidgets(
+    'real preference flags control muted icon even when legacy summary differs',
+    (tester) async {
+      final room = conversation(muted: false)
+        ..['preferences'] = {'muted': true};
+      await mountBadge(tester, room);
+      expect(
+        find.byKey(const ValueKey('conversation-muted-badge-room')),
+        findsOneWidget,
+      );
+      expect(officeNotificationCount(room), 0);
+      room['muted'] = true;
+      room['preferences'] = {'muted': false};
+      await mountBadge(tester, room);
+      expect(
+        find.byKey(const ValueKey('conversation-muted-badge-room')),
+        findsNothing,
+      );
+      expect(officeNotificationCount(room), 7);
+    },
+  );
   for (final width in [290.0, 390.0]) {
     testWidgets(
       'width $width preview replaces known emoji while keeping one-line receipts and unknown tokens',

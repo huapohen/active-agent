@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../office_state.dart' hide Json;
@@ -94,9 +96,11 @@ class OfficeWorkbenchNavigator extends StatefulWidget {
     super.key,
     required this.state,
     required this.pageBuilder,
+    this.embeddedMobileHeader = false,
   });
   final OfficeState state;
   final OfficeWorkbenchPageBuilder pageBuilder;
+  final bool embeddedMobileHeader;
 
   @override
   State<OfficeWorkbenchNavigator> createState() =>
@@ -152,10 +156,10 @@ class OfficeWorkbenchNavigatorState extends State<OfficeWorkbenchNavigator> {
 
   void openApp(String path) {
     final route = officeWorkbenchRoute(path);
-    if (route != null) {
-      navigate(route);
+    if (route == 5) {
+      close();
     } else {
-      _open(_WorkbenchPage(null, path: path));
+      _open(_WorkbenchPage(route, path: path));
     }
   }
 
@@ -178,6 +182,36 @@ class OfficeWorkbenchNavigatorState extends State<OfficeWorkbenchNavigator> {
       } else {
         _pages.add(page);
       }
+    });
+    _recordPageVisit(_pages.last);
+  }
+
+  void _recordPageVisit(_WorkbenchPage page) {
+    final identity = _identity;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final route = page.route;
+      if (!_active(page, identity) ||
+          route == null ||
+          !_titles.containsKey(route) ||
+          !_available(route)) {
+        return;
+      }
+      final registered = widget.state.apps.where(
+        (app) =>
+            officeWorkbenchRoute(str(app['route'], str(app['id']))) == route,
+      );
+      final app =
+          registered
+              .where((app) => str(app['route'], str(app['id'])) == page.path)
+              .firstOrNull ??
+          registered.where((app) => app['available'] == true).firstOrNull;
+      final id = app?['id'];
+      if (id is! String || id.isEmpty || app?['available'] != true) return;
+      // Usage is acknowledged by the authenticated service. A failure must not
+      // block the app being opened or invent a local recent-history entry.
+      unawaited(
+        widget.state.recordWorkbenchVisit(id).catchError((Object _) {}),
+      );
     });
   }
 
@@ -321,6 +355,7 @@ class OfficeWorkbenchNavigatorState extends State<OfficeWorkbenchNavigator> {
                 children: [
                   _retain(
                     OfficeAppWorkbench(
+                      embeddedMobileHeader: widget.embeddedMobileHeader,
                       key: ValueKey('workbench-home-$_homeGeneration'),
                       state: widget.state,
                       onOpen: (path) {

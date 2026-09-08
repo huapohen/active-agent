@@ -5,7 +5,7 @@ import 'package:active_office/office_state.dart';
 import 'package:active_office/ui/settings.dart';
 import 'package:active_office/ui/mailbox.dart';
 import 'package:active_office/ui/approvals.dart';
-import 'package:active_office/ui/mobile_more_menu.dart';
+import 'package:active_office/ui/mobile_more_panel.dart';
 import 'package:active_office/ui/office_theme.dart' show officeTheme;
 
 class LayoutOfficeState extends OfficeState {
@@ -725,15 +725,28 @@ void main() {
         ('审批', 'approvals'),
         ('设置', 'settings'),
       ]) {
+        if (dimensions.width < 760 && id == 'settings') {
+          await tester.tap(find.byTooltip('我的与设置').first);
+          await tester.pumpAndSettle();
+          final settings = find.text('设置').last;
+          await tester.ensureVisible(settings);
+          await tester.pumpAndSettle();
+          expect(settings.hitTestable(), findsOneWidget);
+          await tester.tap(settings);
+          await tester.pumpAndSettle();
+          expect(find.byType(OfficeSettings), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          continue;
+        }
         late Finder destination;
         late Finder navigationScroll;
         if (dimensions.width < 760) {
           await tester.tap(find.widgetWithText(NavigationDestination, '更多'));
           await tester.pumpAndSettle();
-          final menu = find.byType(OfficeMobileMoreMenu);
+          final menu = find.byType(OfficeMobileMorePanel);
           destination = find.descendant(
             of: menu,
-            matching: find.widgetWithText(ListTile, entry),
+            matching: find.byKey(ValueKey('mobile-more-open-$id')),
           );
           navigationScroll = find
               .descendant(of: menu, matching: find.byType(Scrollable))

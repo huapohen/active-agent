@@ -17,6 +17,9 @@ import 'settings.dart';
 import 'search_filters.dart';
 import 'mobile_navigation.dart';
 import 'profile_menu.dart';
+import 'quick_create_menu.dart';
+import 'mobile_more_panel.dart';
+import 'conversation_context_menu.dart';
 import 'minutes.dart';
 import 'message_group_widgets.dart';
 import 'message_group_editor.dart';
@@ -77,6 +80,20 @@ class _OfficeShellState extends State<OfficeShell> {
   String _searchType = 'all';
   bool _searchOpen = false, _agentStore = false;
   bool _roomOpen = false, _unreadOnly = false;
+  int _agentEntrySequence = 0, _pendingAgentEntry = 0;
+  String? _agentEntryRoom, _agentEntryIdentity;
+  int get _activeAgentEntry =>
+      _agentEntryIdentity == _identityKey && _agentEntryRoom == s.selectedRoomId
+      ? _pendingAgentEntry
+      : 0;
+  void _consumeAgentEntry() {
+    if (mounted) setState(() => _pendingAgentEntry = 0);
+  }
+
+  String get _workspaceName => str(
+    s.me?['organization_name'],
+    str((s.enterpriseSummary['enterprise'] as Map?)?['name'], '人机工作空间'),
+  );
   String _roomQuery = '', _globalQuery = '';
   Timer? _searchTimer;
   final _globalSearchInput = TextEditingController();
@@ -319,6 +336,32 @@ class _OfficeShellState extends State<OfficeShell> {
       onOpen: () {
         if (identity == _identityKey) _open(str(room['id']));
       },
+      onContextMenuAt: (rect) async {
+        if (identity != _identityKey) return;
+        if (!_messageGroups.loaded) await _messageGroups.refresh();
+        if (!mounted || identity != _identityKey) return;
+        await showOfficeConversationContextMenu(
+          context,
+          s,
+          _messageGroups,
+          room,
+          anchor: rect,
+          onAgent: () async {
+            if (identity != _identityKey) return;
+            await _open(str(room['id']));
+            if (!mounted ||
+                identity != _identityKey ||
+                s.selectedRoomId != room['id']) {
+              return;
+            }
+            setState(() {
+              _agentEntryRoom = str(room['id']);
+              _agentEntryIdentity = identity;
+              _pendingAgentEntry = ++_agentEntrySequence;
+            });
+          },
+        );
+      },
       onContextMenu: _messageGroups.loaded
           ? () {
               if (identity == _identityKey) {
@@ -348,6 +391,16 @@ class _OfficeShellState extends State<OfficeShell> {
   }
 
   void _changeNav(int value) {
+    final app = officeNavigationItems
+        .where((item) => item.route == value)
+        .firstOrNull;
+    if (app != null &&
+        _navigationAllowed(app) &&
+        s.apps.any(
+          (entry) => entry['id'] == app.id && entry['available'] == true,
+        )) {
+      unawaited(s.recordWorkbenchVisit(app.id).catchError((Object _) {}));
+    }
     if (value == 11 && _nav != 11) {
       _beforeSettingsNav = _nav;
       _beforeSettingsRoomOpen = _roomOpen;
@@ -357,6 +410,7 @@ class _OfficeShellState extends State<OfficeShell> {
     _globalSearchInput.clear();
     setState(() {
       _moreOpen = false;
+      _pendingAgentEntry = 0;
       _nav = value;
       _roomOpen = false;
       _globalQuery = '';
@@ -383,6 +437,87 @@ class _OfficeShellState extends State<OfficeShell> {
     if (_beforeSettingsRoomOpen && s.selectedRoomId != null) {
       setState(() => _roomOpen = true);
     }
+  }
+
+  Future<void> _showProfileInformation(String title, String message) =>
+      showDialog<void>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _showIdentityCard() {
+    final person = {...?s.enterpriseSummary['membership'] as Map?, ...?s.me};
+    final id = personId(s.me ?? {});
+    return showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('我的个人名片'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              PersonAvatar(
+                name: str(person['name']),
+                agent: person['kind'] == 'agent',
+                size: 70,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                str(person['name']),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final field in [
+                'organization_name',
+                'department_name',
+                'job_title',
+                'profession',
+              ])
+                if (str(person[field]).isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      str(person[field]),
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                  ),
+              Text(
+                '账号：${str(s.accountInfo['username'])}',
+                style: const TextStyle(fontSize: 14, color: mutedColor),
+              ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: id));
+                  if (c.mounted) notifyOffice(c, '当前身份 ID 已复制');
+                },
+                icon: const Icon(Icons.copy_outlined, size: 18),
+                label: const Text('复制身份 ID'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _profileButton(Widget child) => Builder(
@@ -417,6 +552,52 @@ class _OfficeShellState extends State<OfficeShell> {
               _changeNav(5);
             case 'enterprise':
               if (s.canManageEnterprise) _changeNav(13);
+            case 'card':
+              await _showIdentityCard();
+            case 'workspace':
+              if (s.canManageEnterprise) {
+                _changeNav(13);
+              } else {
+                await _showIdentityCard();
+              }
+            case 'favorites':
+              await _openMarkedMessages();
+            case 'agents':
+              _changeNav(1);
+            case 'help':
+              await _showProfileInformation(
+                '帮助与客服',
+                '可在设置中运行网络诊断，或从 Agent 好友中选择机伴协助操作。客服服务尚未配置。',
+              );
+            case 'status':
+              await _showProfileInformation(
+                '工作状态',
+                s.connected ? '当前已连接工作空间。自定义工作状态服务尚未配置。' : '当前连接已断开，正在重新连接。',
+              );
+            case 'switch':
+              if (!context.mounted) return;
+              final change = await showDialog<bool>(
+                context: context,
+                builder: (c) => AlertDialog(
+                  title: const Text('登录其他账号'),
+                  content: const Text('将返回登录页。当前账号的会话与文档保留在工作空间中。'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(c, false),
+                      child: const Text('取消'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(c, true),
+                      child: const Text('前往登录'),
+                    ),
+                  ],
+                ),
+              );
+              if (change == true &&
+                  mounted &&
+                  s.identityGeneration == generation) {
+                s.disconnect();
+              }
             case 'logout':
               s.disconnect();
           }
@@ -678,6 +859,12 @@ class _OfficeShellState extends State<OfficeShell> {
                     !(_nav == 6 && _media.activeMeeting != null)
                 ? NavigationBar(
                     height: 65,
+                    labelTextStyle: const WidgetStatePropertyAll(
+                      TextStyle(
+                        fontSize: OfficeMobileType.navigation,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     backgroundColor: Colors.white,
                     indicatorColor: selectedColor,
                     selectedIndex: _moreVisible
@@ -1040,6 +1227,8 @@ class _OfficeShellState extends State<OfficeShell> {
       return Material(
         color: Colors.white,
         child: OfficeConversation(
+          agentEntryRequest: _activeAgentEntry,
+          onAgentEntryHandled: _consumeAgentEntry,
           onAgentStore: () {
             _agentStore = true;
             _changeNav(1);
@@ -1080,14 +1269,22 @@ class _OfficeShellState extends State<OfficeShell> {
                           PersonAvatar(
                             name: str(s.me?['name']),
                             agent: s.me?['kind'] == 'agent',
-                            size: 27,
+                            size: 36,
                           ),
                         ),
                         const SizedBox(width: 9),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            '人机工作空间',
-                            style: TextStyle(fontSize: 11, color: mutedColor),
+                            _nav == 5 ? '工作台' : _workspaceName,
+                            style: TextStyle(
+                              fontSize: _nav == 5
+                                  ? 22
+                                  : OfficeMobileType.secondary,
+                              fontWeight: _nav == 5
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: _nav == 5 ? inkColor : mutedColor,
+                            ),
                           ),
                         ),
                         IconButton(
@@ -1155,6 +1352,8 @@ class _OfficeShellState extends State<OfficeShell> {
           );
         }
         return OfficeConversation(
+          agentEntryRequest: navigate == null ? _activeAgentEntry : 0,
+          onAgentEntryHandled: _consumeAgentEntry,
           state: s,
           onCreateCalendar: () {
             final identity = _identityKey;
@@ -1267,6 +1466,7 @@ class _OfficeShellState extends State<OfficeShell> {
       default:
         return OfficeWorkbenchNavigator(
           key: ValueKey('workbench-$_identityKey'),
+          embeddedMobileHeader: mobile,
           state: s,
           pageBuilder: (appRoute, back, open) =>
               _modulePage(appRoute, mobile, onBack: back, navigate: open),
@@ -1274,76 +1474,36 @@ class _OfficeShellState extends State<OfficeShell> {
     }
   }
 
-  Widget _more() => ListView(
-    padding: const EdgeInsets.all(22),
-    children: [
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.view_carousel_outlined, color: accentColor),
-        title: const Text('编辑底栏', style: TextStyle(fontSize: 14)),
-        trailing: const Icon(Icons.tune, size: 18),
-        onTap: () => showOfficeNavigationEditor(context, s),
-      ),
-      ...officeNavigationItems
-          .where(
-            (item) =>
-                item.id != 'enterprise' &&
-                !officeMobileNavigation(s)
-                    .any((pinned) => pinned.id == item.id),
-          )
-          .map(
-            (item) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(item.icon, color: accentColor),
-              title: Text(item.label, style: const TextStyle(fontSize: 14)),
-              trailing: const Icon(
-                Icons.chevron_right,
-                size: 19,
-                color: mutedColor,
-              ),
-              onTap: () => _changeNav(item.route),
-            ),
-          ),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.settings_outlined, color: accentColor),
-        title: const Text('设置', style: TextStyle(fontSize: 14)),
-        trailing: const Icon(Icons.chevron_right, size: 19, color: mutedColor),
-        onTap: () {
-          _settingsTab = -1;
-          _changeNav(11);
-        },
-      ),
-      if (s.canManageEnterprise)
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.apartment_outlined, color: accentColor),
-          title: const Text('企业管理', style: TextStyle(fontSize: 14)),
-          trailing: const Icon(
-            Icons.chevron_right,
-            size: 19,
-            color: mutedColor,
-          ),
-          onTap: () => _changeNav(13),
-        ),
-      if (_media.activeMeeting != null)
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(
-            Icons.videocam_outlined,
-            color: Color(0xff42a775),
-          ),
-          title: const Text('返回正在进行的会议'),
-          onTap: () => _changeNav(6),
-        ),
-      const Divider(height: 35),
-      TextButton.icon(
-        onPressed: s.disconnect,
-        icon: const Icon(Icons.logout, size: 18),
-        label: const Text('退出当前身份'),
-      ),
-    ],
-  );
+  bool _navigationAllowed(OfficeNavigationItem item) {
+    if (item.id == 'enterprise' && !s.canManageEnterprise) return false;
+    final module = _moduleFor(item.route);
+    if (module != null && !s.moduleAvailable(module)) return false;
+    final registered = s.apps.where((app) => app['id'] == item.id);
+    return registered.isEmpty ||
+        registered.any((app) => app['available'] == true);
+  }
+
+  Widget _more() {
+    final identity = _identityKey;
+    final all = officeNavigationItems.where(_navigationAllowed).toList();
+    final pinned = officeMobileNavigation(s).map((item) => item.id).toSet();
+    return OfficeMobileMorePanel(
+      items: all
+          .where((item) => item.id == 'agents' || !pinned.contains(item.id))
+          .toList(),
+      recentItems: [
+        for (final id in s.appRecents) ...all.where((item) => item.id == id),
+      ],
+      onOpen: (item) {
+        if (identity != _identityKey || !_navigationAllowed(item)) return;
+        _changeNav(item.route);
+      },
+      onEditNavigation: () {
+        if (identity == _identityKey) showOfficeNavigationEditor(context, s);
+      },
+    );
+  }
+
   Widget _callStrip() => Material(
     color: const Color(0xffe8f4ee),
     child: InkWell(
@@ -1376,12 +1536,7 @@ class _OfficeShellState extends State<OfficeShell> {
       );
     }
     final favorites = s.rooms
-        .where(
-          (r) =>
-              !officeRoomFolded(r) &&
-              (r['is_favorite'] == true ||
-                  (r['preferences'] as Map?)?['favorite'] == true),
-        )
+        .where((r) => !officeRoomFolded(r) && officeRoomPinned(r))
         .toList();
     final rooms = _messageGroups.filteredRooms
         .where(
@@ -1402,7 +1557,7 @@ class _OfficeShellState extends State<OfficeShell> {
     };
     rooms.sort((a, b) {
       final pinned =
-          (b['is_pinned'] == true ? 1 : 0) - (a['is_pinned'] == true ? 1 : 0);
+          (officeRoomPinned(b) ? 1 : 0) - (officeRoomPinned(a) ? 1 : 0);
       return pinned != 0
           ? pinned
           : originalOrder[str(a['id'])]!.compareTo(
@@ -1413,7 +1568,7 @@ class _OfficeShellState extends State<OfficeShell> {
       children: [
         Padding(
           padding: mobile
-              ? const EdgeInsets.fromLTRB(19, 20, 12, 15)
+              ? const EdgeInsets.fromLTRB(12, 12, 12, 12)
               : const EdgeInsets.fromLTRB(7, 10, 8, 10),
           child: Row(
             children: [
@@ -1451,14 +1606,19 @@ class _OfficeShellState extends State<OfficeShell> {
                           Text(
                             str(s.me?['name']),
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: OfficeMobileType.title,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            '人机工作空间',
-                            style: TextStyle(fontSize: 10, color: mutedColor),
+                          Text(
+                            _workspaceName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: OfficeMobileType.caption,
+                              color: mutedColor,
+                            ),
                           ),
                         ],
                       )
@@ -1484,16 +1644,18 @@ class _OfficeShellState extends State<OfficeShell> {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(15, 0, 15, 14),
-          child: OfficeSearch(
-            hint: '搜索会话',
-            onChanged: (q) => setState(() => _roomQuery = q),
+        if (!mobile)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 0, 15, 14),
+            child: OfficeSearch(
+              hint: '搜索会话',
+              onChanged: (q) => setState(() => _roomQuery = q),
+            ),
           ),
-        ),
         if (favorites.isNotEmpty && _messageGroups.selectedId == 'messages')
           SizedBox(
-            height: 78,
+            key: const ValueKey('pinned-conversations-shelf'),
+            height: mobile ? 91 : 78,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 17),
@@ -1504,21 +1666,21 @@ class _OfficeShellState extends State<OfficeShell> {
                 return InkWell(
                   onTap: () => _open(str(r['id'])),
                   child: SizedBox(
-                    width: 43,
+                    width: mobile ? 64 : 43,
                     child: Column(
                       children: [
                         PersonAvatar(
                           name: str(r['name']),
                           group: r['kind'] != 'direct',
-                          size: 36,
+                          size: mobile ? 42 : 36,
                         ),
                         const SizedBox(height: 6),
                         Text(
                           str(r['name']),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 9,
+                          style: TextStyle(
+                            fontSize: mobile ? OfficeMobileType.caption : 9,
                             color: mutedColor,
                           ),
                         ),
@@ -1530,42 +1692,90 @@ class _OfficeShellState extends State<OfficeShell> {
             ),
           ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 2, 18, 10),
+          padding: EdgeInsets.fromLTRB(
+            mobile ? 16 : 18,
+            2,
+            mobile ? 16 : 18,
+            10,
+          ),
           child: Row(
             children: [
-              if (mobile && !_mobileGroupsOpen)
+              if (mobile && !_mobileGroupsOpen) ...[
                 IconButton(
                   key: const ValueKey('message-groups-open'),
                   tooltip: '消息分组',
                   onPressed: () => _toggleGroups(true),
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xfff0f0f1),
+                    minimumSize: const Size(32, 32),
+                    maximumSize: const Size(32, 32),
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   icon: const Icon(Icons.menu, size: 20),
                 ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final id
-                          in _messageGroups.loaded
-                              ? _messageGroups.shortcuts
-                              : ['messages', 'unread'])
-                        Padding(
-                          padding: const EdgeInsets.only(right: 7),
-                          child: ChoiceChip(
-                            label: Text(
-                              str(
-                                _messageGroups.group(id)?['name'],
-                                id == 'unread' ? '未读' : '消息',
+                  child: Container(
+                    padding: mobile ? const EdgeInsets.all(2) : EdgeInsets.zero,
+                    decoration: mobile
+                        ? BoxDecoration(
+                            color: const Color(0xfff0f0f1),
+                            borderRadius: BorderRadius.circular(24),
+                          )
+                        : null,
+                    child: Row(
+                      children: [
+                        for (final id
+                            in _messageGroups.loaded
+                                ? _messageGroups.shortcuts
+                                : ['messages', 'unread'])
+                          Padding(
+                            padding: EdgeInsets.only(right: mobile ? 0 : 7),
+                            child: ChoiceChip(
+                              label: Text(
+                                str(
+                                  _messageGroups.group(id)?['name'],
+                                  id == 'unread' ? '未读' : '消息',
+                                ),
+                                style: TextStyle(
+                                  fontSize: mobile ? 15 : 11,
+                                  color: mobile
+                                      ? (_messageGroups.selectedId == id
+                                            ? accentColor
+                                            : mutedColor)
+                                      : null,
+                                  fontWeight:
+                                      mobile && _messageGroups.selectedId == id
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                ),
                               ),
-                              style: const TextStyle(fontSize: 11),
+                              selected: _messageGroups.selectedId == id,
+                              selectedColor: mobile ? Colors.white : null,
+                              backgroundColor: mobile
+                                  ? Colors.transparent
+                                  : null,
+                              shape: mobile ? const StadiumBorder() : null,
+                              visualDensity: mobile
+                                  ? VisualDensity.compact
+                                  : null,
+                              materialTapTargetSize: mobile
+                                  ? MaterialTapTargetSize.shrinkWrap
+                                  : null,
+                              labelPadding: mobile
+                                  ? const EdgeInsets.symmetric(horizontal: 14)
+                                  : null,
+                              showCheckmark: false,
+                              side: BorderSide.none,
+                              onSelected: (_) => _selectMessageGroup(id),
                             ),
-                            selected: _messageGroups.selectedId == id,
-                            showCheckmark: false,
-                            side: BorderSide.none,
-                            onSelected: (_) => _selectMessageGroup(id),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1657,7 +1867,7 @@ class _OfficeShellState extends State<OfficeShell> {
                   itemCount: rooms.length + (showFoldedSummary ? 1 : 0),
                   itemBuilder: (context, index) {
                     final folderIndex = rooms
-                        .takeWhile((room) => room['is_pinned'] == true)
+                        .takeWhile(officeRoomPinned)
                         .length;
                     if (showFoldedSummary && index == folderIndex) {
                       return OfficeFoldedSummary(
@@ -2054,34 +2264,10 @@ class _OfficeShellState extends State<OfficeShell> {
     'mail': 'mail',
     'minutes': 'minutes',
   }[action];
-  Widget _quickMenu() => PopupMenuButton<String>(
-    tooltip: '新建与添加',
-    padding: EdgeInsets.zero,
-    icon: const Icon(Icons.add_circle_outline, size: 21),
+  Widget _quickMenu() => OfficeQuickCreateMenu(
     onSelected: _quickAction,
-    itemBuilder: (_) =>
-        const {
-              'group': '创建群组 · 人与 Agent',
-              'person': '添加联系人 / 发起私聊',
-              'agent': '添加 Agent 好友',
-              'store': '安装商店 Agent',
-              'document': '创建文档',
-              'task': '分派任务',
-              'meeting': '发起视频会议',
-              'join': '加入视频会议',
-              'calendar': '新建日程',
-              'approval': '发起审批',
-              'mail': '写邮件',
-              'minutes': '人机妙记',
-            }.entries
-            .map(
-              (entry) => PopupMenuItem<String>(
-                value: entry.key,
-                enabled: s.moduleAvailable(_quickModule(entry.key)!),
-                child: Text(entry.value),
-              ),
-            )
-            .toList(),
+    isModuleAvailable: s.moduleAvailable,
+    scopeKey: _identityKey,
   );
 
   Future<void> _quickAction(String action) async {

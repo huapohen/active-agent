@@ -426,9 +426,9 @@ void main() {
         tester
             .widget<IconButton>(find.byKey(const ValueKey('composer-voice')))
             .onPressed,
-        isNull,
+        isNotNull,
       );
-      expect(find.byTooltip('语音消息（尚未接入）'), findsOneWidget);
+      expect(find.byTooltip('语音消息'), findsOneWidget);
       for (final key in [
         'composer-emoji',
         'composer-mention',

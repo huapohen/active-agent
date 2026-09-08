@@ -39,6 +39,32 @@ class FoldedOfficeFixture extends MessageGroupOfficeFixture {
   Completer<Json>? pendingWrite;
   final pendingPreferences = <String, Json>{};
   final openedRooms = <String>[];
+  final searchQueries = <String>[];
+
+  @override
+  Future<void> search(
+    String query, {
+    String type = 'all',
+    String? roomId,
+    String? authorId,
+    String? after,
+    String? before,
+  }) async {
+    searchQueries.add(query);
+    searchResults = rooms
+        .where((room) => (room['name'] as String).contains(query))
+        .map(
+          (room) => <String, dynamic>{
+            'id': 'result-${room['id']}',
+            'type': 'message',
+            'title': room['name'],
+            'snippet': '合成工作内容',
+            'room_id': room['id'],
+          },
+        )
+        .toList();
+    notifyListeners();
+  }
 
   @override
   int get identityGeneration => generation;
@@ -167,12 +193,17 @@ void main() {
       '${size.width.toInt()}px default and favorites aggregate folded rooms while search and other groups retain them',
       (tester) async {
         final state = FoldedOfficeFixture();
+        state.rooms[0]['is_pinned'] = true;
         await mountFolded(tester, state, size: size);
         expect(roomRow('room-human'), findsOneWidget);
         expect(roomRow('room-agent'), findsNothing);
         expect(roomRow('room-mixed'), findsNothing);
-        // The folded favorite must not leak into the horizontal favorites row.
+        // The folded pinned favorite must not leak into the pinned shelf.
         expect(find.text('Agent 同事单聊'), findsNothing);
+        expect(
+          find.byKey(const ValueKey('pinned-conversations-shelf')),
+          findsOneWidget,
+        );
         expect(find.text('人类同事单聊'), findsNWidgets(2));
         expect(find.byKey(const ValueKey('folded-summary')), findsOneWidget);
         expect(find.text('[有人@你] 2 个会话有新消息'), findsOneWidget);
@@ -188,12 +219,32 @@ void main() {
         await tester.tap(find.byTooltip('返回消息'));
         await tester.pumpAndSettle();
 
-        await tester.enterText(inputWithHint('搜索会话'), 'Agent');
-        await tester.pumpAndSettle();
-        expect(roomRow('room-agent'), findsOneWidget);
-        expect(find.byKey(const ValueKey('folded-summary')), findsNothing);
-        await tester.enterText(inputWithHint('搜索会话'), '');
-        await tester.pumpAndSettle();
+        if (size.width < 760) {
+          await tester.tap(find.byTooltip('全局搜索'));
+          await tester.pumpAndSettle();
+          await tester.enterText(inputWithHint('搜索人、Agent 和工作内容'), 'Agent');
+          await tester.pump(const Duration(milliseconds: 400));
+          await tester.pumpAndSettle();
+          expect(state.searchQueries, ['Agent']);
+          final result = find.byKey(const ValueKey('search-result-0'));
+          expect(
+            find.descendant(of: result, matching: find.text('Agent 同事单聊')),
+            findsOneWidget,
+          );
+          await tester.tap(result);
+          await tester.pumpAndSettle();
+          expect(state.openedRooms.last, 'room-agent');
+          expect(find.byType(OfficeConversation), findsOneWidget);
+          await tester.tap(find.byTooltip('返回会话'));
+          await tester.pumpAndSettle();
+        } else {
+          await tester.enterText(inputWithHint('搜索会话'), 'Agent');
+          await tester.pumpAndSettle();
+          expect(roomRow('room-agent'), findsOneWidget);
+          expect(find.byKey(const ValueKey('folded-summary')), findsNothing);
+          await tester.enterText(inputWithHint('搜索会话'), '');
+          await tester.pumpAndSettle();
+        }
         await tester.tap(find.widgetWithText(ChoiceChip, '未读'));
         await tester.pumpAndSettle();
         expect(roomRow('room-agent'), findsOneWidget);

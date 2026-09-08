@@ -13,6 +13,7 @@ Future<String?> showOfficeProfileMenu(
   required Rect anchor,
 }) => showDialog<String>(
   context: context,
+  useSafeArea: false,
   barrierColor: Colors.black26,
   builder: (context) {
     final size = MediaQuery.sizeOf(context);
@@ -27,9 +28,9 @@ Future<String?> showOfficeProfileMenu(
       return Align(
         alignment: Alignment.centerLeft,
         child: SizedBox(
-          width: math.min(size.width * .86, 350),
+          width: math.min(size.width * .9, 390),
           height: double.infinity,
-          child: SafeArea(child: panel),
+          child: panel,
         ),
       );
     }
@@ -58,6 +59,7 @@ class OfficeProfilePanel extends StatefulWidget {
 
 class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
   OfficeState get state => widget.state;
+  late final OfficeState _stateAtOpen;
   late final String _endpoint;
   late final String _principalId;
   late final int _generation;
@@ -66,20 +68,40 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
   @override
   void initState() {
     super.initState();
+    _stateAtOpen = state;
     _endpoint = state.endpoint;
     _principalId = personId(state.me ?? {});
     _generation = state.identityGeneration;
     state.addListener(_changed);
   }
 
+  bool get _currentIdentity =>
+      !_expired &&
+      identical(state, _stateAtOpen) &&
+      state.endpoint == _endpoint &&
+      personId(state.me ?? {}) == _principalId &&
+      state.identityGeneration == _generation;
+
+  void _open(String action) {
+    if (!mounted || !_currentIdentity) return;
+    if (action == 'enterprise' && !state.canManageEnterprise) return;
+    Navigator.pop(context, action);
+  }
+
+  @override
+  void didUpdateWidget(covariant OfficeProfilePanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.state, state)) {
+      oldWidget.state.removeListener(_changed);
+      state.addListener(_changed);
+      _expired = true;
+    }
+  }
+
   void _changed() {
     if (!mounted) return;
     setState(() {
-      _expired =
-          _expired ||
-          state.endpoint != _endpoint ||
-          personId(state.me ?? {}) != _principalId ||
-          state.identityGeneration != _generation;
+      _expired = !_currentIdentity;
     });
   }
 
@@ -89,23 +111,33 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
     super.dispose();
   }
 
+  String _roleLabel(dynamic value) =>
+      const {'owner': '企业所有者', 'admin': '企业管理员', 'member': '普通成员'}[value] ??
+      str(value);
+
+  String _statusLabel(dynamic value) =>
+      const {'active': '正常', 'disabled': '已停用', 'revoked': '已撤销'}[value] ??
+      str(value);
+
   @override
   Widget build(BuildContext context) {
-    if (_expired) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('工作身份已切换'),
-            const SizedBox(height: 12),
-            const Text('请重新打开“我的”查看当前身份。'),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('关闭'),
-            ),
-          ],
+    if (!_currentIdentity) {
+      return SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('工作身份已切换'),
+              const SizedBox(height: 12),
+              const Text('请重新打开“我的”查看当前身份。'),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('关闭'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -116,12 +148,17 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
       identity['organization_name'],
       str(enterprise['name']),
     );
+    final role = _roleLabel(membership['role']);
+    final status = _statusLabel(membership['status']);
+    if (MediaQuery.sizeOf(context).width < 760) {
+      return _mobile(identity, organization, role, status);
+    }
     Widget action(String label, IconData icon, String value) => ListTile(
       dense: true,
       leading: Icon(icon, size: 20, color: mutedColor),
       title: Text(label, style: const TextStyle(fontSize: 13)),
       trailing: const Icon(Icons.chevron_right, size: 18, color: mutedColor),
-      onTap: () => Navigator.pop(context, value),
+      onTap: () => _open(value),
     );
     return SingleChildScrollView(
       child: Padding(
@@ -184,6 +221,14 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
                         style: const TextStyle(fontSize: 12, color: mutedColor),
                       ),
                     ),
+                  if (role.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5),
+                      child: Text(
+                        '$role${status.isEmpty ? '' : ' · $status'}',
+                        style: const TextStyle(fontSize: 12, color: mutedColor),
+                      ),
+                    ),
                   if (str(state.accountInfo['username']).isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 5),
@@ -197,10 +242,13 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
                   ),
                   TextButton.icon(
                     onPressed: () async {
+                      if (!_currentIdentity) return;
                       await Clipboard.setData(
                         ClipboardData(text: _principalId),
                       );
-                      if (context.mounted) notifyOffice(context, '当前身份 ID 已复制');
+                      if (context.mounted && _currentIdentity) {
+                        notifyOffice(context, '当前身份 ID 已复制');
+                      }
                     },
                     icon: const Icon(Icons.copy_outlined, size: 14),
                     label: const Text(
@@ -222,6 +270,288 @@ class _OfficeProfilePanelState extends State<OfficeProfilePanel> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _mobile(
+    Json identity,
+    String organization,
+    String role,
+    String status,
+  ) {
+    final name = str(identity['name']);
+    Widget row(
+      String title,
+      IconData icon,
+      Color color,
+      String action, {
+      String? detail,
+      bool enabled = true,
+    }) => InkWell(
+      onTap: enabled ? () => _open(action) : null,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 56),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, size: 24, color: enabled ? color : mutedColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 17,
+                    color: enabled ? inkColor : mutedColor,
+                  ),
+                ),
+              ),
+              if (detail != null)
+                Text(
+                  detail,
+                  style: const TextStyle(fontSize: 12, color: mutedColor),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return Row(
+      key: const ValueKey('mobile-profile-layout'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 92,
+          child: ColoredBox(
+            color: const Color(0xfff5f6f7),
+            child: SafeArea(
+              right: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(9, 22, 9, 16),
+                child: Column(
+                  children: [
+                    Semantics(
+                      selected: true,
+                      label: '当前工作空间：$organization',
+                      child: InkWell(
+                        onTap: () => _open('workspace'),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 50,
+                              height: 50,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: accentColor,
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                              child: Text(
+                                initial(
+                                  organization.isEmpty ? '人机' : organization,
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 25,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              organization.isEmpty ? '当前工作空间' : organization,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: mutedColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    InkWell(
+                      onTap: () => _open('switch'),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: const Icon(
+                              Icons.add,
+                              size: 32,
+                              color: mutedColor,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '登录更多账号',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, color: inkColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: SafeArea(
+            left: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InkWell(
+                        onTap: () => _open('card'),
+                        child: PersonAvatar(
+                          name: name,
+                          agent: identity['kind'] == 'agent',
+                          size: 70,
+                        ),
+                      ),
+                      const Spacer(),
+                      OutlinedButton(
+                        onPressed: () => _open('status'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: const Size(58, 30),
+                          side: const BorderSide(color: accentColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        child: const Text(
+                          '+ 状态',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: () => _open('card'),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name,
+                            maxLines: 2,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right,
+                          size: 22,
+                          color: mutedColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    organization.isEmpty ? '当前工作空间' : organization,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, color: mutedColor),
+                  ),
+                  if (role.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '$role${status.isEmpty ? '' : ' · $status'}',
+                        style: const TextStyle(fontSize: 13, color: mutedColor),
+                      ),
+                    ),
+                  const SizedBox(height: 14),
+                  InkWell(
+                    onTap: () => _open('card'),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xfff5f6f7),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        '查看我的工作身份…',
+                        style: TextStyle(fontSize: 14, color: mutedColor),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  row('我的个人名片', Icons.person_outline, accentColor, 'card'),
+                  row(
+                    '钱包',
+                    Icons.account_balance_wallet_outlined,
+                    const Color(0xfff54a45),
+                    'wallet',
+                    detail: '未接入',
+                    enabled: false,
+                  ),
+                  row(
+                    '收藏',
+                    Icons.star_border,
+                    const Color(0xfff5b400),
+                    'favorites',
+                  ),
+                  row(
+                    '登录更多账号',
+                    Icons.group_add_outlined,
+                    accentColor,
+                    'switch',
+                  ),
+                  row(
+                    '帮助与客服',
+                    Icons.headset_mic_outlined,
+                    const Color(0xfff54a45),
+                    'help',
+                  ),
+                  row(
+                    'Agent 同事',
+                    Icons.auto_awesome_outlined,
+                    accentColor,
+                    'agents',
+                  ),
+                  row(
+                    '登录设备',
+                    Icons.phone_iphone_outlined,
+                    const Color(0xff2db5d9),
+                    'account',
+                  ),
+                  row('设置', Icons.settings_outlined, accentColor, 'settings'),
+                  if (state.canManageEnterprise)
+                    row(
+                      '企业管理',
+                      Icons.apartment_outlined,
+                      accentColor,
+                      'enterprise',
+                    ),
+                  row('退出当前身份', Icons.logout, mutedColor, 'logout'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

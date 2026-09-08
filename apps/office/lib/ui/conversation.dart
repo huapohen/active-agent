@@ -11,6 +11,7 @@ import '../office_screenshot.dart';
 import 'office_rich_text.dart';
 import 'composer_expanded_editor.dart';
 import 'attachments.dart';
+import 'voice_composer.dart';
 import 'conversation_details.dart';
 import 'room_details.dart';
 import 'message_actions.dart';
@@ -42,12 +43,18 @@ class OfficeConversation extends StatefulWidget {
     this.onAgentStore,
     this.onCreateCalendar,
     this.onCreateMeeting,
+    this.agentEntryRequest = 0,
+    this.onAgentEntryHandled,
   });
   final OfficeState state;
   final VoidCallback? onBack;
   final bool mobile;
   final VoidCallback? onAgentStore;
   final VoidCallback? onCreateCalendar, onCreateMeeting;
+
+  /// A one-shot shell request, consumed before opening the shared Agent panel.
+  final int agentEntryRequest;
+  final VoidCallback? onAgentEntryHandled;
   @override
   State<OfficeConversation> createState() => _OfficeConversationState();
 }
@@ -62,6 +69,7 @@ class _OfficeConversationState extends State<OfficeConversation>
   bool _positioning = false, _awayFromBottom = false;
   bool _resumed = true, _pageActive = true;
   int _panels = 0;
+  int _lastAgentEntryRequest = 0;
   Future<T?> _showPanel<T>(Future<T?> Function() open) async {
     _panels++;
     _syncVisibility();
@@ -83,6 +91,7 @@ class _OfficeConversationState extends State<OfficeConversation>
     s.addListener(_draftScopeChanged);
     _input.addListener(_rebaseComposerRichText);
     _scroll.addListener(_scrolled);
+    _scheduleAgentEntry();
   }
 
   @override
@@ -93,6 +102,42 @@ class _OfficeConversationState extends State<OfficeConversation>
       s.addListener(_draftScopeChanged);
       _restore();
     }
+    if (oldWidget.agentEntryRequest != widget.agentEntryRequest ||
+        oldWidget.state != widget.state) {
+      _scheduleAgentEntry();
+    }
+  }
+
+  void _scheduleAgentEntry() {
+    final request = widget.agentEntryRequest;
+    if (request <= 0 ||
+        request == _lastAgentEntryRequest ||
+        widget.onAgentEntryHandled == null) {
+      return;
+    }
+    _lastAgentEntryRequest = request;
+    final identity = _identity, roomId = s.selectedRoomId;
+    final selection = s.conversationSelection;
+    bool current() =>
+        mounted &&
+        identity == _identity &&
+        roomId != null &&
+        roomId == s.selectedRoomId &&
+        selection == s.conversationSelection &&
+        s.me != null &&
+        s.connected;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!current() || widget.agentEntryRequest != request) return;
+      try {
+        // Consume in the shell before any route opens, so a subsequent remount
+        // cannot deliver the same request into another conversation.
+        widget.onAgentEntryHandled?.call();
+        if (!current() || _panels != 0 || !_resumed || !_pageActive) return;
+        await _openComposerAgent(applyMentions: true);
+      } catch (error) {
+        if (current()) setState(() => _error = friendlyError(error));
+      }
+    });
   }
 
   @override
@@ -249,6 +294,7 @@ class _OfficeConversationState extends State<OfficeConversation>
   int _tab = 0, _messageCount = 0;
   bool _mobileFormatting = false;
   bool _moreTools = false, _savingSendMode = false, _screenshotBusy = false;
+  bool _voiceOpen = false;
   final _screenshot = OfficeScreenshotService();
   Json? _reply;
   List<String> _mentions = [];
@@ -1337,8 +1383,8 @@ class _OfficeConversationState extends State<OfficeConversation>
                       str(room['name']),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
+                      style: TextStyle(
+                        fontSize: widget.mobile ? OfficeMobileType.title : 15,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1347,7 +1393,12 @@ class _OfficeConversationState extends State<OfficeConversation>
                         str(room['description']),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 10, color: mutedColor),
+                        style: TextStyle(
+                          fontSize: widget.mobile
+                              ? OfficeMobileType.caption
+                              : 10,
+                          color: mutedColor,
+                        ),
                       ),
                   ],
                 ),
@@ -1432,7 +1483,7 @@ class _OfficeConversationState extends State<OfficeConversation>
                     child: Text(
                       ['消息', '云文档', '任务', '工作记录'][i],
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: widget.mobile ? OfficeMobileType.tab : 12,
                         fontWeight: _tab == i
                             ? FontWeight.w600
                             : FontWeight.w400,
@@ -1759,8 +1810,10 @@ class _OfficeConversationState extends State<OfficeConversation>
                                             date: true,
                                             context: context,
                                           ),
-                                          style: const TextStyle(
-                                            fontSize: 10,
+                                          style: TextStyle(
+                                            fontSize: widget.mobile
+                                                ? OfficeMobileType.caption
+                                                : 10,
                                             color: Color(0xffb2b6bd),
                                           ),
                                         ),
@@ -1849,8 +1902,13 @@ class _OfficeConversationState extends State<OfficeConversation>
                                                               overflow:
                                                                   TextOverflow
                                                                       .ellipsis,
-                                                              style: const TextStyle(
-                                                                fontSize: 10,
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    widget
+                                                                        .mobile
+                                                                    ? OfficeMobileType
+                                                                          .caption
+                                                                    : 10,
                                                                 color:
                                                                     mutedColor,
                                                               ),
@@ -2538,12 +2596,18 @@ class _OfficeConversationState extends State<OfficeConversation>
                         onSubmitted: widget.mobile
                             ? _submitMobileComposer
                             : null,
-                        style: const TextStyle(fontSize: 13, height: 1.7),
+                        style: TextStyle(
+                          fontSize: widget.mobile ? OfficeMobileType.body : 13,
+                          height: widget.mobile ? 1.5 : 1.7,
+                        ),
                         decoration: InputDecoration(
                           hintText:
                               '发送给 ${str(_selectedRoom?['name'], '当前会话')}',
                           hintStyle: widget.mobile
-                              ? null
+                              ? const TextStyle(
+                                  fontSize: OfficeMobileType.body,
+                                  color: Color(0xffb2b6bd),
+                                )
                               : const TextStyle(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w300,
@@ -2706,7 +2770,12 @@ class _OfficeConversationState extends State<OfficeConversation>
               Icons.alternate_email,
               _mention,
             ),
-            _composerIcon('composer-voice', '语音消息（尚未接入）', Icons.mic_none, null),
+            _composerIcon(
+              'composer-voice',
+              '语音消息',
+              Icons.mic_none,
+              _voiceOpen ? null : _openVoiceComposer,
+            ),
             _composerIcon(
               'composer-images',
               '选择图片或文件',
@@ -2758,6 +2827,25 @@ class _OfficeConversationState extends State<OfficeConversation>
       ),
     ),
   );
+
+  Future<void> _openVoiceComposer() async {
+    if (_voiceOpen || !s.connected || s.selectedRoomId == null) return;
+    final identity = _identity, roomId = s.selectedRoomId;
+    _saveDraft();
+    _focus.unfocus();
+    setState(() => _voiceOpen = true);
+    try {
+      final sent = await _showPanel(() => showOfficeVoiceComposer(context, s));
+      if (sent == true &&
+          mounted &&
+          identity == _identity &&
+          roomId == s.selectedRoomId) {
+        await _latestMessages();
+      }
+    } finally {
+      if (mounted) setState(() => _voiceOpen = false);
+    }
+  }
 
   void _submitMobileComposer(String _) {
     final composing = _input.value.composing;
@@ -3087,6 +3175,14 @@ class _OfficeConversationState extends State<OfficeConversation>
                           ),
                         ),
                         PopupMenuItem(
+                          value: 'voice',
+                          enabled: !_voiceOpen && s.connected,
+                          child: const _ComposerMenuItem(
+                            Icons.mic_none,
+                            '语音消息',
+                          ),
+                        ),
+                        PopupMenuItem(
                           value: 'document',
                           enabled: s.moduleAvailable('docs'),
                           child: const _ComposerMenuItem(
@@ -3131,6 +3227,8 @@ class _OfficeConversationState extends State<OfficeConversation>
                         switch (value) {
                           case 'file':
                             _pickAttachments();
+                          case 'voice':
+                            _openVoiceComposer();
                           case 'document':
                             _showPanel(
                               () => OfficeDialogs.document(context, s),
@@ -3398,7 +3496,14 @@ class _ConversationMessageBody extends StatelessWidget {
           content: str(message['content']),
           richText: Json.from(message['rich_text'] as Map),
           selectable: selectable,
-          style: const TextStyle(fontSize: 13, height: 1.7),
+          style: TextStyle(
+            fontSize: officeFontSize(
+              context,
+              desktop: 13,
+              mobile: OfficeMobileType.body,
+            ),
+            height: MediaQuery.sizeOf(context).width < 760 ? 1.5 : 1.7,
+          ),
           onAction: onAction,
           onOpenMessageMenu: onOpenMessageMenu,
         )

@@ -13,6 +13,20 @@ String _conversationEmojiSummary(String content) =>
 bool officeRoomFolded(Json room) =>
     room['folded'] == true || (room['preferences'] as Map?)?['folded'] == true;
 
+bool officeRoomMuted(Json room) =>
+    ((room['preferences'] as Map?)?['muted'] as bool?) ?? room['muted'] == true;
+
+bool officeRoomPinned(Json room) =>
+    ((room['preferences'] as Map?)?['pinned'] as bool?) ??
+    room['is_pinned'] == true;
+
+/// Empty rooms may show their real creation time; never invent recent activity.
+String? officeConversationActivityAt(Json room) {
+  final last = room['last_message'] as Map?;
+  final at = last == null || last.isEmpty ? room['created_at'] : last['at'];
+  return at is String && DateTime.tryParse(at) != null ? at : null;
+}
+
 int officeUnreadCount(Json room) =>
     ((room['unread_count'] as num?)?.toInt() ?? 0).clamp(0, 1 << 30);
 
@@ -23,7 +37,7 @@ int officeNotificationCount(Json room) {
   if (room['notification_count'] case final num count) {
     return count.toInt().clamp(0, 1 << 30);
   }
-  if (room['muted'] == true) {
+  if (officeRoomMuted(room)) {
     return ((room['mention_count'] as num?)?.toInt() ?? 0).clamp(0, 1 << 30);
   }
   return officeUnreadCount(room);
@@ -60,21 +74,24 @@ class OfficeConversationRow extends StatelessWidget {
     this.selected = false,
     this.preview = true,
     this.onContextMenu,
+    this.onContextMenuAt,
     this.currentPrincipalId,
   });
   final Json room;
   final VoidCallback onOpen;
   final VoidCallback? onContextMenu;
+  final ValueChanged<Rect>? onContextMenuAt;
   final Widget menu;
   final bool selected, preview;
   final String? currentPrincipalId;
 
   @override
   Widget build(BuildContext context) {
+    final mobile = MediaQuery.sizeOf(context).width < 760;
     final last = room['last_message'] as Map? ?? {};
     final unread = officeUnreadCount(room);
     final folded = officeRoomFolded(room);
-    final quiet = folded || room['muted'] == true;
+    final quiet = folded || officeRoomMuted(room);
     final mentioned = (room['mention_count'] as num? ?? 0) > 0;
     final explicit = (room['explicit_mention_count'] as num? ?? 0) > 0;
     final read = officeDirectMessageRead(room, currentPrincipalId);
@@ -83,18 +100,32 @@ class OfficeConversationRow extends StatelessWidget {
         : last['retracted_at'] != null
         ? '一条消息已撤回'
         : str(last['content'], str(room['description'], '开始共同协作'));
+    void openContextMenu() {
+      final at = onContextMenuAt;
+      final box = context.findRenderObject();
+      if (at != null && box is RenderBox && box.hasSize) {
+        at(box.localToGlobal(Offset.zero) & box.size);
+      } else {
+        onContextMenu?.call();
+      }
+    }
+
+    final hasContextMenu = onContextMenuAt != null || onContextMenu != null;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
+      padding: EdgeInsets.only(bottom: mobile ? 0 : 3),
       child: Material(
         color: selected ? selectedColor : Colors.white,
         borderRadius: BorderRadius.circular(6),
         child: InkWell(
           onTap: onOpen,
-          onLongPress: onContextMenu,
-          onSecondaryTap: onContextMenu,
+          onLongPress: hasContextMenu ? openContextMenu : null,
+          onSecondaryTap: hasContextMenu ? openContextMenu : null,
           borderRadius: BorderRadius.circular(6),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: mobile ? 10 : 12,
+            ),
             child: Row(
               children: [
                 Stack(
@@ -104,7 +135,7 @@ class OfficeConversationRow extends StatelessWidget {
                     PersonAvatar(
                       name: str(room['name']),
                       group: room['kind'] != 'direct',
-                      size: 39,
+                      size: mobile ? 48 : 39,
                     ),
                     if (unread > 0)
                       Positioned(
@@ -138,9 +169,11 @@ class OfficeConversationRow extends StatelessWidget {
                               ),
                               child: Text(
                                 '${unread > 99 ? '99+' : unread}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 9,
+                                  fontSize: mobile
+                                      ? OfficeMobileType.caption
+                                      : 9,
                                   height: 1.2,
                                 ),
                               ),
@@ -153,6 +186,7 @@ class OfficeConversationRow extends StatelessWidget {
                 const SizedBox(width: 11),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
@@ -162,13 +196,16 @@ class OfficeConversationRow extends StatelessWidget {
                               str(room['name']),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                              style: TextStyle(
+                                fontSize: mobile ? OfficeMobileType.title : 12,
+                                height: mobile ? 1.3 : null,
+                                fontWeight: mobile
+                                    ? FontWeight.w400
+                                    : FontWeight.w500,
                               ),
                             ),
                           ),
-                          if (room['is_pinned'] == true)
+                          if (officeRoomPinned(room))
                             const Tooltip(
                               message: '置顶聊天',
                               child: Icon(
@@ -179,16 +216,23 @@ class OfficeConversationRow extends StatelessWidget {
                             ),
                           const SizedBox(width: 6),
                           Text(
-                            clockText(last['at'], context: context),
-                            style: const TextStyle(
-                              fontSize: 9,
-                              color: Color(0xffb0b6c0),
+                            clockText(
+                              officeConversationActivityAt(room),
+                              context: context,
+                            ),
+                            key: ValueKey('conversation-time-${room['id']}'),
+                            style: TextStyle(
+                              fontSize: mobile ? OfficeMobileType.caption : 9,
+                              color: mobile
+                                  ? mutedColor
+                                  : const Color(0xffb0b6c0),
                             ),
                           ),
-                          SizedBox(width: 26, height: 24, child: menu),
+                          if (!mobile)
+                            SizedBox(width: 26, height: 24, child: menu),
                         ],
                       ),
-                      const SizedBox(height: 7),
+                      SizedBox(height: mobile ? 4 : 7),
                       Row(
                         children: [
                           if (read)
@@ -211,8 +255,11 @@ class OfficeConversationRow extends StatelessWidget {
                               padding: const EdgeInsets.only(right: 4),
                               child: Text(
                                 explicit ? '[@你]' : '[@所有人]',
-                                style: const TextStyle(
-                                  fontSize: 10,
+                                style: TextStyle(
+                                  fontSize: mobile
+                                      ? OfficeMobileType.secondary
+                                      : 10,
+                                  height: mobile ? 1.3 : null,
                                   color: accentColor,
                                 ),
                               ),
@@ -225,9 +272,14 @@ class OfficeConversationRow extends StatelessWidget {
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Color(0xff9ba2ae),
+                              style: TextStyle(
+                                fontSize: mobile
+                                    ? OfficeMobileType.secondary
+                                    : 10,
+                                height: mobile ? 1.3 : null,
+                                color: mobile
+                                    ? mutedColor
+                                    : const Color(0xff9ba2ae),
                               ),
                             ),
                           ),
@@ -241,9 +293,10 @@ class OfficeConversationRow extends StatelessWidget {
                               ),
                             )
                           else if (quiet)
-                            const Icon(
+                            Icon(
                               Icons.notifications_off_outlined,
-                              size: 12,
+                              key: ValueKey('conversation-muted-${room['id']}'),
+                              size: mobile ? 16 : 12,
                               color: mutedColor,
                             ),
                         ],
@@ -305,10 +358,14 @@ class OfficeFoldedSummary extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         '折叠的会话',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: officeFontSize(
+                            context,
+                            desktop: 12,
+                            mobile: OfficeMobileType.title,
+                          ),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -317,7 +374,14 @@ class OfficeFoldedSummary extends StatelessWidget {
                         '${mentions ? '[有人@你] ' : ''}${unreadRooms > 0 ? '$unreadRooms 个会话有新消息' : '共 ${rooms.length} 个会话'}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 10, color: mutedColor),
+                        style: TextStyle(
+                          fontSize: officeFontSize(
+                            context,
+                            desktop: 10,
+                            mobile: OfficeMobileType.secondary,
+                          ),
+                          color: mutedColor,
+                        ),
                       ),
                     ],
                   ),

@@ -106,21 +106,23 @@ void main() {
       (tester) async {
         final state = InteractionOffice(kind: kind);
         await mountShell(tester, state);
-        await tester.enterText(hint('搜索会话'), '保留的查找');
+        await tester.tap(find.byTooltip('全局搜索'));
         await tester.pumpAndSettle();
-        final before = inputState(tester, hint('搜索会话'));
+        await tester.enterText(hint('搜索人、Agent 和工作内容'), '保留的查找');
+        await tester.pumpAndSettle();
+        final before = inputState(tester, hint('搜索人、Agent 和工作内容'));
         final controller = before.widget.controller;
         expect(find.byType(OfficeConversation), findsNothing);
         await tapAndSettle(tester, more());
         expect(find.byType(OfficeMobileMoreMenu), findsOneWidget);
-        expect(inputState(tester, hint('搜索会话')), same(before));
+        expect(inputState(tester, hint('搜索人、Agent 和工作内容')), same(before));
         expect(
-          inputState(tester, hint('搜索会话')).widget.controller,
+          inputState(tester, hint('搜索人、Agent 和工作内容')).widget.controller,
           same(controller),
         );
         await tapAndSettle(tester, more());
         expect(find.byType(OfficeMobileMoreMenu), findsNothing);
-        expect(inputState(tester, hint('搜索会话')), same(before));
+        expect(inputState(tester, hint('搜索人、Agent 和工作内容')), same(before));
         expect(controller.text, '保留的查找');
         expect(state.writes, isEmpty);
         await finish(tester);
@@ -129,14 +131,16 @@ void main() {
   }
 
   testWidgets(
-    'mobile More dismisses by barrier, close, Escape and system back while retaining its page',
+    'mobile More dismisses by barrier, Escape and system back while retaining its page',
     (tester) async {
       final state = InteractionOffice();
       await mountShell(tester, state);
-      await tester.enterText(hint('搜索会话'), '协作');
+      await tester.tap(find.byTooltip('全局搜索'));
       await tester.pumpAndSettle();
-      final before = inputState(tester, hint('搜索会话'));
-      for (final action in ['barrier', 'close', 'escape', 'back']) {
+      await tester.enterText(hint('搜索人、Agent 和工作内容'), '协作');
+      await tester.pumpAndSettle();
+      final before = inputState(tester, hint('搜索人、Agent 和工作内容'));
+      for (final action in ['barrier', 'escape', 'back']) {
         await tapAndSettle(tester, more());
         expect(
           find.byType(OfficeMobileMoreMenu),
@@ -156,7 +160,11 @@ void main() {
         }
         await tester.pumpAndSettle();
         expect(find.byType(OfficeMobileMoreMenu), findsNothing, reason: action);
-        expect(inputState(tester, hint('搜索会话')), same(before), reason: action);
+        expect(
+          inputState(tester, hint('搜索人、Agent 和工作内容')),
+          same(before),
+          reason: action,
+        );
         expect(before.widget.controller.text, '协作', reason: action);
       }
       await finish(tester);
@@ -209,7 +217,7 @@ void main() {
   );
 
   testWidgets(
-    'short mobile More scrolls to its final entry while its close button stays reachable',
+    'short mobile More scrolls the app grid while bottom More stays reachable',
     (tester) async {
       final state = InteractionOffice();
       await mountShell(tester, state, size: const Size(390, 400));
@@ -222,14 +230,14 @@ void main() {
       expect(scroll.position.maxScrollExtent, greaterThan(0));
       final settings = find.descendant(
         of: menu,
-        matching: find.widgetWithText(ListTile, '设置'),
+        matching: find.byKey(const ValueKey('mobile-more-open-minutes')),
       );
       await tester.scrollUntilVisible(settings, 160, scrollable: scrollable);
       await tester.pumpAndSettle();
       expect(scroll.position.pixels, greaterThan(0));
       expect(settings.hitTestable(), findsOneWidget);
-      expect(find.byTooltip('关闭更多菜单').hitTestable(), findsOneWidget);
-      await tapAndSettle(tester, find.byTooltip('关闭更多菜单'));
+      expect(more().hitTestable(), findsOneWidget);
+      await tapAndSettle(tester, more());
       expect(find.byType(OfficeMobileMoreMenu), findsNothing);
       await finish(tester);
     },
@@ -289,7 +297,7 @@ void main() {
 
   for (final desktop in [false, true]) {
     testWidgets(
-      '${desktop ? 'desktop' : 'mobile'} real workbench calendar returns and closes to the same search controller',
+      '${desktop ? 'desktop' : 'mobile'} real workbench calendar returns and closes to the retained home and ${desktop ? 'search' : 'scroll'} state',
       (tester) async {
         final state = InteractionOffice();
         await mountShell(
@@ -298,13 +306,23 @@ void main() {
           size: desktop ? const Size(1512, 982) : const Size(390, 844),
         );
         await openWorkbench(tester, desktop: desktop);
-        await tester.enterText(hint('搜索应用'), '日历');
+        if (desktop) await tester.enterText(hint('搜索应用'), '日历');
         await tester.pumpAndSettle();
         final home = tester.state(find.byType(OfficeAppWorkbench));
-        final search = inputState(tester, hint('搜索应用'));
-        final controller = search.widget.controller;
+        final search = desktop ? inputState(tester, hint('搜索应用')) : null;
+        final controller = search?.widget.controller;
+        final scroll = tester.state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byType(OfficeAppWorkbench),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
+        final position = scroll.position;
         for (final control in ['workbench-app-back', 'workbench-app-close']) {
           await tapWorkbenchApp(tester, '日历');
+          final homeOffset = position.pixels;
           expect(find.byType(OfficeCalendar), findsOneWidget);
           expect(find.byTooltip('返回工作台'), findsOneWidget);
           expect(find.byTooltip('关闭应用并返回工作台'), findsOneWidget);
@@ -323,9 +341,16 @@ void main() {
           await tapAndSettle(tester, find.byKey(ValueKey(control)));
           expect(find.byType(OfficeCalendar), findsNothing);
           expect(tester.state(find.byType(OfficeAppWorkbench)), same(home));
-          expect(inputState(tester, hint('搜索应用')), same(search));
-          expect(search.widget.controller, same(controller));
-          expect(controller.text, '日历');
+          expect(scroll.position, same(position));
+          expect(position.pixels, homeOffset);
+          if (desktop) {
+            expect(inputState(tester, hint('搜索应用')), same(search));
+            expect(search!.widget.controller, same(controller));
+            expect(controller!.text, '日历');
+          } else {
+            expect(hint('搜索应用'), findsNothing);
+            expect(find.byTooltip('全局搜索'), findsOneWidget);
+          }
         }
         expect(state.writes, isEmpty);
         await finish(tester);
@@ -364,8 +389,6 @@ void main() {
       final state = InteractionOffice();
       await mountShell(tester, state);
       await openWorkbench(tester, desktop: false);
-      await tester.enterText(hint('搜索应用'), '会话应用');
-      await tester.pumpAndSettle();
       await tapWorkbenchApp(tester, '会话应用');
       final conversation = tester.state(find.byType(OfficeConversation));
       expect(state.visibility.last, ('room-demo', true));
