@@ -1,0 +1,141 @@
+{
+  "schema": "renji.message-interactions-publication-evidence.v1",
+  "created_at": "2026-09-09T00:30:10.885549+00:00",
+  "implementation_commit": "50570cac03b1314c831fc856e6ed826f60486fa8",
+  "delivery_source_commit": "28187632b76bce6d0f45a6c1b3f8fb1755b9773a",
+  "source_document_id": "31bb33b9",
+  "source_revision": 1,
+  "note": "Archived source scripts are audit evidence, not runnable from this docs directory. All credentials and single-use effect state remain in ignored private directories. Earlier failed table import remains in journal; only the same new AFF target was repaired. Directory .gitattributes preserves raw bytes and exempts literal export/diff whitespace only; original exporter defects are not trimmed.",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 145,
+      "sha256": "5edbfe88af953a0fc2228228602d2576f100aee831e4f962f5f9e88ab9c2a3c1"
+    },
+    {
+      "path": "diagnostic-affine-markdown-after.diff",
+      "bytes": 10872,
+      "sha256": "470f458c068ca4cbf4a247cd11193af36aaaba96e48c1e469e52e999bef609d0"
+    },
+    {
+      "path": "diagnostic-affine-native.bin",
+      "bytes": 46518,
+      "sha256": "56dc99ac3a86738b426e9279bdc7c941f89df3c671f22224fcc439fcb0fc9276"
+    },
+    {
+      "path": "diagnostic-affine-source-diff.json",
+      "bytes": 9989,
+      "sha256": "f680c1fb69242eb0a27a585888881179dadeb230ba31d447a4d6ff3e0571ba85"
+    },
+    {
+      "path": "frozen-plan.json",
+      "bytes": 13790,
+      "sha256": "9a92f1a55d1fc0f084a14b5668b1cfb1e7570f69bb7917891c93a2fd92b8e885"
+    },
+    {
+      "path": "independent-affine-markdown.md",
+      "bytes": 19938,
+      "sha256": "e7384cebd50a2fada209e2c591977cd02c71868a10e1191267df8de8f9a63d8b"
+    },
+    {
+      "path": "independent-docmost-markdown.diff",
+      "bytes": 3047,
+      "sha256": "f44131342bf45d55ab7356176ce6ea0a35377b90788e7825c051082f693d0deb"
+    },
+    {
+      "path": "independent-docmost-markdown.md",
+      "bytes": 20162,
+      "sha256": "6f5d524b65404f095d0b15974ccded91503b5c903e6abd93e54f8dbc1804ee73"
+    },
+    {
+      "path": "independent-docmost-native.json",
+      "bytes": 56706,
+      "sha256": "510fd7ad5e342fd969ffe124c210c06d8fea911f8761b31fb7bec987580b64d9"
+    },
+    {
+      "path": "independent-readback.json",
+      "bytes": 7499,
+      "sha256": "6b8d752a5f14e0fbcd338a8ba486a6a0c0ce6280f90dacf3f6fbb4367b71ae94"
+    },
+    {
+      "path": "independent-readback.md",
+      "bytes": 4340,
+      "sha256": "6e11307c24290985ecfda194e5be7c06788939754ba420b0353a57a4db347944"
+    },
+    {
+      "path": "journal.jsonl",
+      "bytes": 8096,
+      "sha256": "ee8907190a3c6462c8c8831ebeb965288a58744a33bec5927b411736a2f8bb53"
+    },
+    {
+      "path": "publication-receipt.json",
+      "bytes": 13389,
+      "sha256": "9a60e77fd36f786765b8ff3f53fc4ba24e67bba8ee6ed0fb1271154b78c8307a"
+    },
+    {
+      "path": "published-source.json",
+      "bytes": 20516,
+      "sha256": "c0a5cb62b6700913cc0a1ada88bf2b8d5754a8ab86771b444483e3bcb990f2dc"
+    },
+    {
+      "path": "publisher-source.py.txt",
+      "bytes": 33521,
+      "sha256": "57c753a4e7045bb77c06d8f1aa7743df8264b39b3a65cf41444896800e5ad8af"
+    },
+    {
+      "path": "repair-after-old-scope-check.json",
+      "bytes": 706,
+      "sha256": "180c094f3d45321d5cef0495b48f658307b6f2074d6a627e03f7b8d0e88899cb"
+    },
+    {
+      "path": "repair-before-old-scope-check.json",
+      "bytes": 196,
+      "sha256": "f3c36b5de5cf8399492dc842e4d740e89339594bfbc9a9e9e5b4c49f636d72b8"
+    },
+    {
+      "path": "repair-candidate-report.json",
+      "bytes": 1191,
+      "sha256": "74243618ce7b737e3c40d3466250a20e45636ec23da12227813dfc82fbea6376"
+    },
+    {
+      "path": "repair-candidate-update.bin",
+      "bytes": 17455,
+      "sha256": "4c7d1f7fc7dbae1b4cd043e2b627fce1d0403217c88112a414d7eed934a1b07d"
+    },
+    {
+      "path": "repair-frozen-manifest.json",
+      "bytes": 2334,
+      "sha256": "5e75db470da0fe46d3781ef6b147327e71951f6c0ca9717716734a015dc71228"
+    },
+    {
+      "path": "repair-live-readback.json",
+      "bytes": 1417,
+      "sha256": "ebc95b188aef4991072c14c0a8b20ae4b9d16a454216c70e9fb442bdc4ede94f"
+    },
+    {
+      "path": "repair-live-snapshot.bin",
+      "bytes": 59631,
+      "sha256": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd"
+    },
+    {
+      "path": "repair-source.mjs.txt",
+      "bytes": 13982,
+      "sha256": "a79d6ac977a9319e74627cdf5c3b1a100c984ac47141be0dc14662e864547011"
+    },
+    {
+      "path": "root-source-readback.json",
+      "bytes": 476,
+      "sha256": "ad5a0bfdd8867d6f4df0def2431251c74087e5286442a3b83365e6bc5964cc10"
+    },
+    {
+      "path": "source-document-native-receipt.json",
+      "bytes": 780,
+      "sha256": "5260efb87da551b3302216ded13c3ff97ec0ccc388367465895655b33b46c637"
+    },
+    {
+      "path": "source-document-native.png",
+      "bytes": 113232,
+      "sha256": "298d1f8aaac6e8b09a0afc09a297805e085bba9d166fa657961a28f823787a51"
+    }
+  ]
+}

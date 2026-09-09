@@ -1,0 +1,214 @@
+{
+  "verified_at": "2026-09-09T00:27:08.934312+00:00",
+  "delivery": {
+    "source_path": "docs/startup/2026-09-09/STARTUP_MESSAGE_INTERACTIONS_DELIVERY_0817.md",
+    "source_commit": "28187632b76bce6d0f45a6c1b3f8fb1755b9773a",
+    "source_commit_time": "2026-09-09T08:19:20+08:00",
+    "source_commit_description": "docs(startup): record message phase and verified Clerk login",
+    "implementation_commits": [
+      {
+        "commit": "50570cac03b1314c831fc856e6ed826f60486fa8",
+        "at": "2026-09-09T07:55:18+08:00",
+        "description": "feat(startup): deliver native replies reactions and authenticated emoji"
+      }
+    ],
+    "original_md_sha256": "d7631c24500acee1f40caf6194f33ab3f070bc3efe06f8889e260b1f624e91c5",
+    "derived_body_sha256": "c5437c9b9ccf409feac46a077f186b48e70bd5d807a1fd9925d5e386bc0e8716",
+    "server_trimmed_body_sha256": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+    "title": "人机 startup · 原生回复、显式反应与鉴权表情 · 2026-09-09 08:17",
+    "relative_links": [
+      {
+        "original": "../../../services/collaboration/internal/emoji/README.md",
+        "committed_path": "services/collaboration/internal/emoji/README.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/services/collaboration/internal/emoji/README.md"
+      },
+      {
+        "original": "evidence/message-interactions-runtime/native-auth-observation.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/message-interactions-runtime/native-auth-observation.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/native-auth-observation.json"
+      },
+      {
+        "original": "evidence/message-interactions-runtime/human-native-acceptance.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/message-interactions-runtime/human-native-acceptance.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/human-native-acceptance.json"
+      },
+      {
+        "original": "evidence/message-interactions-runtime/human-identity-readback.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/message-interactions-runtime/human-identity-readback.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/human-identity-readback.json"
+      },
+      {
+        "original": "evidence/message-interactions-runtime/clerk-human-login-native.png",
+        "committed_path": "docs/startup/2026-09-09/evidence/message-interactions-runtime/clerk-human-login-native.png",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/clerk-human-login-native.png"
+      },
+      {
+        "original": "M2M_MESSAGE_READ_ACCEPTANCE_0803.md",
+        "committed_path": "docs/startup/2026-09-09/M2M_MESSAGE_READ_ACCEPTANCE_0803.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/M2M_MESSAGE_READ_ACCEPTANCE_0803.md"
+      },
+      {
+        "original": "M2M_MESSAGE_READ_EVIDENCE_0803.json",
+        "committed_path": "docs/startup/2026-09-09/M2M_MESSAGE_READ_EVIDENCE_0803.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/M2M_MESSAGE_READ_EVIDENCE_0803.json"
+      },
+      {
+        "original": "evidence/message-interactions-runtime/migration-receipt.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/message-interactions-runtime/migration-receipt.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/migration-receipt.json"
+      },
+      {
+        "original": "evidence/message-interactions-runtime/runtime-final.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/message-interactions-runtime/runtime-final.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/runtime-final.json"
+      },
+      {
+        "original": "RONGCLOUD_REACTION_ACCEPTANCE_0753.md",
+        "committed_path": "docs/startup/2026-09-09/RONGCLOUD_REACTION_ACCEPTANCE_0753.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/RONGCLOUD_REACTION_ACCEPTANCE_0753.md"
+      },
+      {
+        "original": "evidence/message-interactions-runtime/tests.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/message-interactions-runtime/tests.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/tests.json"
+      },
+      {
+        "original": "evidence/message-interactions-runtime/MANIFEST.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/message-interactions-runtime/MANIFEST.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/MANIFEST.json"
+      },
+      {
+        "original": "MESSAGE_REPLY_REACTION_DOMAIN_0730.md",
+        "committed_path": "docs/startup/2026-09-09/MESSAGE_REPLY_REACTION_DOMAIN_0730.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/MESSAGE_REPLY_REACTION_DOMAIN_0730.md"
+      },
+      {
+        "original": "NATIVE_EMOJI_REACTION_TOOLS_0744.md",
+        "committed_path": "docs/startup/2026-09-09/NATIVE_EMOJI_REACTION_TOOLS_0744.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/NATIVE_EMOJI_REACTION_TOOLS_0744.md"
+      },
+      {
+        "original": "../../../apps/web/docs/COMMERCIAL_MESSAGE_ACTIONS_20260909_0734.md",
+        "committed_path": "apps/web/docs/COMMERCIAL_MESSAGE_ACTIONS_20260909_0734.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/apps/web/docs/COMMERCIAL_MESSAGE_ACTIONS_20260909_0734.md"
+      },
+      {
+        "original": "RONGCLOUD_REACTION_ACCEPTANCE_0753.md",
+        "committed_path": "docs/startup/2026-09-09/RONGCLOUD_REACTION_ACCEPTANCE_0753.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/RONGCLOUD_REACTION_ACCEPTANCE_0753.md"
+      },
+      {
+        "original": "../../../services/collaboration/internal/emoji/README.md",
+        "committed_path": "services/collaboration/internal/emoji/README.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/services/collaboration/internal/emoji/README.md"
+      },
+      {
+        "original": "MANUAL_STARTUP_GUIDE.md",
+        "committed_path": "docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md"
+      }
+    ]
+  },
+  "publication_head": "28187632b76bce6d0f45a6c1b3f8fb1755b9773a",
+  "verification_head": "28187632b76bce6d0f45a6c1b3f8fb1755b9773a",
+  "source_document_id": "31bb33b9",
+  "source_revision": 1,
+  "source_content_hash": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+  "source_room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+  "human_agent_same_document": true,
+  "nonmember_http_status": 403,
+  "historical_source_documents_unchanged": 5,
+  "old_projections_unchanged": 10,
+  "old_configs_and_journals_unchanged": true,
+  "second_pass_no_append": true,
+  "targets": [
+    {
+      "provider": "affine",
+      "url": "http://127.0.0.1:3010/workspace/a901cbc0-59ac-40b6-86bf-fcca7ff7b619/bGCK2yAAKIJTKrJDgZId0",
+      "observation": {
+        "id": "bGCK2yAAKIJTKrJDgZId0",
+        "title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "native_hash": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+        "public": false
+      },
+      "record": {
+        "binding_id": "startup-message-interactions-publication-20260909-0750-affine",
+        "binding_hash": "c42abb7ded3f4c54646cd634eb82282b7feec3f8dd4c080b4cdf1d8f0ef19c8e",
+        "sequence": 4,
+        "state": "native_verified",
+        "external_id": "bGCK2yAAKIJTKrJDgZId0",
+        "source_revision": 1,
+        "source_content_hash": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+        "desired_body_hash": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+        "desired_title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "observed_body_hash": "d0f427e38dde76f6e0d59b1adccdf5ff8982f93b106788b54183fd06cb5549ed",
+        "observed_title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "title_verified": true,
+        "at": "2026-09-09T00:27:07.246113Z",
+        "observed_raw_body_hash": "e7384cebd50a2fada209e2c591977cd02c71868a10e1191267df8de8f9a63d8b",
+        "native": {
+          "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "target_version": "sha256:d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+          "source_canonical_hash": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+          "target_canonical_hash": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+          "target_native_raw_hash": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+          "platform_behavior_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "platform_differences": 0,
+          "markdown_export_error": "readback_mismatch"
+        }
+      },
+      "final_native_readback": {
+        "native_raw_hash": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+        "target_version": "sha256:d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd"
+      },
+      "native_same_as_verified_receipt": true
+    },
+    {
+      "provider": "docmost",
+      "url": "http://127.0.0.1:3021/p/8kdEVzWuIf",
+      "observation": {
+        "id": "01a0838f-b37f-75b2-8f7c-3d3b603ccb4e",
+        "title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "native_hash": "2947b619471dadb078a215744217dc411b6f3ca59b898d59698c0a9e8344d3ed",
+        "updated_at": "2026-09-09T00:27:08.026Z",
+        "slug_id": "8kdEVzWuIf"
+      },
+      "record": {
+        "binding_id": "startup-message-interactions-publication-20260909-0750-docmost",
+        "binding_hash": "9ea3697db98a8473210217f68c9922645424ebc9635aa234722db2b88c46fc6f",
+        "sequence": 4,
+        "state": "native_verified",
+        "external_id": "01a0838f-b37f-75b2-8f7c-3d3b603ccb4e",
+        "source_revision": 1,
+        "source_content_hash": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+        "desired_body_hash": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+        "desired_title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "observed_body_hash": "6f5d524b65404f095d0b15974ccded91503b5c903e6abd93e54f8dbc1804ee73",
+        "observed_title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "title_verified": true,
+        "at": "2026-09-09T00:27:08.434334Z",
+        "observed_raw_body_hash": "6f5d524b65404f095d0b15974ccded91503b5c903e6abd93e54f8dbc1804ee73",
+        "native": {
+          "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "target_version": "2026-09-09T00:27:08.026Z",
+          "source_canonical_hash": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+          "target_canonical_hash": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+          "target_native_raw_hash": "510fd7ad5e342fd969ffe124c210c06d8fea911f8761b31fb7bec987580b64d9",
+          "platform_behavior_hash": "92c1fe7ba5f649df1c2df3dc69d346e78559919909c4f80b0ac32121c2d5543d",
+          "platform_differences": 54,
+          "markdown_export_error": "readback_mismatch"
+        }
+      },
+      "final_native_readback": {
+        "native_raw_hash": "510fd7ad5e342fd969ffe124c210c06d8fea911f8761b31fb7bec987580b64d9",
+        "target_version": "2026-09-09T00:27:08.026Z"
+      },
+      "native_same_as_verified_receipt": true
+    }
+  ],
+  "new_journal_sha256": "ee8907190a3c6462c8c8831ebeb965288a58744a33bec5927b411736a2f8bb53",
+  "new_journal_lines": 8,
+  "original_relative_links_resolved_to_docs_commit": true,
+  "chat_messages_sent": 0,
+  "model_calls": 0
+}

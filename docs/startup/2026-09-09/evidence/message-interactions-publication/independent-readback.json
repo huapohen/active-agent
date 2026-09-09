@@ -1,0 +1,178 @@
+{
+  "at": "2026-09-09T00:29:23.835123+00:00",
+  "source_id": "31bb33b9",
+  "revision": 1,
+  "source_commit": "28187632b76bce6d0f45a6c1b3f8fb1755b9773a",
+  "implementation_commit": "50570cac03b1314c831fc856e6ed826f60486fa8",
+  "source_content_sha256": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+  "original_markdown_sha256": "d7631c24500acee1f40caf6194f33ab3f070bc3efe06f8889e260b1f624e91c5",
+  "derived_markdown_sha256": "c5437c9b9ccf409feac46a077f186b48e70bd5d807a1fd9925d5e386bc0e8716",
+  "immutable_links": 18,
+  "reverse_links_restore_original_commit_bytes": true,
+  "human_agent_full_documents_equal": true,
+  "peer_status": 403,
+  "targets": [
+    {
+      "provider": "affine",
+      "target_id": "bGCK2yAAKIJTKrJDgZId0",
+      "url": "http://127.0.0.1:3010/workspace/a901cbc0-59ac-40b6-86bf-fcca7ff7b619/bGCK2yAAKIJTKrJDgZId0",
+      "title_matches_source": true,
+      "native_same_as_verified_receipt": true,
+      "stable_snapshot_read": true,
+      "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+      "native_raw_sha256": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+      "target_version": "sha256:d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+      "source_canonical_sha256": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+      "target_canonical_sha256": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+      "markdown_export_error": "readback_mismatch",
+      "markdown_export_sha256": "e7384cebd50a2fada209e2c591977cd02c71868a10e1191267df8de8f9a63d8b",
+      "platform_differences": 0,
+      "platform_attrs": null
+    },
+    {
+      "provider": "docmost",
+      "target_id": "01a0838f-b37f-75b2-8f7c-3d3b603ccb4e",
+      "url": "http://127.0.0.1:3021/p/8kdEVzWuIf",
+      "title_matches_source": true,
+      "native_same_as_verified_receipt": true,
+      "stable_snapshot_read": true,
+      "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+      "native_raw_sha256": "510fd7ad5e342fd969ffe124c210c06d8fea911f8761b31fb7bec987580b64d9",
+      "target_version": "2026-09-09T00:27:08.026Z",
+      "source_canonical_sha256": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+      "target_canonical_sha256": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+      "markdown_export_error": "readback_mismatch",
+      "markdown_export_sha256": "6f5d524b65404f095d0b15974ccded91503b5c903e6abd93e54f8dbc1804ee73",
+      "platform_differences": 54,
+      "platform_attrs": {
+        "link_marks": 18,
+        "per_link_nonnull_attrs": {
+          "target": "_blank",
+          "rel": "noopener noreferrer nofollow",
+          "internal": false
+        },
+        "per_link_null_attrs": [
+          "class",
+          "title"
+        ],
+        "count": 54
+      }
+    }
+  ],
+  "old_source_documents_unchanged": 5,
+  "old_target_projections_unchanged": 10,
+  "old_configs_journals_and_room_acl_unchanged": true,
+  "new_config_journal_unchanged_during_independent_read": true,
+  "journal_sha256": "ee8907190a3c6462c8c8831ebeb965288a58744a33bec5927b411736a2f8bb53",
+  "journal_lines": 8,
+  "independent_read_source_writes": 0,
+  "independent_read_target_writes": 0,
+  "publisher_reruns_by_this_agent": 0,
+  "full_structure_comparison": {
+    "method": "Offline production Goldmark/Docmost codec through a transient Go overlay; complete AFFiNE v2 canonicalSnapshot over independently fetched bytes",
+    "source_affine_docmost_full_trees_equal": true,
+    "required_structure_diff_count": 0,
+    "canonical_sha256": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+    "affine_visited_blocks": 75,
+    "affine_unsupported_blocks": 0,
+    "code_blocks": 0,
+    "tables": 2,
+    "headers": 8,
+    "inline_code_spans": 81,
+    "links": 18,
+    "docmost_platform_behavior_sha256": "92c1fe7ba5f649df1c2df3dc69d346e78559919909c4f80b0ac32121c2d5543d",
+    "docmost_platform_differences": 54
+  },
+  "unknown_history_preserved": {
+    "first_three_lines_exact_sha256": "ad671560eb92eb4a01d4196628cb2506dab034eb8c826a648916015c693c3273",
+    "original_unknown_row_preserved": true,
+    "journal_lines_after_root_publication": 8
+  },
+  "markdown_export_differences": {
+    "affine": "Database table exporter inserts two empty level-3 headings and compacts table spacing. Both table contents and inline code are preserved in native structure; raw export still differs.",
+    "docmost": "Markdown exporter inserts an empty header row and moves the actual table header into the following body row in both tables; native tableHeader nodes are preserved. Other visible diff is cell padding whitespace.",
+    "status": "Both retain readback_mismatch; native_verified is not Markdown byte verification or pixel-layout verification."
+  },
+  "evidence": [
+    {
+      "file": "independent-source.json",
+      "bytes": 20516,
+      "sha256": "c0a5cb62b6700913cc0a1ada88bf2b8d5754a8ab86771b444483e3bcb990f2dc"
+    },
+    {
+      "file": "independent-affine-native.bin",
+      "bytes": 59631,
+      "sha256": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd"
+    },
+    {
+      "file": "independent-docmost-native.json",
+      "bytes": 56706,
+      "sha256": "510fd7ad5e342fd969ffe124c210c06d8fea911f8761b31fb7bec987580b64d9"
+    },
+    {
+      "file": "diagnostic-source-canonical.json",
+      "bytes": 111314,
+      "sha256": "cc25b8ba0c488b0f3c7d47625bb2889eb779cd8ca8cbaefed9947753c34f86e5"
+    },
+    {
+      "file": "independent-affine-canonical.json",
+      "bytes": 111314,
+      "sha256": "12fd9393bc63702763729103090fa12c0a1b7b700f0bd80085c2b643ca0fc522"
+    },
+    {
+      "file": "independent-docmost-canonical.json",
+      "bytes": 111314,
+      "sha256": "cc25b8ba0c488b0f3c7d47625bb2889eb779cd8ca8cbaefed9947753c34f86e5"
+    },
+    {
+      "file": "independent-affine-proof.json",
+      "bytes": 435,
+      "sha256": "5b2e9239ab95815842e80e5dc5186d1ebe98db051ab5cf5b600d47f81593528c"
+    },
+    {
+      "file": "independent-docmost-proof.json",
+      "bytes": 286,
+      "sha256": "6d0562cf8fcca8fc8b9a2c7e3a8f8dad6c79e0c0405e83536b3a7b3fb7c16cff"
+    },
+    {
+      "file": "independent-docmost-platform.json",
+      "bytes": 2109,
+      "sha256": "64e616c1938353d6daa63b1a6886e1ff681f2e685aac78eea8699433d491c007"
+    },
+    {
+      "file": "independent-affine-markdown.md",
+      "bytes": 19938,
+      "sha256": "e7384cebd50a2fada209e2c591977cd02c71868a10e1191267df8de8f9a63d8b"
+    },
+    {
+      "file": "independent-docmost-markdown.md",
+      "bytes": 20162,
+      "sha256": "6f5d524b65404f095d0b15974ccded91503b5c903e6abd93e54f8dbc1804ee73"
+    },
+    {
+      "file": "independent-affine-markdown.diff",
+      "bytes": 10863,
+      "sha256": "34547d87d52bfd573a3d31ec685bbc6f4f2c149c10114b0d4c9ca6c61a8ae2bb"
+    },
+    {
+      "file": "independent-docmost-markdown.diff",
+      "bytes": 3047,
+      "sha256": "f44131342bf45d55ab7356176ce6ea0a35377b90788e7825c051082f693d0deb"
+    },
+    {
+      "file": "repair-live-readback.json",
+      "bytes": 1417,
+      "sha256": "ebc95b188aef4991072c14c0a8b20ae4b9d16a454216c70e9fb442bdc4ede94f"
+    },
+    {
+      "file": "repair-before-old-scope-check.json",
+      "bytes": 196,
+      "sha256": "f3c36b5de5cf8399492dc842e4d740e89339594bfbc9a9e9e5b4c49f636d72b8"
+    },
+    {
+      "file": "repair-after-old-scope-check.json",
+      "bytes": 706,
+      "sha256": "180c094f3d45321d5cef0495b48f658307b6f2074d6a627e03f7b8d0e88899cb"
+    }
+  ]
+}

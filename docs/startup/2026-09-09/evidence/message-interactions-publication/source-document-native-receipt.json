@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-09T00:26:19.651590+00:00",
+  "source_document_id": "31bb33b9",
+  "source_revision": 1,
+  "mode": "legacy",
+  "surface": "Chrome React reader at 127.0.0.1:5173",
+  "personal_login_verified": true,
+  "document_directory_entry_opened": true,
+  "heading_revision_time_and_implementation_visible": true,
+  "readonly_document_body_visible": true,
+  "table_count_in_ax": 2,
+  "immutable_link_occurrences_in_ax": 18,
+  "screenshot_sha256": "298d1f8aaac6e8b09a0afc09a297805e085bba9d166fa657961a28f823787a51",
+  "commercial_electron_session_preserved": true,
+  "native_affine_browser_verified": false,
+  "affine_browser_limitation": "Browser session has no access to the private namespace; no access changes attempted",
+  "document_edits": 0,
+  "chat_messages_sent": 0
+}

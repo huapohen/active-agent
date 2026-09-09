@@ -1,0 +1,81 @@
+--- source
++++ affine-markdown-export
+@@ -22,17 +22,19 @@
+ 
+ 所有下列商业接口位于独立 Go 服务的 `/v1`，使用当前有效的商业身份或服务器绑定的机器身份。它们不读取迁移 token，不回退到旧账号认证，也不接受调用方自报的 principal 或 executor 作为身份。
+ 
+-| 能力 | HTTP/API | MCP | Eino / 执行动作 | 本阶段边界 |
+-| --- | --- | --- | --- | --- |
+-| 同会话回复 | `POST /v1/rooms/:room/messages`，可选 `reply_to` | `message_send` 增加 `reply_to` | 规划 `message.send` 动作，payload 可带 `reply_to` | 摘要由服务端生成；机器写要求真实 Run |
+-| 明确添加/取消反应 | `POST /v1/rooms/:room/messages/:message/reactions` | `message_reaction_set` | `reaction.set`，`active` 必填 | stable action ID；原动作核对不重复变更 |
+-| 单条当前消息 | `GET /v1/rooms/:room/messages/:message` | `message_get` | `im_message_get` | 包含服务端回复摘要及有界反应汇总 |
+-| 全部反应分页 | `GET /v1/rooms/:room/messages/:message/reactions` | `message_reaction_read` | `im_reaction_list` | `after/limit/expected_version`；版本冲突重新读取 |
+-| 真实表情目录 | `GET /v1/emoji` | `emoji_list` | `im_emoji_list` | 搜索、分类、offset/limit、revision；无目录时不可用 |
+-| 单个表情条目 | `GET /v1/emoji/entries/:id` | `emoji_get` | 可由目录工具查精确稳定 ID | 不把任意字符串或任意 URL 当成表情资源 |
+-| 经典表情图片 | `GET /v1/emoji/assets/*path` | 目录返回认证资源路径 | 工具返回资源描述，不自动访问图片 | Bearer 鉴权、ETag、字节校验；没有凭据 URL |
+-| 历史与导出 | `GET /v1/rooms/:room/messages` | `message_read` 支持 `after` 或 `before` | `im_message_read` 本轮仍只支持 `after` | REST 与 MCP 可向前翻历史；同次请求不可混用两个方向 |
+-| 实际能力声明 | `GET /v1/capabilities` | `tools/list` 随部署过滤 | binding 提供 `action_types/read_capabilities` | 未声明、缺字段、未知版本不推断为已接通 |
++
++### 
++|能力|HTTP/API|MCP|Eino / 执行动作|本阶段边界|
++|---|---|---|---|---|
++|同会话回复|`POST /v1/rooms/:room/messages`，可选 `reply_to`|`message_send` 增加 `reply_to`|规划 `message.send` 动作，payload 可带 `reply_to`|摘要由服务端生成；机器写要求真实 Run|
++|明确添加/取消反应|`POST /v1/rooms/:room/messages/:message/reactions`|`message_reaction_set`|`reaction.set`，`active` 必填|stable action ID；原动作核对不重复变更|
++|单条当前消息|`GET /v1/rooms/:room/messages/:message`|`message_get`|`im_message_get`|包含服务端回复摘要及有界反应汇总|
++|全部反应分页|`GET /v1/rooms/:room/messages/:message/reactions`|`message_reaction_read`|`im_reaction_list`|`after/limit/expected_version`；版本冲突重新读取|
++|真实表情目录|`GET /v1/emoji`|`emoji_list`|`im_emoji_list`|搜索、分类、offset/limit、revision；无目录时不可用|
++|单个表情条目|`GET /v1/emoji/entries/:id`|`emoji_get`|可由目录工具查精确稳定 ID|不把任意字符串或任意 URL 当成表情资源|
++|经典表情图片|`GET /v1/emoji/assets/*path`|目录返回认证资源路径|工具返回资源描述，不自动访问图片|Bearer 鉴权、ETag、字节校验；没有凭据 URL|
++|历史与导出|`GET /v1/rooms/:room/messages`|`message_read` 支持 `after` 或 `before`|`im_message_read` 本轮仍只支持 `after`|REST 与 MCP 可向前翻历史；同次请求不可混用两个方向|
++|实际能力声明|`GET /v1/capabilities`|`tools/list` 随部署过滤|binding 提供 `action_types/read_capabilities`|未声明、缺字段、未知版本不推断为已接通|
+ 
+ `message.reply`、`message.reaction.set`、`message.reaction.read`、`emoji.read` 有明确能力 ID。客户端只在版本 `1` 且 `available:true` 时开启相关入口。协议登记仍明确 `a2a:false`；有 API/MCP 不等于已经完成 A2A 服务端或所有软件/硬件插件连接。
+ 
+@@ -86,18 +88,20 @@
+ 
+ 这次外部受理有明确隔离限制：canonical 合成消息在临时 schema 中，本地文本派发被测试范围故意阻止，临时 schema 最后清理；该消息不存在于 public 业务消息表。因此它证明真实融云命令受理与 Outbox 记录，不证明客户端收到、已读或能在 public 中刷新该消息。`delivered` 只是现有 Outbox 枚举，在本证据中必须解释为“提供商已受理”。[完整受控范围、请求及字节回执](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/RONGCLOUD_REACTION_ACCEPTANCE_0753.md)。
+ 
+-| 验收层 | 结果 | 能证明的范围 |
+-| --- | --- | --- |
+-| 完整 Go 测试 | 208 顶层 + 252 子项，合计 460 条通过，0 失败、0 跳过 | 本地真实 PostgreSQL 隔离 schema 及代码测试 |
+-| 最后受影响 HTTP race | 19 顶层 + 4 子项，23 条通过 | 包含目录移除的新增回归；与完整套件重叠，不相加成新的唯一用例总数 |
+-| Web 最终测试 | 12 个文件，85/85 通过 | 包含同源 Clerk 入口及人类暂停期间发言语义 |
+-| Desktop 测试 | 6/6 通过 | Electron 壳既有约束回归 |
+-| 类型检查、vet、Web 生产构建 | 通过 | 构建仍有大包体阈值和融云浏览器包 `path` externalized 提示 |
+-| public 迁移 | schema 5 → 6，旧数量不变 | 已记录备份及迁移时刻的前后对比 |
+-| 原生 Electron 迁移入口 | 已登录；引用草稿与取消通过 | 本轮无聊天发送，不等于商业 Clerk 登录 |
+-| 真实 Clerk Human | 用户完成验证后，Electron 商业首页及持久 Human 身份通过 | 无会话；昵称编辑、建群及商业消息界面实测仍待接通 |
+-| 真实 Clerk M2M | 单次 201 签发，11 项只读检查通过 | 实际 Agent 身份、目录和消息 API/MCP 读取；无业务写入 |
+-| 融云真实受理 | 1 次命令获得匹配 UID | 没有客户端收包、已读或 canonical 刷新端到端证明 |
++
++### 
++|验收层|结果|能证明的范围|
++|---|---|---|
++|完整 Go 测试|208 顶层 + 252 子项，合计 460 条通过，0 失败、0 跳过|本地真实 PostgreSQL 隔离 schema 及代码测试|
++|最后受影响 HTTP race|19 顶层 + 4 子项，23 条通过|包含目录移除的新增回归；与完整套件重叠，不相加成新的唯一用例总数|
++|Web 最终测试|12 个文件，85/85 通过|包含同源 Clerk 入口及人类暂停期间发言语义|
++|Desktop 测试|6/6 通过|Electron 壳既有约束回归|
++|类型检查、vet、Web 生产构建|通过|构建仍有大包体阈值和融云浏览器包 `path` externalized 提示|
++|public 迁移|schema 5 → 6，旧数量不变|已记录备份及迁移时刻的前后对比|
++|原生 Electron 迁移入口|已登录；引用草稿与取消通过|本轮无聊天发送，不等于商业 Clerk 登录|
++|真实 Clerk Human|用户完成验证后，Electron 商业首页及持久 Human 身份通过|无会话；昵称编辑、建群及商业消息界面实测仍待接通|
++|真实 Clerk M2M|单次 201 签发，11 项只读检查通过|实际 Agent 身份、目录和消息 API/MCP 读取；无业务写入|
++|融云真实受理|1 次命令获得匹配 UID|没有客户端收包、已读或 canonical 刷新端到端证明|
+ 
+ [最终测试统计](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/tests.json)及[证据文件 SHA-256 清单](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/evidence/message-interactions-runtime/MANIFEST.json)已归档。原始聚合测试与迁移回执在本机 `output/startup-message-interactions-20260909/tests.json`、`migration-receipt.json`；GUI 截图为同目录的 `legacy-reply-native.png` 和 `clerk-signup-policy-native.png`。这些路径是工作区证据位置；对外发布附件应以主线程最终归档的副本与清单为准。
+ 
+@@ -113,9 +117,9 @@
+ 
+ 以下链接按正式文件位于 `docs/startup/2026-09-09/` 设计，便于发布时统一转换为不可变 Git 文档链接。专题保留编写当时的测试与未提交时点；本阶段最终实施归属为本文顶部的 `50570cac03b1314c831fc856e6ed826f60486fa8`，不能把该实施版本继续称为未提交。
+ 
+-- [消息回复与反应的持久领域、事务及权限](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/MESSAGE_REPLY_REACTION_DOMAIN_0730.md)。
+-- [MCP/HTTPGateway/Eino 工具与配置能力](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/NATIVE_EMOJI_REACTION_TOOLS_0744.md)。
+-- [React 商业回复、回应、图片和身份边界](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/apps/web/docs/COMMERCIAL_MESSAGE_ACTIONS_20260909_0734.md)。
+-- [真实融云命令受理及隔离限制](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/RONGCLOUD_REACTION_ACCEPTANCE_0753.md)。
+-- [表情 provider 部署、完整性与资源说明](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/services/collaboration/internal/emoji/README.md)。
+-- [手动启动服务、Electron 和手机 Flutter 教程](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md)。+* [消息回复与反应的持久领域、事务及权限](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/MESSAGE_REPLY_REACTION_DOMAIN_0730.md)。
++* [MCP/HTTPGateway/Eino 工具与配置能力](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/NATIVE_EMOJI_REACTION_TOOLS_0744.md)。
++* [React 商业回复、回应、图片和身份边界](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/apps/web/docs/COMMERCIAL_MESSAGE_ACTIONS_20260909_0734.md)。
++* [真实融云命令受理及隔离限制](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/RONGCLOUD_REACTION_ACCEPTANCE_0753.md)。
++* [表情 provider 部署、完整性与资源说明](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/services/collaboration/internal/emoji/README.md)。
++* [手动启动服务、Electron 和手机 Flutter 教程](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md)。

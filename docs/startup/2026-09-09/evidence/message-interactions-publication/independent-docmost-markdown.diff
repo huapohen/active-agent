@@ -1,0 +1,30 @@
+--- source
++++ docmost-export
+@@ -22,8 +22,9 @@
+ 
+ 所有下列商业接口位于独立 Go 服务的 `/v1`，使用当前有效的商业身份或服务器绑定的机器身份。它们不读取迁移 token，不回退到旧账号认证，也不接受调用方自报的 principal 或 executor 作为身份。
+ 
+-| 能力 | HTTP/API | MCP | Eino / 执行动作 | 本阶段边界 |
++|     |     |     |     |     |
+ | --- | --- | --- | --- | --- |
++| 能力  | HTTP/API | MCP | Eino / 执行动作 | 本阶段边界 |
+ | 同会话回复 | `POST /v1/rooms/:room/messages`，可选 `reply_to` | `message_send` 增加 `reply_to` | 规划 `message.send` 动作，payload 可带 `reply_to` | 摘要由服务端生成；机器写要求真实 Run |
+ | 明确添加/取消反应 | `POST /v1/rooms/:room/messages/:message/reactions` | `message_reaction_set` | `reaction.set`，`active` 必填 | stable action ID；原动作核对不重复变更 |
+ | 单条当前消息 | `GET /v1/rooms/:room/messages/:message` | `message_get` | `im_message_get` | 包含服务端回复摘要及有界反应汇总 |
+@@ -86,13 +87,14 @@
+ 
+ 这次外部受理有明确隔离限制：canonical 合成消息在临时 schema 中，本地文本派发被测试范围故意阻止，临时 schema 最后清理；该消息不存在于 public 业务消息表。因此它证明真实融云命令受理与 Outbox 记录，不证明客户端收到、已读或能在 public 中刷新该消息。`delivered` 只是现有 Outbox 枚举，在本证据中必须解释为“提供商已受理”。[完整受控范围、请求及字节回执](https://github.com/huapohen/active-agent/blob/28187632b76bce6d0f45a6c1b3f8fb1755b9773a/docs/startup/2026-09-09/RONGCLOUD_REACTION_ACCEPTANCE_0753.md)。
+ 
+-| 验收层 | 结果 | 能证明的范围 |
++|     |     |     |
+ | --- | --- | --- |
++| 验收层 | 结果  | 能证明的范围 |
+ | 完整 Go 测试 | 208 顶层 + 252 子项，合计 460 条通过，0 失败、0 跳过 | 本地真实 PostgreSQL 隔离 schema 及代码测试 |
+ | 最后受影响 HTTP race | 19 顶层 + 4 子项，23 条通过 | 包含目录移除的新增回归；与完整套件重叠，不相加成新的唯一用例总数 |
+ | Web 最终测试 | 12 个文件，85/85 通过 | 包含同源 Clerk 入口及人类暂停期间发言语义 |
+ | Desktop 测试 | 6/6 通过 | Electron 壳既有约束回归 |
+-| 类型检查、vet、Web 生产构建 | 通过 | 构建仍有大包体阈值和融云浏览器包 `path` externalized 提示 |
++| 类型检查、vet、Web 生产构建 | 通过  | 构建仍有大包体阈值和融云浏览器包 `path` externalized 提示 |
+ | public 迁移 | schema 5 → 6，旧数量不变 | 已记录备份及迁移时刻的前后对比 |
+ | 原生 Electron 迁移入口 | 已登录；引用草稿与取消通过 | 本轮无聊天发送，不等于商业 Clerk 登录 |
+ | 真实 Clerk Human | 用户完成验证后，Electron 商业首页及持久 Human 身份通过 | 无会话；昵称编辑、建群及商业消息界面实测仍待接通 |

@@ -1,0 +1,419 @@
+// One operator-reviewed, same-ID repair. Default is authenticated read-only
+// preflight. --apply sends exactly one official Socket.IO update, then reads.
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import {
+  canonicalSnapshot,
+  canonicalJSON,
+  hash,
+} from "../../services/collaboration/internal/documents/affinecodec/codec.mjs";
+const require = createRequire(
+  new URL(
+    "../../services/collaboration/internal/documents/affinecodec/package.json",
+    import.meta.url,
+  ),
+);
+const { io } = require("socket.io-client");
+const root = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
+const out = path.dirname(fileURLToPath(import.meta.url));
+const manifest = JSON.parse(
+  fs.readFileSync(path.join(out, "repair-frozen-manifest.json"), "utf8"),
+);
+const nativeProfile = manifest.native_profile;
+const apply = process.argv.length === 3 && process.argv[2] === "--apply";
+if (process.argv.length > 2 && !apply) throw new Error("unsupported_mode");
+function check(ok, code) {
+  if (!ok) throw new Error(code);
+}
+function privateBytes(p) {
+  const st = fs.lstatSync(p);
+  check(
+    st.isFile() && (st.mode & 0o077) === 0 && st.size <= 2_000_000,
+    "private_file_required",
+  );
+  return fs.readFileSync(p);
+}
+const configPath = path.join(
+  root,
+  "data/startup/publications/startup-message-interactions-publication-20260909-0750/config.json",
+);
+const configRaw = privateBytes(configPath);
+check(hash(configRaw) === manifest.config_sha256, "config_changed");
+const config = JSON.parse(configRaw);
+function journalFence() {
+  check(hash(privateBytes(config.journal)) === manifest.journal_sha256, "journal_changed");
+}
+journalFence();
+const binding = config.bindings.find((b) => b.id === manifest.binding_id);
+check(
+  binding?.enabled && binding.gateway_only_namespace,
+  "binding_not_approved",
+);
+for (const [key, value] of Object.entries(manifest.binding_scope))
+  check(binding[key] === value, "binding_scope_changed");
+const token = (p) => {
+  const v = JSON.parse(privateBytes(p));
+  check(
+    typeof v.token === "string" && v.token && !/[\r\n]/.test(v.token),
+    "credential_invalid",
+  );
+  return v.token;
+};
+const sourceToken = token(binding.source_credential_file),
+  cookie = token(binding.target_metadata_credential_file),
+  mcpToken = token(binding.target_credential_file);
+const sourceHeaders = { Authorization: "Bearer " + sourceToken };
+const targetHeaders = { Cookie: cookie };
+const effectState = path.join(
+  root,
+  "data/startup/publications/startup-message-interactions-publication-20260909-0750/affine-repair-effect-state.json",
+);
+const frozenUpdate = fs.readFileSync(path.join(out, "repair-candidate-update.bin"));
+check(hash(frozenUpdate) === manifest.update_sha256 && frozenUpdate.length === manifest.update_bytes, "delta_changed");
+const frozenSource = fs.readFileSync(path.join(root, manifest.source_file));
+check(
+  hash(frozenSource) === manifest.source_file_sha256,
+  "frozen_source_changed",
+);
+const canonicalSource = JSON.parse(
+  fs.readFileSync(path.join(root, manifest.source_canonical_file)),
+);
+check(
+  hash(canonicalJSON(canonicalSource)) === manifest.source_canonical_sha256,
+  "source_tree_changed",
+);
+let writes = 0,
+  socket;
+async function request(origin, url, headers, payload) {
+  const parsed = new URL(origin);
+  check(
+    parsed.protocol === "http:" && parsed.hostname === "127.0.0.1",
+    "loopback_origin_required",
+  );
+  const res = await fetch(origin + url, {
+    method: payload === undefined ? "GET" : "POST",
+    headers: {
+      ...headers,
+      ...(payload === undefined ? {} : { "Content-Type": "application/json" }),
+    },
+    body: payload === undefined ? undefined : JSON.stringify(payload),
+    redirect: "error",
+    signal: AbortSignal.timeout(10000),
+  });
+  check(res.status === 200, "provider_read_denied_or_failed");
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of res.body) {
+    size += chunk.length;
+    check(size <= 2_000_000, "response_too_large");
+    chunks.push(chunk);
+  }
+  return {
+    bytes: Buffer.concat(chunks),
+    etag: res.headers.get("etag"),
+    contentType: res.headers.get("content-type"),
+  };
+}
+async function json(origin, url, headers, payload) {
+  return JSON.parse(
+    (await request(origin, url, headers, payload)).bytes.toString("utf8"),
+  );
+}
+async function sourceFence() {
+  const me = await json(binding.source_endpoint, "/api/im/me", sourceHeaders);
+  check(me.principal?.id === binding.principal_id, "source_identity_changed");
+  const r = await json(
+    binding.source_endpoint,
+    "/api/im/rooms/" + binding.room_id + "/documents/" + binding.document_id,
+    sourceHeaders,
+  );
+  const s = r.document;
+  check(
+    s?.id === binding.document_id &&
+      s.revision === manifest.source_revision &&
+      s.content_hash === manifest.source_exact_hash &&
+      hash(s.content) === manifest.source_exact_hash &&
+      hash(s.title) === manifest.title_sha256,
+    "source_scope_or_version_changed",
+  );
+  return s;
+}
+async function titleFence() {
+  const r = await json(binding.target_endpoint, "/graphql", targetHeaders, {
+    query:
+      "query($workspace: String!, $doc: String!) { workspace(id: $workspace) { doc(docId: $doc) { id workspaceId title public } } }",
+    variables: { workspace: binding.namespace_id, doc: manifest.target_id },
+  });
+  const d = r.data?.workspace?.doc;
+  check(
+    !r.errors?.length &&
+      d?.id === manifest.target_id &&
+      d.workspaceId === binding.namespace_id &&
+      d.public === false &&
+      hash(d.title) === manifest.title_sha256,
+    "target_scope_title_or_visibility_changed",
+  );
+  return d.title;
+}
+async function snapshot() {
+  const r = await request(
+    binding.target_endpoint,
+    "/api/workspaces/" + binding.namespace_id + "/docs/" + manifest.target_id,
+    targetHeaders,
+  );
+  check(
+    r.contentType === "application/octet-stream" && r.etag,
+    "native_snapshot_required",
+  );
+  return r;
+}
+async function mcpRead() {
+  const r = await json(
+    binding.target_endpoint,
+    "/api/workspaces/" + binding.namespace_id + "/mcp",
+    { Authorization: "Bearer " + mcpToken },
+    {
+      jsonrpc: "2.0",
+      id: "frozen-native-read",
+      method: "tools/call",
+      params: {
+        name: "read_document",
+        arguments: { docId: manifest.target_id },
+      },
+    },
+  );
+  check(
+    !r.error &&
+      !r.result?.isError &&
+      r.result?.content?.length === 1 &&
+      r.result.content[0].type === "text",
+    "markdown_read_unavailable",
+  );
+  return hash(r.result.content[0].text);
+}
+function state(value) {
+  const p = effectState + ".tmp";
+  const fd = fs.openSync(p, "w", 0o600);
+  try {
+    fs.writeFileSync(fd, JSON.stringify(value, null, 2) + "\n");
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.renameSync(p, effectState);
+  const dir = fs.openSync(path.dirname(effectState), "r");
+  try {
+    fs.fsyncSync(dir);
+  } finally {
+    fs.closeSync(dir);
+  }
+}
+async function connect() {
+  socket = io(binding.target_endpoint, {
+    transports: ["websocket"],
+    extraHeaders: { Cookie: cookie },
+    reconnection: false,
+    timeout: 8000,
+    autoConnect: false,
+  });
+  await new Promise((resolve, reject) => {
+    socket.once("connect", resolve);
+    socket.once("connect_error", () =>
+      reject(new Error("socket_authorization_failed")),
+    );
+    socket.connect();
+  });
+  const r = await socket
+    .timeout(8000)
+    .emitWithAck("space:join", {
+      spaceType: "workspace",
+      spaceId: binding.namespace_id,
+      clientVersion: manifest.client_version,
+    });
+  check(r.data?.success === true && !r.error, "socket_join_denied");
+}
+async function socketSnapshot() {
+  const r = await socket
+    .timeout(8000)
+    .emitWithAck("space:load-doc", {
+      spaceType: "workspace",
+      spaceId: binding.namespace_id,
+      docId: manifest.target_id,
+    });
+  check(!r.error && typeof r.data?.missing === "string", "socket_read_denied");
+  return {
+    bytes: Buffer.from(r.data.missing, "base64"),
+    timestamp: r.data.timestamp,
+  };
+}
+try {
+  if (apply) {
+    check(!fs.existsSync(effectState), "existing_effect_requires_readonly_reconciliation");
+    const lock = fs.openSync(effectState + ".apply-once", fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY | fs.constants.O_NOFOLLOW, 0o600);
+    try {
+      fs.writeFileSync(lock, JSON.stringify({at:new Date().toISOString(), target_id:manifest.target_id, update_sha256:manifest.update_sha256}) + "\n");
+      fs.fsyncSync(lock);
+    } finally { fs.closeSync(lock); }
+    const dir = fs.openSync(path.dirname(effectState), "r");
+    try { fs.fsyncSync(dir); } finally { fs.closeSync(dir); }
+  }
+  const s = await sourceFence();
+  const title = await titleFence();
+  const first = await snapshot();
+  const markdownBefore = await mcpRead();
+  const second = await snapshot();
+  check(
+    hash(first.bytes) === manifest.before_native_sha256 &&
+      hash(second.bytes) === manifest.before_native_sha256 &&
+      first.etag === second.etag,
+    "target_changed_before_repair",
+  );
+  const before = canonicalSnapshot(first.bytes, title, nativeProfile);
+  await connect();
+  const socketBefore = await socketSnapshot();
+  check(
+    hash(socketBefore.bytes) === manifest.before_native_sha256 &&
+      socketBefore.timestamp === manifest.before_target_timestamp,
+    "socket_version_changed",
+  );
+  // Re-fence immediately before the single documented provider update event.
+  await sourceFence();
+  await titleFence();
+  const immediate = await socketSnapshot();
+  check(
+    hash(immediate.bytes) === manifest.before_native_sha256 &&
+      immediate.timestamp === manifest.before_target_timestamp,
+    "target_changed_at_dispatch",
+  );
+  const preflight = {
+    at: new Date().toISOString(),
+    mode: apply ? "apply" : "readonly_preflight",
+    source_id: s.id,
+    source_revision: s.revision,
+    target_id: manifest.target_id,
+    before_native_sha256: hash(first.bytes),
+    before_target_timestamp: immediate.timestamp,
+    update_sha256: hash(frozenUpdate),
+    target_writes: 0,
+    non_table_original_blocks: manifest.preserved_non_table_blocks,
+    source_title_verified: true,
+    source_current_acl_verified: true,
+  };
+  fs.writeFileSync(
+    path.join(out, "latest-repair-preflight.json"),
+    JSON.stringify(preflight, null, 2) + "\n",
+  );
+  if (!apply) {
+    console.log(JSON.stringify(preflight));
+  } else {
+    journalFence();
+    state({
+      ...preflight,
+      state: "prepared",
+      warning: "Do not resend if interrupted; inspect same target by readback.",
+    });
+    writes++;
+    const ack = await socket
+      .timeout(10000)
+      .emitWithAck("space:push-doc-update", {
+        spaceType: "workspace",
+        spaceId: binding.namespace_id,
+        docId: manifest.target_id,
+        update: frozenUpdate.toString("base64"),
+      });
+    check(
+      !ack.error &&
+        ack.data?.accepted === true &&
+        Number.isFinite(ack.data.timestamp),
+      "native_write_outcome_unknown",
+    );
+    state({
+      ...preflight,
+      state: "submitted",
+      target_writes: writes,
+      accepted_timestamp: ack.data.timestamp,
+    });
+    await sourceFence();
+    await titleFence();
+    const after = await snapshot();
+    const markdownAfter = await mcpRead();
+    const afterSecond = await snapshot();
+    check(
+      hash(after.bytes) === hash(afterSecond.bytes) &&
+        after.etag === afterSecond.etag,
+      "target_changed_after_repair",
+    );
+    check(hash(after.bytes) === manifest.after_offline_native_sha256, "after_snapshot_differs_from_frozen_candidate");
+    const observed = canonicalSnapshot(after.bytes, title, nativeProfile);
+    check(
+      canonicalJSON(observed.tree) === canonicalJSON(canonicalSource),
+      "native_structure_not_verified",
+    );
+    const changed = new Set(manifest.table_block_ids);
+    for (const [id, b] of Object.entries(before.blocks))
+      if (!changed.has(id))
+        check(
+          canonicalJSON(observed.blocks[id]) === canonicalJSON(b),
+          "non_table_block_changed",
+        );
+    await sourceFence();
+    journalFence();
+    const result = {
+      ...preflight,
+      state: "native_structure_readback_passed",
+      target_writes: writes,
+      accepted_timestamp: ack.data.timestamp,
+      after_native_sha256: hash(after.bytes),
+      source_canonical_sha256: hash(canonicalJSON(canonicalSource)),
+      target_canonical_sha256: hash(canonicalJSON(observed.tree)),
+      visited_blocks: observed.visitedBlocks,
+      markdown_before_sha256: markdownBefore,
+      markdown_after_sha256: markdownAfter,
+      go_journal_changed: false,
+      journal_sha256: manifest.journal_sha256,
+      native_profile: nativeProfile,
+      frozen_candidate_native_sha256_matched: true,
+      existing_document_id_preserved: true,
+      all_non_table_blocks_unchanged: true,
+    };
+    fs.writeFileSync(path.join(out, "repair-live-snapshot.bin"), after.bytes);
+    fs.writeFileSync(
+      path.join(out, "repair-live-canonical.json"),
+      JSON.stringify(observed.tree, null, 2) + "\n",
+    );
+    fs.writeFileSync(
+      path.join(out, "repair-live-readback.json"),
+      JSON.stringify(result, null, 2) + "\n",
+    );
+    state(result);
+    console.log(JSON.stringify(result));
+  }
+} catch {
+  if (writes > 0)
+    state({
+      at: new Date().toISOString(),
+      state: "unknown",
+      source_id: binding.document_id,
+      target_id: manifest.target_id,
+      update_sha256: hash(frozenUpdate),
+      target_writes: writes,
+      error_code: "repair_outcome_requires_readonly_reconciliation",
+    });
+  console.log(
+    JSON.stringify({
+      state: writes ? "unknown" : "not_dispatched",
+      target_writes: writes,
+      error_code: writes
+        ? "repair_outcome_requires_readonly_reconciliation"
+        : "frozen_repair_preflight_failed",
+    }),
+  );
+  process.exitCode = 1;
+} finally {
+  socket?.disconnect();
+}

@@ -1,0 +1,337 @@
+[
+  {
+    "path": "$.children[12].children[0].children[0].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[12].children[0].children[1].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[12].children[0].children[2].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[12].children[0].children[3].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[12].children[0].children[4].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[12].children[1].children[1].children[0].children.length",
+    "source": 3,
+    "target": 1
+  },
+  {
+    "path": "$.children[12].children[1].children[1].children[0].children[0].text",
+    "source": "POST /v1/rooms/:room/messages",
+    "target": "`POST /v1/rooms/:room/messages`，可选 `reply_to`"
+  },
+  {
+    "path": "$.children[12].children[1].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[1].children[2].children[0].children.length",
+    "source": 3,
+    "target": 1
+  },
+  {
+    "path": "$.children[12].children[1].children[2].children[0].children[0].text",
+    "source": "message_send",
+    "target": "`message_send` 增加 `reply_to`"
+  },
+  {
+    "path": "$.children[12].children[1].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[1].children[3].children[0].children.length",
+    "source": 4,
+    "target": 1
+  },
+  {
+    "path": "$.children[12].children[1].children[3].children[0].children[0].text",
+    "source": "规划 ",
+    "target": "规划 `message.send` 动作，payload 可带 `reply_to`"
+  },
+  {
+    "path": "$.children[12].children[2].children[1].children[0].children[0].text",
+    "source": "POST /v1/rooms/:room/messages/:message/reactions",
+    "target": "`POST /v1/rooms/:room/messages/:message/reactions`"
+  },
+  {
+    "path": "$.children[12].children[2].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[2].children[2].children[0].children[0].text",
+    "source": "message_reaction_set",
+    "target": "`message_reaction_set`"
+  },
+  {
+    "path": "$.children[12].children[2].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[2].children[3].children[0].children.length",
+    "source": 4,
+    "target": 1
+  },
+  {
+    "path": "$.children[12].children[2].children[3].children[0].children[0].text",
+    "source": "reaction.set",
+    "target": "`reaction.set`，`active` 必填"
+  },
+  {
+    "path": "$.children[12].children[2].children[3].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[3].children[1].children[0].children[0].text",
+    "source": "GET /v1/rooms/:room/messages/:message",
+    "target": "`GET /v1/rooms/:room/messages/:message`"
+  },
+  {
+    "path": "$.children[12].children[3].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[3].children[2].children[0].children[0].text",
+    "source": "message_get",
+    "target": "`message_get`"
+  },
+  {
+    "path": "$.children[12].children[3].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[3].children[3].children[0].children[0].text",
+    "source": "im_message_get",
+    "target": "`im_message_get`"
+  },
+  {
+    "path": "$.children[12].children[3].children[3].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[4].children[1].children[0].children[0].text",
+    "source": "GET /v1/rooms/:room/messages/:message/reactions",
+    "target": "`GET /v1/rooms/:room/messages/:message/reactions`"
+  },
+  {
+    "path": "$.children[12].children[4].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[4].children[2].children[0].children[0].text",
+    "source": "message_reaction_read",
+    "target": "`message_reaction_read`"
+  },
+  {
+    "path": "$.children[12].children[4].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[4].children[3].children[0].children[0].text",
+    "source": "im_reaction_list",
+    "target": "`im_reaction_list`"
+  },
+  {
+    "path": "$.children[12].children[4].children[3].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[4].children[4].children[0].children.length",
+    "source": 2,
+    "target": 1
+  },
+  {
+    "path": "$.children[12].children[4].children[4].children[0].children[0].text",
+    "source": "after/limit/expected_version",
+    "target": "`after/limit/expected_version`；版本冲突重新读取"
+  },
+  {
+    "path": "$.children[12].children[4].children[4].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[5].children[1].children[0].children[0].text",
+    "source": "GET /v1/emoji",
+    "target": "`GET /v1/emoji`"
+  },
+  {
+    "path": "$.children[12].children[5].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[5].children[2].children[0].children[0].text",
+    "source": "emoji_list",
+    "target": "`emoji_list`"
+  },
+  {
+    "path": "$.children[12].children[5].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[5].children[3].children[0].children[0].text",
+    "source": "im_emoji_list",
+    "target": "`im_emoji_list`"
+  },
+  {
+    "path": "$.children[12].children[5].children[3].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[6].children[1].children[0].children[0].text",
+    "source": "GET /v1/emoji/entries/:id",
+    "target": "`GET /v1/emoji/entries/:id`"
+  },
+  {
+    "path": "$.children[12].children[6].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[6].children[2].children[0].children[0].text",
+    "source": "emoji_get",
+    "target": "`emoji_get`"
+  },
+  {
+    "path": "$.children[12].children[6].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[7].children[1].children[0].children[0].text",
+    "source": "GET /v1/emoji/assets/*path",
+    "target": "`GET /v1/emoji/assets/*path`"
+  },
+  {
+    "path": "$.children[12].children[7].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[8].children[1].children[0].children[0].text",
+    "source": "GET /v1/rooms/:room/messages",
+    "target": "`GET /v1/rooms/:room/messages`"
+  },
+  {
+    "path": "$.children[12].children[8].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[8].children[2].children[0].children.length",
+    "source": 5,
+    "target": 1
+  },
+  {
+    "path": "$.children[12].children[8].children[2].children[0].children[0].text",
+    "source": "message_read",
+    "target": "`message_read` 支持 `after` 或 `before`"
+  },
+  {
+    "path": "$.children[12].children[8].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[8].children[3].children[0].children.length",
+    "source": 3,
+    "target": 1
+  },
+  {
+    "path": "$.children[12].children[8].children[3].children[0].children[0].text",
+    "source": "im_message_read",
+    "target": "`im_message_read` 本轮仍只支持 `after`"
+  },
+  {
+    "path": "$.children[12].children[8].children[3].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[9].children[1].children[0].children[0].text",
+    "source": "GET /v1/capabilities",
+    "target": "`GET /v1/capabilities`"
+  },
+  {
+    "path": "$.children[12].children[9].children[1].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[9].children[2].children[0].children.length",
+    "source": 2,
+    "target": 1
+  },
+  {
+    "path": "$.children[12].children[9].children[2].children[0].children[0].text",
+    "source": "tools/list",
+    "target": "`tools/list` 随部署过滤"
+  },
+  {
+    "path": "$.children[12].children[9].children[2].children[0].children[0].marks.length",
+    "source": 1,
+    "target": 0
+  },
+  {
+    "path": "$.children[12].children[9].children[3].children[0].children.length",
+    "source": 2,
+    "target": 1
+  },
+  {
+    "path": "$.children[12].children[9].children[3].children[0].children[0].text",
+    "source": "binding 提供 ",
+    "target": "binding 提供 `action_types/read_capabilities`"
+  },
+  {
+    "path": "$.children[39].children[0].children[0].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[39].children[0].children[1].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[39].children[0].children[2].type",
+    "source": "tableHeader",
+    "target": "tableCell"
+  },
+  {
+    "path": "$.children[39].children[5].children[2].children[0].children.length",
+    "source": 3,
+    "target": 1
+  },
+  {
+    "path": "$.children[39].children[5].children[2].children[0].children[0].text",
+    "source": "构建仍有大包体阈值和融云浏览器包 ",
+    "target": "构建仍有大包体阈值和融云浏览器包 `path` externalized 提示"
+  }
+]

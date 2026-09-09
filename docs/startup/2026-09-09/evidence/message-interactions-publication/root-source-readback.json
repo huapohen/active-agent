@@ -1,0 +1,15 @@
+{
+  "at": "2026-09-09T00:28:14.065741+00:00",
+  "source_document_id": "31bb33b9",
+  "source_revision": 1,
+  "status_by_role": {
+    "human": 200,
+    "agent": 200,
+    "peer": 403
+  },
+  "human_agent_full_document_equal": true,
+  "frozen_derived_body_exact_equal": true,
+  "content_sha256": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+  "source_document_json_sha256": "c0a5cb62b6700913cc0a1ada88bf2b8d5754a8ab86771b444483e3bcb990f2dc",
+  "writes": 0
+}

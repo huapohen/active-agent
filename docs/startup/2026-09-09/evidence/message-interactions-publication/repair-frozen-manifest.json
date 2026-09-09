@@ -1,0 +1,42 @@
+{
+  "protocol": "renji.frozen-affine-native-repair.v1",
+  "binding_id": "startup-message-interactions-publication-20260909-0750-affine",
+  "binding_scope": {
+    "target": "affine",
+    "target_endpoint": "http://127.0.0.1:3010",
+    "namespace_id": "a901cbc0-59ac-40b6-86bf-fcca7ff7b619",
+    "source_endpoint": "http://127.0.0.1:3218",
+    "principal_id": "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+    "room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+    "document_id": "31bb33b9",
+    "generation": 1,
+    "approved_by": "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+    "approval_reference": "Root approved frozen message-interactions stage report with immutable Git links; same controlled source room and explicit namespaces; no old resource writes"
+  },
+  "config_sha256": "e0c4be2faaade891cd1294ca80ea51b9637e370540a1b96468fd2b9668ce92f8",
+  "journal_sha256": "ad671560eb92eb4a01d4196628cb2506dab034eb8c826a648916015c693c3273",
+  "target_id": "bGCK2yAAKIJTKrJDgZId0",
+  "source_revision": 1,
+  "source_exact_hash": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+  "title_sha256": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+  "source_file": "output/startup-message-interactions-publication-20260909-0750/diagnostic-source.md",
+  "source_file_sha256": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+  "source_canonical_file": "output/startup-message-interactions-publication-20260909-0750/diagnostic-source-canonical.json",
+  "source_canonical_sha256": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+  "before_native_sha256": "56dc99ac3a86738b426e9279bdc7c941f89df3c671f22224fcc439fcb0fc9276",
+  "before_target_timestamp": 1788913188966,
+  "update_sha256": "4c7d1f7fc7dbae1b4cd043e2b627fce1d0403217c88112a414d7eed934a1b07d",
+  "update_bytes": 17455,
+  "after_offline_native_sha256": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+  "table_block_ids": [
+    "iw4wqBBnJKSYs4-7kF5TV",
+    "j1Flwp8CnGt2UfOiwWMko"
+  ],
+  "preserved_non_table_blocks": 54,
+  "client_version": "0.27.4",
+  "native_profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+  "docs_commit": "28187632b76bce6d0f45a6c1b3f8fb1755b9773a",
+  "target_write_budget": 1,
+  "target_create_budget": 0,
+  "source_write_budget": 0
+}

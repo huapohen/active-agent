@@ -1,0 +1,4 @@
+# Preserve raw proof/export bytes, including exporter-produced whitespace.
+* -text
+*.diff -whitespace
+independent-affine-markdown.md -whitespace

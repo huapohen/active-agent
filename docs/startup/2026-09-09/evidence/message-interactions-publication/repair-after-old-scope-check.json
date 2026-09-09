@@ -1,0 +1,18 @@
+{
+  "at": "2026-09-09T00:27:39.640922+00:00",
+  "source_id": "31bb33b9",
+  "source_revision": 1,
+  "source_content_hash": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+  "human_agent_full_equal": true,
+  "peer_status": 403,
+  "old_sources": 5,
+  "old_targets": 10,
+  "old_scope_equals_frozen_baseline": true,
+  "acl_same": true,
+  "current_journal_sha256": "ee8907190a3c6462c8c8831ebeb965288a58744a33bec5927b411736a2f8bb53",
+  "current_journal_lines": 8,
+  "affine_markdown_export_sha256": "e7384cebd50a2fada209e2c591977cd02c71868a10e1191267df8de8f9a63d8b",
+  "markdown_export_exact_source_equal": false,
+  "target_writes_by_this_readback": 0,
+  "source_writes_by_this_readback": 0
+}
