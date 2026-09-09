@@ -1,0 +1,264 @@
+{
+  "protocol": "renji.immutable-linked-stage-publication.v2",
+  "publication": "workspace-invitations-publication-20260909",
+  "prepared_at": "2026-09-09T02:54:47.502715+00:00",
+  "preparation_head": "a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+  "delivery": {
+    "source_path": "docs/startup/2026-09-09/WORKSPACE_INVITATION_STAGE_DELIVERY_1035.md",
+    "source_commit": "a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+    "source_commit_time": "2026-09-09T10:54:36+08:00",
+    "source_commit_description": "docs(startup): archive workspace invitation and native desktop acceptance",
+    "implementation_commits": [
+      {
+        "commit": "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+        "at": "2026-09-09T10:33:54+08:00",
+        "description": "feat(startup): invite human and agent colleagues with scoped arrival reads"
+      }
+    ],
+    "original_md_sha256": "88a74ec192c4144dd68018ba38800c50cd5ccb6dfa8689a5598bcea354471c54",
+    "derived_body_sha256": "c0f329640b51519eb41eb07ec25b72a050b1e37217edfafa65243ce6c4b8813c",
+    "server_trimmed_body_sha256": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+    "title": "人机商业阶段 · 工作空间邀请、Agent 接收读取与真实会话摘要 · 2026-09-09 10:51 · 30c6c22",
+    "relative_links": [
+      {
+        "original": "AGENT_RUN_ARRIVAL_NATIVE_READ_1042.md",
+        "committed_path": "docs/startup/2026-09-09/AGENT_RUN_ARRIVAL_NATIVE_READ_1042.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/AGENT_RUN_ARRIVAL_NATIVE_READ_1042.md"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/invitation-copy-fixed-native.png",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-copy-fixed-native.png",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-copy-fixed-native.png"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/invitation-accept-fixed-native.png",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-accept-fixed-native.png",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-accept-fixed-native.png"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/desktop-final-logged-in-native.png",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-logged-in-native.png",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-logged-in-native.png"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/native-final-readback.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/native-final-readback.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/native-final-readback.json"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/bridge-restored.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/bridge-restored.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/bridge-restored.json"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/go-production-tests.jsonl",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-tests.jsonl",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-tests.jsonl"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/go-production-summary.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-summary.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-summary.json"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/web-final-tests.txt",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-tests.txt",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-tests.txt"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/desktop-final-tests.txt",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-tests.txt",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-tests.txt"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/web-final-build.txt",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-build.txt",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-build.txt"
+      },
+      {
+        "original": "MANUAL_STARTUP_GUIDE.md",
+        "committed_path": "docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md"
+      },
+      {
+        "original": "WORKSPACE_INVITATION_KERNEL_1025.md",
+        "committed_path": "docs/startup/2026-09-09/WORKSPACE_INVITATION_KERNEL_1025.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/WORKSPACE_INVITATION_KERNEL_1025.md"
+      },
+      {
+        "original": "../../../apps/web/docs/INVITATION_NATIVE_COPY_DIALOG_FIX_20260909_1045.md",
+        "committed_path": "apps/web/docs/INVITATION_NATIVE_COPY_DIALOG_FIX_20260909_1045.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/apps/web/docs/INVITATION_NATIVE_COPY_DIALOG_FIX_20260909_1045.md"
+      },
+      {
+        "original": "../../../apps/web/docs/WORKSPACE_INVITATIONS_AND_ROOM_PREVIEWS_20260909_1031.md",
+        "committed_path": "apps/web/docs/WORKSPACE_INVITATIONS_AND_ROOM_PREVIEWS_20260909_1031.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/apps/web/docs/WORKSPACE_INVITATIONS_AND_ROOM_PREVIEWS_20260909_1031.md"
+      },
+      {
+        "original": "STARTUP_ACCOUNT_BRIDGE_DELIVERY_0943.md",
+        "committed_path": "docs/startup/2026-09-09/STARTUP_ACCOUNT_BRIDGE_DELIVERY_0943.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/STARTUP_ACCOUNT_BRIDGE_DELIVERY_0943.md"
+      }
+    ]
+  },
+  "baseline": {
+    "documents": {
+      "25ae13fb": "1b1bb4045d8756b2b3947f9128341aabee06aec8763bcb5a7d25e4e601df7f74",
+      "9d62380a": "bebe01159577cff8ead1459c360987aa00bdce8b77270bd1fb7087abc3db8ede",
+      "a74679d5": "9578a20d49a7475da663ee824224d13e3bbded619b270a95812ddf60a604f0ca",
+      "f6b5ff58": "a8c786e8034a44b21abe2e9bf2ce55827a7113912afcac4c79470010a53a5002",
+      "7e81ae07": "50c851e58e7d0fdab3f8645059614bc13d025ce2145b1310a39967aaf5260fdd",
+      "31bb33b9": "ef031c1aed712cfedb1ad02837d1dbbb2265268fafcf49210f675ca723063261",
+      "eb826242": "49a3b399c0de96d7108d8b53edf3cdec5e696d179f03ecc4ad43ea09b638c4e1"
+    },
+    "targets": {
+      "startup-fixture-affine-20260909-initialized": {
+        "id": "2T4haLdQHZ5IkzU2mSJBG",
+        "title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "native_hash": "7f9daa1e91bdf1a4439e703d2d1de707fcf0ad7f90ed6080aa390b2a818f84f9",
+        "public": false
+      },
+      "startup-fixture-affine-h1-20260909": {
+        "id": "pLxvvvqAYXsM7iuxUGIeR",
+        "title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "native_hash": "a667865d5c306352eee0faf0b7e32277d68521835646723deca23001322d0aea",
+        "public": false
+      },
+      "startup-fixture-docmost-20260909-initialized": {
+        "id": "01a08286-d73b-76c5-922f-7e1204ba8b2d",
+        "title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "native_hash": "aa5d5c7957a79b784bb7823ee876f0dba93aa27ad3dde52f6766c84ac829feaa",
+        "updated_at": "2026-09-08T19:39:19.447Z",
+        "slug_id": "A8E8PJlMNX"
+      },
+      "startup-fixture-docmost-h1-20260909": {
+        "id": "01a08286-d78b-7621-ba89-e26e5c6fbb10",
+        "title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "native_hash": "8d348b738d883c884d45588cfb403d866b52a867f7588902d80571a78e03a2ba",
+        "updated_at": "2026-09-08T19:37:50.218Z",
+        "slug_id": "LLTf7xoGTa"
+      },
+      "startup-stage-publication-20260909-0418-affine": {
+        "id": "SLrA9aXyZV-vehgtC91W-",
+        "title_hash": "b2a1ad8b6dd1974d70422e4e0dc9c1f8123bb3924563d44ef8753326c2f34f4e",
+        "native_hash": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+        "public": false
+      },
+      "startup-stage-publication-20260909-0418-docmost": {
+        "id": "01a082b6-bade-7ef2-8bfc-02b75fcd97de",
+        "title_hash": "b2a1ad8b6dd1974d70422e4e0dc9c1f8123bb3924563d44ef8753326c2f34f4e",
+        "native_hash": "e34119fe1cbfde259d720a66ffb7d55c635c986664d56cf79afeaee25b8a9e5a",
+        "updated_at": "2026-09-08T20:30:08.605Z",
+        "slug_id": "gsZSY3HjJU"
+      },
+      "startup-archive-code-20260909-0618-affine": {
+        "id": "KfTj5XXxNr39dXMML9eff",
+        "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "native_hash": "cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d",
+        "public": false
+      },
+      "startup-archive-code-20260909-0618-docmost": {
+        "id": "01a0831e-38e3-76d9-8c34-0466c871bb42",
+        "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "native_hash": "d95e9b09dc123a4812e9448f7f660ee1b5c9bd785337fbbb7fd46dc96d7bb152",
+        "updated_at": "2026-09-08T22:23:11.073Z",
+        "slug_id": "l8xzi5wOsi"
+      },
+      "startup-automatic-archive-publication-20260909-0649-affine": {
+        "id": "pos1eudO5AYgYiEVx146t",
+        "title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "native_hash": "4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936",
+        "public": false
+      },
+      "startup-automatic-archive-publication-20260909-0649-docmost": {
+        "id": "01a0833c-cc3a-71aa-83f4-b29474708ce6",
+        "title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "native_hash": "33788efd0ed01d445eba35ccafc25467320d4fb71712d2142bc607c1e928e049",
+        "updated_at": "2026-09-08T22:56:34.872Z",
+        "slug_id": "GzQBbzDiOT"
+      },
+      "startup-message-interactions-publication-20260909-0750-affine": {
+        "id": "bGCK2yAAKIJTKrJDgZId0",
+        "title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "native_hash": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+        "public": false
+      },
+      "startup-message-interactions-publication-20260909-0750-docmost": {
+        "id": "01a0838f-b37f-75b2-8f7c-3d3b603ccb4e",
+        "title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "native_hash": "2947b619471dadb078a215744217dc411b6f3ca59b898d59698c0a9e8344d3ed",
+        "updated_at": "2026-09-09T00:27:08.026Z",
+        "slug_id": "8kdEVzWuIf"
+      },
+      "account-bridge-publication-20260909-affine": {
+        "id": "0MDttZyU_BqyjzQMKqVLW",
+        "title_hash": "2edf71a57a65e6aa54e0de65bba437391fd751dc232204a7bee0da5582f26646",
+        "native_hash": "61d5cd7b3439a1433e3e2af3a81c65a27912744ba046e261d468cb86fcc552b3",
+        "public": false
+      },
+      "account-bridge-publication-20260909-docmost": {
+        "id": "01a083e1-d4f7-7af2-a4d8-e537c7a14f69",
+        "title_hash": "2edf71a57a65e6aa54e0de65bba437391fd751dc232204a7bee0da5582f26646",
+        "native_hash": "99ec8f53009502e3eadd890a7496b74be992fb32e48e56a92647be3c889223e5",
+        "updated_at": "2026-09-09T01:56:50.548Z",
+        "slug_id": "2W94X6bqjJ"
+      }
+    },
+    "old_configs": {
+      "data/startup/document-sync/config.json": {
+        "config_hash": "3c908e3398464da65a2dc9a02e63d81f2ff2e091d22a61e80d679b3c38fc0187",
+        "journal_hash": "b0015ed81500829a5a1e14876d64bccbd2727271ba7aedaa041afbf0d4b5a948"
+      },
+      "data/startup/publications/startup-stage-publication-20260909-0418/config.json": {
+        "config_hash": "87def3b98f0b703faa210b34a00839f192c148c3b916801db798180d9ce922df",
+        "journal_hash": "8c11808d31b561b2b530853fc46351be7e75345da3d84e6449acb7160fec4abf"
+      },
+      "data/startup/publications/archive-code-20260909-0618/config.json": {
+        "config_hash": "26001902b95c5531852e5ca744167c1df9db744e3fb36b57c9e705d5bc231d58",
+        "journal_hash": "5b73e016d09508eda0756475f32f498b7a26aeafca45f84fa320abc2a386dce0"
+      },
+      "data/startup/publications/startup-automatic-archive-publication-20260909-0649/config.json": {
+        "config_hash": "3139eb6f8a3d72004a9843bebd3053218035f03ea56d58ebbe901f53dc473803",
+        "journal_hash": "de683e338d01b5be1ee3680754e931bb4e5cc24b0dddb76621c02cf7f3dcc0da"
+      },
+      "data/startup/publications/startup-message-interactions-publication-20260909-0750/config.json": {
+        "config_hash": "e0c4be2faaade891cd1294ca80ea51b9637e370540a1b96468fd2b9668ce92f8",
+        "journal_hash": "ee8907190a3c6462c8c8831ebeb965288a58744a33bec5927b411736a2f8bb53"
+      },
+      "data/startup/publications/account-bridge-publication-20260909/config.json": {
+        "config_hash": "20cfec118ff015f960fb709c4a9052d349c675ce140367a3353cec8603ecf5a2",
+        "journal_hash": "576bb50b0d661a7dbee3c4be0169808811848aa509ae90cbc960ed994c4271cd"
+      }
+    }
+  },
+  "acl": {
+    "room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+    "principal_id": "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+    "members": [
+      [
+        "principal-2d890f24-2303-4d17-b049-d85ccd75e97d",
+        "agent",
+        "member",
+        false
+      ],
+      [
+        "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+        "human",
+        "owner",
+        false
+      ]
+    ],
+    "room_kind": "group",
+    "message_count": 0
+  },
+  "target_profiles": {
+    "affine": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+    "docmost": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2"
+  },
+  "source_create_budget": 1,
+  "target_create_budget_each": 1,
+  "chat_messages": 0,
+  "model_calls": 0,
+  "old_resource_writes": 0
+}

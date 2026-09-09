@@ -1,0 +1,217 @@
+{
+  "schema": "renji.partial-stage-publication-closeout.v1",
+  "closed_at": "2026-09-09T03:08:56.180963+00:00",
+  "publication": "workspace-invitations-publication-20260909",
+  "state": "source_published_affine_native_verified_docmost_pending",
+  "complete_dual_projection": false,
+  "delivery": {
+    "source_path": "docs/startup/2026-09-09/WORKSPACE_INVITATION_STAGE_DELIVERY_1035.md",
+    "source_commit": "a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+    "source_commit_time": "2026-09-09T10:54:36+08:00",
+    "source_commit_description": "docs(startup): archive workspace invitation and native desktop acceptance",
+    "implementation_commits": [
+      {
+        "commit": "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+        "at": "2026-09-09T10:33:54+08:00",
+        "description": "feat(startup): invite human and agent colleagues with scoped arrival reads"
+      }
+    ],
+    "original_md_sha256": "88a74ec192c4144dd68018ba38800c50cd5ccb6dfa8689a5598bcea354471c54",
+    "derived_body_sha256": "c0f329640b51519eb41eb07ec25b72a050b1e37217edfafa65243ce6c4b8813c",
+    "server_trimmed_body_sha256": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+    "title": "人机商业阶段 · 工作空间邀请、Agent 接收读取与真实会话摘要 · 2026-09-09 10:51 · 30c6c22",
+    "relative_links": [
+      {
+        "original": "AGENT_RUN_ARRIVAL_NATIVE_READ_1042.md",
+        "committed_path": "docs/startup/2026-09-09/AGENT_RUN_ARRIVAL_NATIVE_READ_1042.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/AGENT_RUN_ARRIVAL_NATIVE_READ_1042.md"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/invitation-copy-fixed-native.png",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-copy-fixed-native.png",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-copy-fixed-native.png"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/invitation-accept-fixed-native.png",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-accept-fixed-native.png",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-accept-fixed-native.png"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/desktop-final-logged-in-native.png",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-logged-in-native.png",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-logged-in-native.png"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/native-final-readback.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/native-final-readback.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/native-final-readback.json"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/bridge-restored.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/bridge-restored.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/bridge-restored.json"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/go-production-tests.jsonl",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-tests.jsonl",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-tests.jsonl"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/go-production-summary.json",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-summary.json",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-summary.json"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/web-final-tests.txt",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-tests.txt",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-tests.txt"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/desktop-final-tests.txt",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-tests.txt",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-tests.txt"
+      },
+      {
+        "original": "evidence/workspace-invitation-stage/web-final-build.txt",
+        "committed_path": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-build.txt",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-build.txt"
+      },
+      {
+        "original": "MANUAL_STARTUP_GUIDE.md",
+        "committed_path": "docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md"
+      },
+      {
+        "original": "WORKSPACE_INVITATION_KERNEL_1025.md",
+        "committed_path": "docs/startup/2026-09-09/WORKSPACE_INVITATION_KERNEL_1025.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/WORKSPACE_INVITATION_KERNEL_1025.md"
+      },
+      {
+        "original": "../../../apps/web/docs/INVITATION_NATIVE_COPY_DIALOG_FIX_20260909_1045.md",
+        "committed_path": "apps/web/docs/INVITATION_NATIVE_COPY_DIALOG_FIX_20260909_1045.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/apps/web/docs/INVITATION_NATIVE_COPY_DIALOG_FIX_20260909_1045.md"
+      },
+      {
+        "original": "../../../apps/web/docs/WORKSPACE_INVITATIONS_AND_ROOM_PREVIEWS_20260909_1031.md",
+        "committed_path": "apps/web/docs/WORKSPACE_INVITATIONS_AND_ROOM_PREVIEWS_20260909_1031.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/apps/web/docs/WORKSPACE_INVITATIONS_AND_ROOM_PREVIEWS_20260909_1031.md"
+      },
+      {
+        "original": "STARTUP_ACCOUNT_BRIDGE_DELIVERY_0943.md",
+        "committed_path": "docs/startup/2026-09-09/STARTUP_ACCOUNT_BRIDGE_DELIVERY_0943.md",
+        "immutable_url": "https://github.com/huapohen/active-agent/blob/a58f429f9276a3fc4862fb71d6fba78d90b2a61c/docs/startup/2026-09-09/STARTUP_ACCOUNT_BRIDGE_DELIVERY_0943.md"
+      }
+    ]
+  },
+  "verification_head": "a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+  "source_document_id": "5a9aa3fa",
+  "source_room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+  "source_revision": 1,
+  "source_content_hash": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+  "source_object_sha256": "e5d0e861ea4cbaa735956536134a52d8076372f9a1129d04082ee13600558907",
+  "human_agent_same_complete_document": true,
+  "nonmember_http_status": 403,
+  "server_trailing_lf_only_normalization": true,
+  "historical_source_documents_unchanged": 7,
+  "old_projections_unchanged": 14,
+  "old_config_groups_unchanged": 6,
+  "old_configs_and_journals_unchanged": true,
+  "old_acl_unchanged": true,
+  "targets": [
+    {
+      "provider": "affine",
+      "state": "native_verified",
+      "record": {
+        "binding_id": "workspace-invitations-publication-20260909-affine",
+        "binding_hash": "980d03e1ed48a672ad77dbef2455dc5fe9304e6fad52892feca055214b5bd76f",
+        "sequence": 4,
+        "state": "native_verified",
+        "external_id": "RBOpVVG9dPUzZIOl6BWNN",
+        "source_revision": 1,
+        "source_content_hash": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+        "desired_body_hash": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+        "desired_title_hash": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+        "observed_body_hash": "c4a422ef64af480c760d06c692ee5e986e32116593e22ad81ce0e7edeb1c1927",
+        "observed_title_hash": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+        "title_verified": true,
+        "at": "2026-09-09T03:04:02.599874Z",
+        "observed_raw_body_hash": "d6f1db5515966222fe1e9a1591095421efe31de26f65e9e4c905be210f5240b1",
+        "native": {
+          "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "target_version": "sha256:975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458",
+          "source_canonical_hash": "d3fd186277707d68b6c3c72050151c5057687a702f04482b6815a3888bc01b9d",
+          "target_canonical_hash": "d3fd186277707d68b6c3c72050151c5057687a702f04482b6815a3888bc01b9d",
+          "target_native_raw_hash": "975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458",
+          "platform_behavior_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "platform_differences": 0,
+          "markdown_export_error": "readback_mismatch"
+        }
+      },
+      "observation": {
+        "id": "RBOpVVG9dPUzZIOl6BWNN",
+        "title_hash": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+        "native_hash": "975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458",
+        "public": false
+      },
+      "final_native_readback": {
+        "native_raw_hash": "975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458",
+        "target_version": "sha256:975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458"
+      },
+      "native_same_as_verified_receipt": true,
+      "url": "http://127.0.0.1:3010/workspace/a901cbc0-59ac-40b6-86bf-fcca7ff7b619/RBOpVVG9dPUzZIOl6BWNN"
+    },
+    {
+      "provider": "docmost",
+      "state": "unknown",
+      "pending": true,
+      "record": {
+        "binding_id": "workspace-invitations-publication-20260909-docmost",
+        "binding_hash": "d8368096859afb9fe39d8eae46dc2c5b6cfc2be63d0fa7c4b88f06361be717cd",
+        "sequence": 3,
+        "state": "unknown",
+        "external_id": "01a08419-805c-7585-b968-98329277c32c",
+        "source_revision": 1,
+        "source_content_hash": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+        "desired_body_hash": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+        "desired_title_hash": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+        "observed_body_hash": "42c3c201ca1522869bda31a18e0d3f88abca0c037e8103cb3771de1f20e1c314",
+        "observed_title_hash": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+        "title_verified": true,
+        "error_code": "readback_mismatch",
+        "at": "2026-09-09T02:57:39.115116Z",
+        "observed_raw_body_hash": "42c3c201ca1522869bda31a18e0d3f88abca0c037e8103cb3771de1f20e1c314"
+      },
+      "observation": {
+        "id": "01a08419-805c-7585-b968-98329277c32c",
+        "title_hash": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+        "native_hash": "b637e9f16410d965100a677181ff8bf0b6450929c417924aad4bbe63c38fd933",
+        "updated_at": "2026-09-09T02:57:38.845Z",
+        "slug_id": "U5jo4yHLaW"
+      },
+      "final_native_readback": {
+        "native_raw_hash": "7dcfbe5a4feee19dd79b2e0f72114508dae97f8dc48f2b17bcf1ee27fac5e30d",
+        "target_version": "2026-09-09T02:57:38.845Z"
+      },
+      "native_same_as_verified_receipt": false,
+      "known_target_unchanged_since_diagnosis": true,
+      "error_code": "unsupported_native_document",
+      "unsupported_path": "/content/22/attrs/type",
+      "unsupported_value": null,
+      "limitation": "The deployed ordered-list schema restores its default type:null attribute. No target write or profile expansion was applied. Not accepted as native-verified.",
+      "url": "http://127.0.0.1:3021/p/U5jo4yHLaW"
+    }
+  ],
+  "new_config_sha256": "21386cdf33e307a2fe9825db8e216b748e7f2195a7ff0cab1ee5b99c93ccc4bc",
+  "new_journal_sha256": "1b79a6f1cf7753d7b79ef202ecbcdc5045d4aa55a07a495611e1b32740375077",
+  "new_journal_lines": 7,
+  "journal_writes_during_closeout": 0,
+  "external_writes_during_closeout": 0,
+  "chat_messages_sent": 0,
+  "model_calls": 0,
+  "source_count": 8,
+  "known_projection_count": 16,
+  "verified_projection_count": 15,
+  "pending_projection_count": 1,
+  "config_group_count": 7,
+  "readback_scope": "Authenticated read-only source and target reads plus exact frozen historical protection; no publisher or sync invocation."
+}

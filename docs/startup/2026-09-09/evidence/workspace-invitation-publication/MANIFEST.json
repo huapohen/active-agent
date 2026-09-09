@@ -1,0 +1,182 @@
+{
+  "schema": "renji.phase-publication-evidence.v1",
+  "at": "2026-09-09T11:10:42.762816+08:00",
+  "implementation_commits": [
+    "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+    "313572c6881b488cccc6b943918d5598f2f9b5ae"
+  ],
+  "frozen_report_commit": "a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+  "state": "source_and_affine_verified_docmost_pending",
+  "files": [
+    {
+      "path": "frozen-plan.json",
+      "source": "output/workspace-invitations-publication-20260909/frozen-plan.json",
+      "bytes": 15604,
+      "sha256": "8887e090284d899b024e03a755d87877d97ca7437a195ad19c261a5e7026bd9b"
+    },
+    {
+      "path": "publication-closeout.json",
+      "source": "output/workspace-invitations-publication-20260909/publication-closeout.json",
+      "bytes": 13608,
+      "sha256": "377c94ced7a8b74566d0779c5fb34ff2d175d2a53107dee1d36f8f203f11bdc9"
+    },
+    {
+      "path": "next-stage-preservation.json",
+      "source": "output/workspace-invitations-publication-20260909/next-stage-preservation.json",
+      "bytes": 7541,
+      "sha256": "ccaffa0c4359eb290edd566d89d221eec316684ac8d61779627824d0acbbff81"
+    },
+    {
+      "path": "PARTIAL_PUBLICATION_CLOSEOUT.md",
+      "source": "output/workspace-invitations-publication-20260909/PARTIAL_PUBLICATION_CLOSEOUT.md",
+      "bytes": 2013,
+      "sha256": "059a691f42230a543af9fceac54d953efeae12a032778b4745c387a6f7bd47c2"
+    },
+    {
+      "path": "AFFINE_SAME_ID_REPAIR.md",
+      "source": "output/workspace-invitations-publication-20260909/AFFINE_SAME_ID_REPAIR.md",
+      "bytes": 2591,
+      "sha256": "368b8876d40bc41aa7ccc114d6bc88528d8100de95ba9abca599203cd396091d"
+    },
+    {
+      "path": "affine-formal-reconciliation.json",
+      "source": "output/workspace-invitations-publication-20260909/affine-formal-reconciliation.json",
+      "bytes": 2732,
+      "sha256": "b5d19da0876c9c59691243b1193473d940c04d3cc74704219ee8819eec438769"
+    },
+    {
+      "path": "repair-frozen-manifest.json",
+      "source": "output/workspace-invitations-publication-20260909/repair-frozen-manifest.json",
+      "bytes": 2298,
+      "sha256": "82b30465f26ef996c1f37f40c6736708c1fff375ab9c5f04916f591d1115c20d"
+    },
+    {
+      "path": "repair-live-readback.json",
+      "source": "output/workspace-invitations-publication-20260909/repair-live-readback.json",
+      "bytes": 1417,
+      "sha256": "8a037fcaaf495a81be0931b0c0f27b8a6b5d690e84804b37b6cbf9597fe014de"
+    },
+    {
+      "path": "repair-candidate-report.json",
+      "source": "output/workspace-invitations-publication-20260909/repair-candidate-report.json",
+      "bytes": 1088,
+      "sha256": "cb2772c0fb44064456777e8a53494f0852a0d6406e04ebbe6f332fe4e4a45edf"
+    },
+    {
+      "path": "repair-candidate-update.bin",
+      "source": "output/workspace-invitations-publication-20260909/repair-candidate-update.bin",
+      "bytes": 9660,
+      "sha256": "d37a5609a0202c490932874a3fb2693f8637e1e2d0afd5af75e3ed0e65629202"
+    },
+    {
+      "path": "repair-live-snapshot.bin",
+      "source": "output/workspace-invitations-publication-20260909/repair-live-snapshot.bin",
+      "bytes": 39860,
+      "sha256": "975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458"
+    },
+    {
+      "path": "repair-live-canonical.json",
+      "source": "output/workspace-invitations-publication-20260909/repair-live-canonical.json",
+      "bytes": 65070,
+      "sha256": "8ef034645c56dee597e57b3e6eda48f9b027195dade1a204408a86d27d9dacce"
+    },
+    {
+      "path": "diagnostic-affine-source-diff.json",
+      "source": "output/workspace-invitations-publication-20260909/diagnostic-affine-source-diff.json",
+      "bytes": 13486,
+      "sha256": "2bce919cc05c2db1c3925dd6f19982dfa9fa4946b17786b0c9f5c2479a5e9fa4"
+    },
+    {
+      "path": "repair-before-old-scope-check.json",
+      "source": "output/workspace-invitations-publication-20260909/repair-before-old-scope-check.json",
+      "bytes": 317,
+      "sha256": "d851ea1712cb03f89a0ebaca85062b060ba853e5c5e25ec650722b609f50dde0"
+    },
+    {
+      "path": "repair-after-old-scope-check.json",
+      "source": "output/workspace-invitations-publication-20260909/repair-after-old-scope-check.json",
+      "bytes": 295,
+      "sha256": "c890a6a4a5e0a0fe89dcfdf9bd3e2e828be649003bafc249783af2800bc130e6"
+    },
+    {
+      "path": "docmost-readonly-diagnosis.md",
+      "source": "output/workspace-invitations-publication-20260909/docmost-readonly-diagnosis.md",
+      "bytes": 2784,
+      "sha256": "cb5063ceb7c6f8d25380120f94f99eb32b90802aad7d6a9f594c57edb18d13f4"
+    },
+    {
+      "path": "docmost-readonly-diagnosis.json",
+      "source": "output/workspace-invitations-publication-20260909/docmost-readonly-diagnosis.json",
+      "bytes": 3899,
+      "sha256": "d26cfb3288e1fc02cfbb11193b9661c50f9a4db422e523d41be9e94456cc2ba6"
+    },
+    {
+      "path": "docmost-readonly-diagnosis-manifest.json",
+      "source": "output/workspace-invitations-publication-20260909/docmost-readonly-diagnosis-manifest.json",
+      "bytes": 751,
+      "sha256": "c8bf890e640b869d421e1c75c76e4771192c92bb4e54f41fdb8507978b1fe73f"
+    },
+    {
+      "path": "docmost-candidate-content.json",
+      "source": "output/workspace-invitations-publication-20260909/docmost-candidate-content.json",
+      "bytes": 35179,
+      "sha256": "ac8b4bade7bed8ae894a5bad39a1cc95985f979930f0014ab31861d03c6c29b5"
+    },
+    {
+      "path": "docmost-candidate-diff.json",
+      "source": "output/workspace-invitations-publication-20260909/docmost-candidate-diff.json",
+      "bytes": 502,
+      "sha256": "5a5f7c678226a82368bf6fde3f9b6fdcd98cb26276ea0d62d1e3078299af2b6a"
+    },
+    {
+      "path": "docmost-offline-canonical-comparison.json",
+      "source": "output/workspace-invitations-publication-20260909/docmost-offline-canonical-comparison.json",
+      "bytes": 794,
+      "sha256": "641ef9f3f6227854bfd2f71c596e89f86d57a9b888b7de4d16413dd7af59b069"
+    },
+    {
+      "path": "docmost-deployed-schema-defaults.json",
+      "source": "output/workspace-invitations-publication-20260909/docmost-deployed-schema-defaults.json",
+      "bytes": 391,
+      "sha256": "c66fc812cabe862488f93a0a8a59d79ed0145fec901c43446443f7c1b6dce1dc"
+    },
+    {
+      "path": "docmost-readonly-version-fence.json",
+      "source": "output/workspace-invitations-publication-20260909/docmost-readonly-version-fence.json",
+      "bytes": 358,
+      "sha256": "c652ba650ea72d85451ab02c4083ab6ccd02c68490a4445b3941756c1c86326a"
+    },
+    {
+      "path": "final-runtime-readonly.json",
+      "source": "output/workspace-invitations-publication-20260909/final-runtime-readonly.json",
+      "bytes": 786,
+      "sha256": "eb59093ea561e27263e0300993ab52020d4e8c31a1dde829c80a120b9208e448"
+    },
+    {
+      "path": "diagnostic-affine-native.bin",
+      "source": "output/workspace-invitations-publication-20260909/diagnostic-affine-native.bin",
+      "bytes": 32562,
+      "sha256": "c1731142a6e7addf680146ffa07ccd7dd4e00403e3f37aa23d93df61bbd9e634"
+    },
+    {
+      "path": "diagnostic-docmost-native.json",
+      "source": "output/workspace-invitations-publication-20260909/diagnostic-docmost-native.json",
+      "bytes": 35191,
+      "sha256": "7dcfbe5a4feee19dd79b2e0f72114508dae97f8dc48f2b17bcf1ee27fac5e30d"
+    },
+    {
+      "path": "final-closeout-review.json",
+      "source": "output/workspace-invitations-publication-20260909/final-closeout-review.json",
+      "bytes": 7810,
+      "sha256": "4872b0c7be7d9d97a51bd5c80b708e0939b4a93f6d0d780eda0543a9157afee1"
+    },
+    {
+      "path": "staged-secret-scan-before-review.json",
+      "source": "output/workspace-invitations-20260909/docs-staged-secret-scan.json",
+      "bytes": 165,
+      "sha256": "af00aacb339af068aaa6ff22eeafa3ec9163ea0757d51696f6aa68f64aac194e"
+    }
+  ],
+  "normalization": "none; exact source bytes copied",
+  "excluded_private_material": "credentials, configs, invitation plaintext, sessions and machine tokens"
+}

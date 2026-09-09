@@ -1,0 +1,90 @@
+{
+  "schema": "renji.docmost-stage-readonly-diagnosis.v1",
+  "at": "2026-09-09T03:07:36.046650+00:00",
+  "target_id": "01a08419-805c-7585-b968-98329277c32c",
+  "source_document_id": "5a9aa3fa",
+  "source_revision": 1,
+  "source_commit": "a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+  "source_body_sha256": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+  "source_matches_frozen_server_trimmed": true,
+  "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+  "target_version": "2026-09-09T02:57:38.845Z",
+  "target_raw_sha256": "7dcfbe5a4feee19dd79b2e0f72114508dae97f8dc48f2b17bcf1ee27fac5e30d",
+  "rejecting_path": "/content/22/attrs/type",
+  "rejecting_value": null,
+  "reason": "orderedList uses start only; unknown attrs type fails existing v2 allowlist",
+  "candidate_path": "docmost-candidate-content.json",
+  "candidate_raw_sha256": "ac8b4bade7bed8ae894a5bad39a1cc95985f979930f0014ab31861d03c6c29b5",
+  "candidate_changes": [
+    {
+      "path": "/content/22/attrs/type",
+      "value_before": null,
+      "operation": "remove_only_null_attribute"
+    }
+  ],
+  "all_other_native_fields_equal": true,
+  "offline_comparison": [
+    {
+      "candidate_only": true,
+      "error_code": "unsupported_native_document",
+      "file": "../../output/workspace-invitations-publication-20260909/diagnostic-docmost-native.json",
+      "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+      "proof": {
+        "SourceHash": "",
+        "TargetHash": "",
+        "PlatformHash": "",
+        "PlatformDifferences": 0
+      }
+    },
+    {
+      "candidate_only": true,
+      "file": "../../output/workspace-invitations-publication-20260909/docmost-candidate-content.json",
+      "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+      "proof": {
+        "SourceHash": "d3fd186277707d68b6c3c72050151c5057687a702f04482b6815a3888bc01b9d",
+        "TargetHash": "d3fd186277707d68b6c3c72050151c5057687a702f04482b6815a3888bc01b9d",
+        "PlatformHash": "8de0ee75e175e36f21b43c01851f2acbb187e536651bb25aa3b2bba71d90a787",
+        "PlatformDifferences": 48
+      },
+      "strict_canonical_equal": true
+    }
+  ],
+  "readonly_version_fence": {
+    "target_id": "01a08419-805c-7585-b968-98329277c32c",
+    "at": "2026-09-09T03:05:17.647323+00:00",
+    "reads": 1,
+    "writes": 0,
+    "native_version_unchanged": true,
+    "native_raw_unchanged": true,
+    "title_unchanged": true,
+    "version": "2026-09-09T02:57:38.845Z",
+    "native_raw_sha256": "7dcfbe5a4feee19dd79b2e0f72114508dae97f8dc48f2b17bcf1ee27fac5e30d"
+  },
+  "deployed_schema": {
+    "source": "deployed-readonly-module",
+    "ordered_list_module": "/app/node_modules/.pnpm/@tiptap+extension-ordered-list@3.27.1_@tiptap+extension-list@3.27.1_@tiptap+core@3.27.1_170894a14a681409602fc9f9746a7f86/node_modules/@tiptap/extension-ordered-list/dist/index.cjs",
+    "default_attributes": {
+      "start": 1,
+      "type": null
+    },
+    "missing_type_roundtrip_attributes": {
+      "start": 1,
+      "type": null
+    },
+    "external_writes": 0
+  },
+  "official_reference": "https://github.com/ueberdosis/tiptap/blob/main/packages/extension-list/src/ordered-list/ordered-list.ts",
+  "risks": [
+    "Provider schema normalization restores missing type:null, proven by deployed nodeFromJSON/toJSON; candidate equality is not proof of post-write target equality.",
+    "No target update/CAS behavior has been exercised; a future authorized same-ID attempt must verify actual native readback and version.",
+    "Never remove a non-null list type, relax v2, alter frozen source or manually mark journal verified."
+  ],
+  "target_writes": 0,
+  "source_writes": 0,
+  "journal_writes": 0,
+  "production_code_changes": 0,
+  "target_verification_state": "unchanged_unknown",
+  "stage_action": "candidate_only_then_stop",
+  "publication_outcome": "native_verification_pending",
+  "same_target_id_preserved": true
+}

@@ -1,0 +1,14 @@
+{
+  "target_id": "01a08419-805c-7585-b968-98329277c32c",
+  "target_writes": 0,
+  "source_sha256": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+  "original_raw_sha256": "7dcfbe5a4feee19dd79b2e0f72114508dae97f8dc48f2b17bcf1ee27fac5e30d",
+  "candidate_raw_sha256": "ac8b4bade7bed8ae894a5bad39a1cc95985f979930f0014ab31861d03c6c29b5",
+  "changes": [
+    {
+      "path": "/content/22/attrs/type",
+      "value_before": null,
+      "operation": "remove_only_null_attribute"
+    }
+  ]
+}

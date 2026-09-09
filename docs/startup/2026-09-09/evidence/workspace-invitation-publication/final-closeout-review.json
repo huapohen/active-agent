@@ -1,0 +1,265 @@
+{
+  "schema": "renji.independent-final-closeout-review.v1",
+  "reviewed_at": "2026-09-09T03:15:05.008419+00:00",
+  "reviewer": "client_migration",
+  "mode": "local_readonly_evidence_audit",
+  "result": "passed",
+  "staged_file_count": 28,
+  "staged_main_document": "docs/startup/2026-09-09/WORKSPACE_INVITATION_STAGE_CLOSEOUT_1108.md",
+  "staged_main_sha256": "1772856f3b6b9f6699fd76db3798a69d13d72781d7c453514bc55e473d76faef",
+  "manifest_checks": [
+    {
+      "manifest": "docs/startup/2026-09-09/evidence/workspace-invitation-publication/MANIFEST.json",
+      "manifest_sha256": "028c35ab397453b9f77a3a319b9e204df454d3684b6a9b81f5776491d86bac77",
+      "entries": 26,
+      "source_copies_checked": 26,
+      "mismatches": []
+    },
+    {
+      "manifest": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/MANIFEST.json",
+      "manifest_sha256": "211001347b89e93d90eebcf3878115743cbdc6f9a04597960b7c412c9b8a9529",
+      "entries": 18,
+      "source_copies_checked": 0,
+      "mismatches": []
+    }
+  ],
+  "checks": [
+    {
+      "check": "staged_scope_docs_and_evidence_only",
+      "passed": true,
+      "details": {
+        "files": 28
+      }
+    },
+    {
+      "check": "staged_bytes_equal_worktree",
+      "passed": true
+    },
+    {
+      "check": "manifest:workspace-invitation-publication",
+      "passed": true,
+      "details": {
+        "manifest": "docs/startup/2026-09-09/evidence/workspace-invitation-publication/MANIFEST.json",
+        "manifest_sha256": "028c35ab397453b9f77a3a319b9e204df454d3684b6a9b81f5776491d86bac77",
+        "entries": 26,
+        "source_copies_checked": 26,
+        "mismatches": []
+      }
+    },
+    {
+      "check": "manifest:workspace-invitation-stage",
+      "passed": true,
+      "details": {
+        "manifest": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/MANIFEST.json",
+        "manifest_sha256": "211001347b89e93d90eebcf3878115743cbdc6f9a04597960b7c412c9b8a9529",
+        "entries": 18,
+        "source_copies_checked": 0,
+        "mismatches": []
+      }
+    },
+    {
+      "check": "nested_docmost_manifest",
+      "passed": true,
+      "details": {
+        "files": 7
+      }
+    },
+    {
+      "check": "staged_markdown_local_links",
+      "passed": true,
+      "details": {
+        "checked": 8,
+        "missing": []
+      }
+    },
+    {
+      "check": "commit:30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+      "passed": true
+    },
+    {
+      "check": "commit:313572c6881b488cccc6b943918d5598f2f9b5ae",
+      "passed": true
+    },
+    {
+      "check": "commit:a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+      "passed": true
+    },
+    {
+      "check": "remote_tracking_contains_delivered_commits",
+      "passed": true,
+      "details": {
+        "remote_tracking_head": "a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+        "network_fetch_performed": false
+      }
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/AGENT_RUN_ARRIVAL_NATIVE_READ_1042.md",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-copy-fixed-native.png",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/invitation-accept-fixed-native.png",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-logged-in-native.png",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/native-final-readback.json",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/bridge-restored.json",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-tests.jsonl",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/go-production-summary.json",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-tests.txt",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-tests.txt",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/evidence/workspace-invitation-stage/web-final-build.txt",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/MANUAL_STARTUP_GUIDE.md",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/WORKSPACE_INVITATION_KERNEL_1025.md",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:apps/web/docs/INVITATION_NATIVE_COPY_DIALOG_FIX_20260909_1045.md",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:apps/web/docs/WORKSPACE_INVITATIONS_AND_ROOM_PREVIEWS_20260909_1031.md",
+      "passed": true
+    },
+    {
+      "check": "frozen_link:docs/startup/2026-09-09/STARTUP_ACCOUNT_BRIDGE_DELIVERY_0943.md",
+      "passed": true
+    },
+    {
+      "check": "frozen_source_and_publication_body_hashes",
+      "passed": true,
+      "details": {
+        "immutable_links": 16
+      }
+    },
+    {
+      "check": "source_authenticated_receipt_boundaries",
+      "passed": true
+    },
+    {
+      "check": "historical_and_accumulated_protection_counts",
+      "passed": true,
+      "details": {
+        "previous": [
+          7,
+          14,
+          6
+        ],
+        "cumulative": [
+          8,
+          16,
+          7
+        ],
+        "verified": 15,
+        "pending": 1
+      }
+    },
+    {
+      "check": "old_scope_before_after_match",
+      "passed": true
+    },
+    {
+      "check": "preservation_linked_receipt_hashes",
+      "passed": true
+    },
+    {
+      "check": "affine_formal_proof_vs_repair_and_raw",
+      "passed": true
+    },
+    {
+      "check": "docmost_formal_failure_distinct_from_strict_failure",
+      "passed": true
+    },
+    {
+      "check": "docmost_raw_only_rejected_default",
+      "passed": true
+    },
+    {
+      "check": "candidate_exactly_one_attribute_removed_not_target_success",
+      "passed": true
+    },
+    {
+      "check": "docmost_version_and_raw_preserved",
+      "passed": true
+    },
+    {
+      "check": "closeout_no_new_external_or_journal_writes",
+      "passed": true
+    },
+    {
+      "check": "go_test_log_actual_counts",
+      "passed": true,
+      "details": {
+        "top_level_pass": 267,
+        "subtest_pass": 316,
+        "fail": 0,
+        "test_skip": 0
+      }
+    },
+    {
+      "check": "client_final_test_logs",
+      "passed": true,
+      "details": {
+        "web": 206,
+        "desktop": 10
+      }
+    },
+    {
+      "check": "native_owner_self_accept_boundary",
+      "passed": true
+    },
+    {
+      "check": "native_screenshot_files_present",
+      "passed": true
+    },
+    {
+      "check": "final_runtime_evidence_scope",
+      "passed": true
+    },
+    {
+      "check": "report_states_excluded_claims",
+      "passed": true
+    }
+  ],
+  "findings": [],
+  "limitations": [
+    "No live source/target, database, clipboard or GUI reads were performed. External state conclusions are checked against archived authenticated readback receipts.",
+    "No business tests, migrations, publisher, journal updates, background workers or next-stage development were started.",
+    "Docmost remains formally unknown/readback_mismatch and strictly unsupported; its offline candidate is not a verified target.",
+    "This audit checks existing native screenshots as archived evidence and metadata; it does not repeat visual or multi-user acceptance."
+  ],
+  "private_material_read": false,
+  "production_writes": 0,
+  "new_external_actions": 0
+}

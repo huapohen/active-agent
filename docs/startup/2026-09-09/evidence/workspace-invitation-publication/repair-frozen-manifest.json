@@ -1,0 +1,42 @@
+{
+  "protocol": "renji.frozen-affine-native-repair.v1",
+  "binding_id": "workspace-invitations-publication-20260909-affine",
+  "binding_scope": {
+    "target": "affine",
+    "target_endpoint": "http://127.0.0.1:3010",
+    "namespace_id": "a901cbc0-59ac-40b6-86bf-fcca7ff7b619",
+    "source_endpoint": "http://127.0.0.1:3218",
+    "principal_id": "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+    "room_id": "room-1de8fc2a-eed0-438b-98c3-b79c8997859e",
+    "document_id": "5a9aa3fa",
+    "generation": 1,
+    "approved_by": "principal-5355d701-13c3-4b81-a58b-4fcbca147fd3",
+    "approval_reference": "Root approved frozen workspace-invitations stage report with immutable Git links; same controlled source room and explicit namespaces; no old resource writes"
+  },
+  "config_sha256": "21386cdf33e307a2fe9825db8e216b748e7f2195a7ff0cab1ee5b99c93ccc4bc",
+  "journal_sha256": "c43223bd7fbb5e263b50b8d2661623e704404ba3d9c825b90376b6be3f03c425",
+  "target_id": "RBOpVVG9dPUzZIOl6BWNN",
+  "source_revision": 1,
+  "source_exact_hash": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+  "title_sha256": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+  "source_file": "output/workspace-invitations-publication-20260909/diagnostic-source.md",
+  "source_file_sha256": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+  "source_canonical_file": "output/workspace-invitations-publication-20260909/diagnostic-source-canonical.json",
+  "source_canonical_sha256": "d3fd186277707d68b6c3c72050151c5057687a702f04482b6815a3888bc01b9d",
+  "before_native_sha256": "c1731142a6e7addf680146ffa07ccd7dd4e00403e3f37aa23d93df61bbd9e634",
+  "before_target_timestamp": 1788922522092,
+  "update_sha256": "d37a5609a0202c490932874a3fb2693f8637e1e2d0afd5af75e3ed0e65629202",
+  "update_bytes": 9660,
+  "after_offline_native_sha256": "975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458",
+  "table_block_ids": [
+    "ZND7cLPICVQiVKvgA02_r",
+    "3EYfqWFKInReEuLgQuIQf"
+  ],
+  "preserved_non_table_blocks": 46,
+  "client_version": "0.27.4",
+  "native_profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+  "docs_commit": "a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+  "target_write_budget": 1,
+  "target_create_budget": 0,
+  "source_write_budget": 0
+}

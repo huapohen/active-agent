@@ -1,0 +1,24 @@
+{
+  "at": "2026-09-09T11:11:19.066222+08:00",
+  "api_health": {
+    "protocol": "renji.v1",
+    "service": "renji-collaboration",
+    "transport": "rongcloud"
+  },
+  "processes_alive": {
+    "14264": true,
+    "15811": true,
+    "16076": true
+  },
+  "process_roles": {
+    "14264": "current phase API",
+    "15811": "business Electron desktop",
+    "16076": "restored controlled RongCloud bridge"
+  },
+  "desktop_login_evidence": "docs/startup/2026-09-09/evidence/workspace-invitation-stage/desktop-final-logged-in-native.png",
+  "new_gui_automation": false,
+  "new_model_or_worker_started": false,
+  "working_branch": "startup",
+  "source_head": "a58f429f9276a3fc4862fb71d6fba78d90b2a61c",
+  "frozen_report_sha256": "88a74ec192c4144dd68018ba38800c50cd5ccb6dfa8689a5598bcea354471c54"
+}

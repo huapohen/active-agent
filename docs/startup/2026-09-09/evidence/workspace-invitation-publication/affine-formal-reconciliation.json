@@ -1,0 +1,53 @@
+{
+  "at": "2026-09-09T03:04:02.752577+00:00",
+  "state": "native_verified",
+  "result": {
+    "binding_id": "workspace-invitations-publication-20260909-affine",
+    "record": {
+      "binding_id": "workspace-invitations-publication-20260909-affine",
+      "binding_hash": "980d03e1ed48a672ad77dbef2455dc5fe9304e6fad52892feca055214b5bd76f",
+      "sequence": 4,
+      "state": "native_verified",
+      "external_id": "RBOpVVG9dPUzZIOl6BWNN",
+      "source_revision": 1,
+      "source_content_hash": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+      "desired_body_hash": "521a8a9fea4227da08830163b8a26d856df3791e4923757cc9f12366a67a21c3",
+      "desired_title_hash": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+      "observed_body_hash": "c4a422ef64af480c760d06c692ee5e986e32116593e22ad81ce0e7edeb1c1927",
+      "observed_title_hash": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+      "title_verified": true,
+      "at": "2026-09-09T03:04:02.599874Z",
+      "observed_raw_body_hash": "d6f1db5515966222fe1e9a1591095421efe31de26f65e9e4c905be210f5240b1",
+      "native": {
+        "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+        "target_version": "sha256:975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458",
+        "source_canonical_hash": "d3fd186277707d68b6c3c72050151c5057687a702f04482b6815a3888bc01b9d",
+        "target_canonical_hash": "d3fd186277707d68b6c3c72050151c5057687a702f04482b6815a3888bc01b9d",
+        "target_native_raw_hash": "975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458",
+        "platform_behavior_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "platform_differences": 0,
+        "markdown_export_error": "readback_mismatch"
+      }
+    },
+    "target": "affine"
+  },
+  "before_journal_hash": "c43223bd7fbb5e263b50b8d2661623e704404ba3d9c825b90376b6be3f03c425",
+  "after_journal_hash": "1b79a6f1cf7753d7b79ef202ecbcdc5045d4aa55a07a495611e1b32740375077",
+  "original_prefix_unchanged": true,
+  "affine_appended_records": 1,
+  "docmost_records_unchanged": true,
+  "second_pass_no_append": true,
+  "final_observation": {
+    "id": "RBOpVVG9dPUzZIOl6BWNN",
+    "title_hash": "43f834339f62c1e5da757171e8aad93b505de9552d7d0be24d35d3d7cc5cae91",
+    "native_hash": "975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458",
+    "public": false
+  },
+  "final_native_readback": {
+    "native_raw_hash": "975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458",
+    "target_version": "sha256:975dc8c456a655728f7fff65cbc97bd61f5fc9755d6e1c7b1766f99e66b91458"
+  },
+  "new_target_writes": 0,
+  "source_id": "5a9aa3fa",
+  "source_revision": 1
+}

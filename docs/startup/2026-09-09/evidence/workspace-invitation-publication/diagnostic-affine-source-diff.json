@@ -1,0 +1,437 @@
+{
+  "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+  "source_canonical_hash": "d3fd186277707d68b6c3c72050151c5057687a702f04482b6815a3888bc01b9d",
+  "target_canonical_hash": "9bdaa8bd0eca04aca1d8ac0cf413772a22073464bb81128deca22a625f3e2bcb",
+  "diff_count": 76,
+  "visited_blocks": 48,
+  "tables": [
+    {
+      "id": "ZND7cLPICVQiVKvgA02_r",
+      "flavour": "affine:table",
+      "rows": 5,
+      "columns": 4,
+      "columnIds": [
+        "IzBkxjgSgCnVgtZpQ7zK_",
+        "eqqR_3gE7Djf0g-qwMmDQ",
+        "nB7QNoWMmJ_wPW5sq8kpT",
+        "S05xLB2jt9KL8-yv06FEH"
+      ]
+    },
+    {
+      "id": "3EYfqWFKInReEuLgQuIQf",
+      "flavour": "affine:table",
+      "rows": 7,
+      "columns": 3,
+      "columnIds": [
+        "x3u8yjw89lF7MoRpaRX-T",
+        "zaJYBs1jg5noX0AplCHUH",
+        "fv_Yd4GE5mrM_KdEuVm7i"
+      ]
+    }
+  ],
+  "diffs": [
+    {
+      "path": "$.children[3].children[0].children[0].type",
+      "source": "tableHeader",
+      "target": "tableCell"
+    },
+    {
+      "path": "$.children[3].children[0].children[1].type",
+      "source": "tableHeader",
+      "target": "tableCell"
+    },
+    {
+      "path": "$.children[3].children[0].children[2].type",
+      "source": "tableHeader",
+      "target": "tableCell"
+    },
+    {
+      "path": "$.children[3].children[0].children[3].type",
+      "source": "tableHeader",
+      "target": "tableCell"
+    },
+    {
+      "path": "$.children[3].children[1].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[1].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[1].children[1].children[0].children[0].text",
+      "source": "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+      "target": "`30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa`"
+    },
+    {
+      "path": "$.children[3].children[1].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[1].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[1].children[2].children[0].children[0].text",
+      "source": "2026-09-09T10:33:54+08:00",
+      "target": "`2026-09-09T10:33:54+08:00`"
+    },
+    {
+      "path": "$.children[3].children[1].children[3].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[1].children[3].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[1].children[3].children[0].children[0].text",
+      "source": "feat(startup): invite human and agent colleagues with scoped arrival reads",
+      "target": "`feat(startup): invite human and agent colleagues with scoped arrival reads`"
+    },
+    {
+      "path": "$.children[3].children[2].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[2].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[2].children[1].children[0].children[0].text",
+      "source": "313572c6881b488cccc6b943918d5598f2f9b5ae",
+      "target": "`313572c6881b488cccc6b943918d5598f2f9b5ae`"
+    },
+    {
+      "path": "$.children[3].children[2].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[2].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[2].children[2].children[0].children[0].text",
+      "source": "2026-09-09T10:49:01+08:00",
+      "target": "`2026-09-09T10:49:01+08:00`"
+    },
+    {
+      "path": "$.children[3].children[2].children[3].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[2].children[3].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[2].children[3].children[0].children[0].text",
+      "source": "fix(desktop): support scoped invitation copy and accessible dialogs",
+      "target": "`fix(desktop): support scoped invitation copy and accessible dialogs`"
+    },
+    {
+      "path": "$.children[3].children[3].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[3].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[3].children[1].children[0].children[0].text",
+      "source": "1ea4685b4df3f0a9e9bffd0400c295b2bfb723e1",
+      "target": "`1ea4685b4df3f0a9e9bffd0400c295b2bfb723e1`"
+    },
+    {
+      "path": "$.children[3].children[3].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[3].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[3].children[2].children[0].children[0].text",
+      "source": "2026-09-09T10:00:39+08:00",
+      "target": "`2026-09-09T10:00:39+08:00`"
+    },
+    {
+      "path": "$.children[3].children[3].children[3].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[3].children[3].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[3].children[3].children[0].children[0].text",
+      "source": "docs(startup): preserve account phase publication and independent receipts",
+      "target": "`docs(startup): preserve account phase publication and independent receipts`"
+    },
+    {
+      "path": "$.children[3].children[4].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[4].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[4].children[1].children[0].children[0].text",
+      "source": "dc728ddc99ce3bc7346bb4dc364824bbb32b1101",
+      "target": "`dc728ddc99ce3bc7346bb4dc364824bbb32b1101`"
+    },
+    {
+      "path": "$.children[3].children[4].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[3].children[4].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[3].children[4].children[2].children[0].children[0].text",
+      "source": "2026-09-09T01:22:28+08:00",
+      "target": "`2026-09-09T01:22:28+08:00`"
+    },
+    {
+      "path": "$.children[25].children[0].children[0].type",
+      "source": "tableHeader",
+      "target": "tableCell"
+    },
+    {
+      "path": "$.children[25].children[0].children[1].type",
+      "source": "tableHeader",
+      "target": "tableCell"
+    },
+    {
+      "path": "$.children[25].children[0].children[2].type",
+      "source": "tableHeader",
+      "target": "tableCell"
+    },
+    {
+      "path": "$.children[25].children[1].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[1].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[1].children[1].children[0].children[0].text",
+      "source": "POST /v1/workspaces/:workspace/invitations",
+      "target": "`POST /v1/workspaces/:workspace/invitations`"
+    },
+    {
+      "path": "$.children[25].children[1].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[1].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[1].children[2].children[0].children[0].text",
+      "source": "workspace_invitation_create",
+      "target": "`workspace_invitation_create`"
+    },
+    {
+      "path": "$.children[25].children[2].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[2].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[2].children[1].children[0].children[0].text",
+      "source": "GET /v1/workspaces/:workspace/invitations",
+      "target": "`GET /v1/workspaces/:workspace/invitations`"
+    },
+    {
+      "path": "$.children[25].children[2].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[2].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[2].children[2].children[0].children[0].text",
+      "source": "workspace_invitation_list",
+      "target": "`workspace_invitation_list`"
+    },
+    {
+      "path": "$.children[25].children[3].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[3].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[3].children[1].children[0].children[0].text",
+      "source": "POST /v1/workspaces/:workspace/invitations/:invitation/revoke",
+      "target": "`POST /v1/workspaces/:workspace/invitations/:invitation/revoke`"
+    },
+    {
+      "path": "$.children[25].children[3].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[3].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[3].children[2].children[0].children[0].text",
+      "source": "workspace_invitation_revoke",
+      "target": "`workspace_invitation_revoke`"
+    },
+    {
+      "path": "$.children[25].children[4].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[4].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[4].children[1].children[0].children[0].text",
+      "source": "POST /v1/workspace-invitations/accept",
+      "target": "`POST /v1/workspace-invitations/accept`"
+    },
+    {
+      "path": "$.children[25].children[4].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[4].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[4].children[2].children[0].children[0].text",
+      "source": "workspace_invitation_accept",
+      "target": "`workspace_invitation_accept`"
+    },
+    {
+      "path": "$.children[25].children[5].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[5].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[5].children[1].children[0].children[0].text",
+      "source": "GET /v1/workspace-invitation-actions/:action",
+      "target": "`GET /v1/workspace-invitation-actions/:action`"
+    },
+    {
+      "path": "$.children[25].children[5].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[5].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[5].children[2].children[0].children[0].text",
+      "source": "workspace_invitation_action_read",
+      "target": "`workspace_invitation_action_read`"
+    },
+    {
+      "path": "$.children[25].children[6].children[1].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[6].children[1].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[6].children[1].children[0].children[0].text",
+      "source": "GET /v1/transport/events",
+      "target": "`GET /v1/transport/events`"
+    },
+    {
+      "path": "$.children[25].children[6].children[2].children[0].children[0].marks.length",
+      "source": 1,
+      "target": 0
+    },
+    {
+      "path": "$.children[25].children[6].children[2].children[0].children[0].marks[0]",
+      "source": {
+        "type": "code"
+      }
+    },
+    {
+      "path": "$.children[25].children[6].children[2].children[0].children[0].text",
+      "source": "transport_arrival_read",
+      "target": "`transport_arrival_read`"
+    }
+  ]
+}

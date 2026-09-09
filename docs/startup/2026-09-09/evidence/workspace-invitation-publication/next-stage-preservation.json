@@ -1,0 +1,209 @@
+{
+  "schema": "renji.next-stage-preservation.partial-projections.v1",
+  "at": "2026-09-09T03:08:56.193649+00:00",
+  "stage_state": "source_published_affine_native_verified_docmost_pending",
+  "all_targets_verified": false,
+  "source_documents": [
+    "25ae13fb",
+    "9d62380a",
+    "a74679d5",
+    "f6b5ff58",
+    "7e81ae07",
+    "31bb33b9",
+    "eb826242",
+    "5a9aa3fa"
+  ],
+  "source_count": 8,
+  "projection_count": 16,
+  "verified_projection_count": 15,
+  "native_verified_projection_count": 11,
+  "legacy_verified_projection_count": 4,
+  "pending_projection_count": 1,
+  "config_count": 7,
+  "previous_sources_preserved": 7,
+  "previous_projections_preserved": 14,
+  "previous_config_groups_preserved": 6,
+  "new_config_sha256": "21386cdf33e307a2fe9825db8e216b748e7f2195a7ff0cab1ee5b99c93ccc4bc",
+  "new_journal_sha256": "1b79a6f1cf7753d7b79ef202ecbcdc5045d4aa55a07a495611e1b32740375077",
+  "new_journal_lines": 7,
+  "new_source_sha256": "342d3b5e46448dd0cbdb70b3e62326a97eb8eed4bd9e91dedb9751c9d4d25e37",
+  "publisher_sha256": "9802642eed99f60c1b48f687c4100bca670b0e4af2f925fdc7263e9e3f565a21",
+  "publication_closeout_file": "publication-closeout.json",
+  "publication_closeout_sha256": "377c94ced7a8b74566d0779c5fb34ff2d175d2a53107dee1d36f8f203f11bdc9",
+  "frozen_plan_sha256": "8887e090284d899b024e03a755d87877d97ca7437a195ad19c261a5e7026bd9b",
+  "known_projections": [
+    {
+      "source_id": "25ae13fb",
+      "provider": "affine",
+      "binding_id": "startup-fixture-affine-20260909-initialized",
+      "external_id": "2T4haLdQHZ5IkzU2mSJBG",
+      "state": "verified",
+      "native_profile": null,
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "f6b5ff58",
+      "provider": "affine",
+      "binding_id": "startup-fixture-affine-h1-20260909",
+      "external_id": "pLxvvvqAYXsM7iuxUGIeR",
+      "state": "verified",
+      "native_profile": null,
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "25ae13fb",
+      "provider": "docmost",
+      "binding_id": "startup-fixture-docmost-20260909-initialized",
+      "external_id": "01a08286-d73b-76c5-922f-7e1204ba8b2d",
+      "state": "verified",
+      "native_profile": null,
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "f6b5ff58",
+      "provider": "docmost",
+      "binding_id": "startup-fixture-docmost-h1-20260909",
+      "external_id": "01a08286-d78b-7621-ba89-e26e5c6fbb10",
+      "state": "verified",
+      "native_profile": null,
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "a74679d5",
+      "provider": "affine",
+      "binding_id": "startup-stage-publication-20260909-0418-affine",
+      "external_id": "SLrA9aXyZV-vehgtC91W-",
+      "state": "native_verified",
+      "native_profile": "affine.database-v3.rich-text.b4c8548c0.v1",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "a74679d5",
+      "provider": "docmost",
+      "binding_id": "startup-stage-publication-20260909-0418-docmost",
+      "external_id": "01a082b6-bade-7ef2-8bfc-02b75fcd97de",
+      "state": "native_verified",
+      "native_profile": "docmost.prosemirror.gfm.goldmark-1.8.6.v1",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "9d62380a",
+      "provider": "affine",
+      "binding_id": "startup-archive-code-20260909-0618-affine",
+      "external_id": "KfTj5XXxNr39dXMML9eff",
+      "state": "native_verified",
+      "native_profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "9d62380a",
+      "provider": "docmost",
+      "binding_id": "startup-archive-code-20260909-0618-docmost",
+      "external_id": "01a0831e-38e3-76d9-8c34-0466c871bb42",
+      "state": "native_verified",
+      "native_profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "7e81ae07",
+      "provider": "affine",
+      "binding_id": "startup-automatic-archive-publication-20260909-0649-affine",
+      "external_id": "pos1eudO5AYgYiEVx146t",
+      "state": "native_verified",
+      "native_profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "7e81ae07",
+      "provider": "docmost",
+      "binding_id": "startup-automatic-archive-publication-20260909-0649-docmost",
+      "external_id": "01a0833c-cc3a-71aa-83f4-b29474708ce6",
+      "state": "native_verified",
+      "native_profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "31bb33b9",
+      "provider": "affine",
+      "binding_id": "startup-message-interactions-publication-20260909-0750-affine",
+      "external_id": "bGCK2yAAKIJTKrJDgZId0",
+      "state": "native_verified",
+      "native_profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "31bb33b9",
+      "provider": "docmost",
+      "binding_id": "startup-message-interactions-publication-20260909-0750-docmost",
+      "external_id": "01a0838f-b37f-75b2-8f7c-3d3b603ccb4e",
+      "state": "native_verified",
+      "native_profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "eb826242",
+      "provider": "affine",
+      "binding_id": "account-bridge-publication-20260909-affine",
+      "external_id": "0MDttZyU_BqyjzQMKqVLW",
+      "state": "native_verified",
+      "native_profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "eb826242",
+      "provider": "docmost",
+      "binding_id": "account-bridge-publication-20260909-docmost",
+      "external_id": "01a083e1-d4f7-7af2-a4d8-e537c7a14f69",
+      "state": "native_verified",
+      "native_profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "5a9aa3fa",
+      "provider": "affine",
+      "binding_id": "workspace-invitations-publication-20260909-affine",
+      "external_id": "RBOpVVG9dPUzZIOl6BWNN",
+      "state": "native_verified",
+      "native_profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+      "verified": true,
+      "pending": false
+    },
+    {
+      "source_id": "5a9aa3fa",
+      "provider": "docmost",
+      "binding_id": "workspace-invitations-publication-20260909-docmost",
+      "external_id": "01a08419-805c-7585-b968-98329277c32c",
+      "state": "unknown",
+      "native_profile": null,
+      "verified": false,
+      "pending": true
+    }
+  ],
+  "pending_target_policy": {
+    "source_id": "5a9aa3fa",
+    "provider": "docmost",
+    "external_id": "01a08419-805c-7585-b968-98329277c32c",
+    "state": "unknown",
+    "do_not_recreate": true,
+    "do_not_mark_verified": true,
+    "do_not_silently_upgrade_profile": true,
+    "current_version": "2026-09-09T02:57:38.845Z",
+    "native_raw_hash": "7dcfbe5a4feee19dd79b2e0f72114508dae97f8dc48f2b17bcf1ee27fac5e30d",
+    "reason": "orderedList.attrs.type:null is a deployed schema default outside the current strict profile; target untouched."
+  },
+  "next_stage_gate": "This is a partial closeout, not a publication-receipt.json asserting all targets verified. The prior all-verified publisher guard must not be bypassed or reused as if all sixteen targets passed."
+}
