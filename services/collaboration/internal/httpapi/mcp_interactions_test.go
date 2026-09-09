@@ -42,7 +42,7 @@ func TestMCPInteractionCapabilityRegistryAndSchemas(t *testing.T) {
 			code, caps := request(t, g, "", "GET", "/v1/capabilities", nil)
 			require.Equal(t, 200, code)
 			require.Equal(t, "renji.capabilities.v1", caps["schema"])
-			require.Len(t, caps["capabilities"], 23)
+			require.Len(t, caps["capabilities"], 28)
 			ids := map[string]bool{}
 			for _, raw := range caps["capabilities"].([]any) {
 				c := raw.(map[string]any)
@@ -59,10 +59,6 @@ func TestMCPInteractionCapabilityRegistryAndSchemas(t *testing.T) {
 					available = false
 					reason = "rongcloud_client_write_policy_unverified"
 				}
-				if isMachine && id == "transport.arrival.read" {
-					available = false
-					reason = "run_scoped_receive_pending"
-				}
 				require.Equal(t, available, c["available"], id)
 				if !available {
 					require.Equal(t, reason, c["unavailable_reason"])
@@ -76,9 +72,9 @@ func TestMCPInteractionCapabilityRegistryAndSchemas(t *testing.T) {
 			code, out := request(t, g, "", "POST", "/v1/mcp", map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
 			require.Equal(t, 200, code)
 			tools := out["result"].(map[string]any)["tools"].([]any)
-			expected := 20
+			expected := 26
 			if isMachine {
-				expected = 17
+				expected = 23
 			}
 			if catalog == nil {
 				expected -= 3
@@ -108,7 +104,7 @@ func TestMCPInteractionCapabilityRegistryAndSchemas(t *testing.T) {
 					require.Contains(t, schema["required"], "display_name")
 				}
 			}
-			for _, name := range []string{"message_get", "message_reaction_read"} {
+			for _, name := range []string{"message_get", "message_reaction_read", "transport_arrival_read"} {
 				require.True(t, names[name], name)
 			}
 			for _, name := range []string{"message_reaction_set", "emoji_list", "emoji_get"} {
@@ -168,12 +164,11 @@ func TestTransportCapabilitiesMatchPrincipalReadiness(t *testing.T) {
 			}
 			require.Equal(t, tc.wantSession, found["transport.session"]["available"])
 			arrival := found["transport.arrival.read"]
-			require.Equal(t, !tc.machine, arrival["available"])
+			require.Equal(t, true, arrival["available"])
 			require.Equal(t, true, arrival["exportable"])
-			require.Equal(t, map[string]any{"api": true, "mcp": false, "a2a": false}, arrival["protocols"])
-			if tc.machine {
-				require.Equal(t, "run_scoped_receive_pending", arrival["unavailable_reason"])
-			}
+			require.Equal(t, "run_required", arrival["machine_access"])
+			require.Equal(t, map[string]any{"api": true, "mcp": true, "a2a": false}, arrival["protocols"])
+			require.NotContains(t, arrival, "unavailable_reason")
 		})
 	}
 }

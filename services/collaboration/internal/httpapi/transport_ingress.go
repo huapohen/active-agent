@@ -98,14 +98,9 @@ func MountRongCloudIngress(g *gin.Engine, v1 *gin.RouterGroup, s *store.Store, c
 		c.JSON(200, gin.H{"accepted": true})
 	})
 	v1.GET("/transport/events", func(c *gin.Context) {
-		// Machine-native streaming needs an explicit Run-bound source contract;
-		// don't silently widen an executor to account-level workspace coverage.
-		if _, isMachine := machine(c); isMachine {
-			c.JSON(403, gin.H{"error": "transport_run_scope_required"})
-			return
-		}
 		q := c.Request.URL.Query()
-		if !allowedQuery(q, "after", "limit") {
+		_, isMachine := machine(c)
+		if !allowedQuery(q, "after", "limit", "run_id") || (!isMachine && q.Has("run_id")) {
 			fail(c, domain.ErrInvalid)
 			return
 		}
@@ -113,7 +108,7 @@ func MountRongCloudIngress(g *gin.Engine, v1 *gin.RouterGroup, s *store.Store, c
 		limit := 50
 		if q.Has("after") {
 			n, e := strconv.ParseInt(q.Get("after"), 10, 64)
-			if e != nil || n < 0 {
+			if e != nil || n < 0 || n > 9007199254740991 {
 				fail(c, domain.ErrInvalid)
 				return
 			}
@@ -127,7 +122,7 @@ func MountRongCloudIngress(g *gin.Engine, v1 *gin.RouterGroup, s *store.Store, c
 			}
 			limit = n
 		}
-		page, err := s.TransportArrivals(c.Request.Context(), principal(c).ID, after, limit, bindings)
+		page, err := nativeTransportArrivals(c, s, q.Get("run_id"), after, limit, bindings)
 		if err != nil {
 			fail(c, err)
 			return
@@ -135,4 +130,19 @@ func MountRongCloudIngress(g *gin.Engine, v1 *gin.RouterGroup, s *store.Store, c
 		c.JSON(http.StatusOK, page)
 	})
 	return nil
+}
+
+// HTTP and MCP resolve the same authenticated receiver. A machine supplies only
+// its Run ID, never a receiver ID, bridge scope or alternative principal.
+func nativeTransportArrivals(c *gin.Context, s *store.Store, runID string, after int64, limit int, bindings []transport.BridgeBinding) (store.TransportArrivalPage, error) {
+	if after < 0 || after > 9007199254740991 || limit < 1 || limit > 100 {
+		return store.TransportArrivalPage{}, domain.ErrInvalid
+	}
+	if identity, ok := machine(c); ok {
+		return s.ExecutionTransportArrivals(c.Request.Context(), identity.Issuer, identity.MachineSubject, runID, after, limit, bindings)
+	}
+	if runID != "" {
+		return store.TransportArrivalPage{}, domain.ErrInvalid
+	}
+	return s.TransportArrivals(c.Request.Context(), principal(c).ID, after, limit, bindings)
 }

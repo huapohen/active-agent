@@ -19,7 +19,7 @@ JOIN room_members m ON m.room_id=r.id
 JOIN principals p ON p.id=m.principal_id
 JOIN workspace_members wm ON wm.workspace_id=r.workspace_id AND wm.principal_id=m.principal_id
 WHERE m.principal_id=$1::uuid AND NOT p.disabled AND r.id>$2::uuid
-ORDER BY r.id LIMIT 101
+ORDER BY r.id LIMIT 101 FOR SHARE OF r,m,p,wm
 `
 
 type ListAuthorizedRoomsParams struct {

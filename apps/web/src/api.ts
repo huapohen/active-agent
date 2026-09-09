@@ -1,8 +1,9 @@
-import type { Capabilities, CollaborationClient, Document, DocumentContent, EmojiPage, EventPage, Message, MessagePage, Principal, Room, RoomPage, SendIntent, ReactionIntent, ReactionReceipt, ReactionPage, ReactionSummary, ReplySummary, OnboardingClient, Profile, ProfileIntent, WorkspaceInfo, WorkspaceIntent, WorkspaceMember, RoomIntent } from './types';
+import type { Capabilities, CollaborationClient, Document, DocumentContent, EmojiPage, EventPage, Message, MessagePage, Principal, Room, RoomPage, SendIntent, ReactionIntent, ReactionReceipt, ReactionPage, ReactionSummary, ReplySummary, OnboardingClient, Profile, ProfileIntent, WorkspaceInfo, WorkspaceIntent, WorkspaceMember, RoomIntent, RoomPreview, WorkspaceInvitation, InvitationCreateIntent, InvitationRevokeIntent, InvitationAcceptIntent, InvitationReceipt, InvitationAcceptance, InvitationAction, WorkspaceInvitationClient } from './types';
 
 type Json = Record<string, unknown>;
 const uuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value);
 export const validProfileName = (value: string) => { const name = value.trim(); return [...name].length > 0 && [...name].length <= 80 && !/[\p{Cc}\p{Cf}\p{Cs}\u2028\u2029]/u.test(name); };
+export const validInvitationCode = (value: string) => /^rji_[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/.test(value.trim());
 export const validWorkspaceTitle = (value: string) => value.trim().length > 0 && new TextEncoder().encode(value.trim()).length <= 240 && !/[\p{Cc}\p{Cf}\p{Cs}\u2028\u2029]/u.test(value.trim());
 const object = (value: unknown): Json => value && typeof value === 'object' && !Array.isArray(value) ? value as Json : {};
 const list = (value: unknown): Json[] => Array.isArray(value) ? value.map(object) : [];
@@ -82,6 +83,18 @@ export function room(value: unknown): Room {
   return { id: text(r.id), ...(typeof r.workspace_id === 'string' ? { workspaceId: r.workspace_id } : {}), title: text(r.title, text(r.name, '未命名会话')), kind: text(r.kind, 'group'), version: number(r.version, number(r.revision, 1)), scopeEpoch: typeof r.scope_epoch === 'number' ? r.scope_epoch : undefined, stopped: typeof r.stopped === 'boolean' ? r.stopped : undefined, unread: typeof r.unread_count === 'number' ? r.unread_count : undefined, pinned: typeof r.is_pinned === 'boolean' ? r.is_pinned : undefined, muted: typeof r.muted === 'boolean' ? r.muted : undefined, firstUnreadSeq: typeof r.first_unread_seq === 'number' ? r.first_unread_seq : undefined, lastMessage: r.last_message ? message(r.last_message, text(r.id)) : undefined };
 }
 
+function roomPreview(value: unknown, roomId: string): RoomPreview | null | undefined {
+  if (value === undefined || value === null) return value;
+  const p = object(value);
+  if (!uuid(text(p.id)) || p.room_id !== roomId || !uuid(text(p.author_id)) || typeof p.author_name !== 'string' || !['human', 'agent'].includes(text(p.author_kind)) || typeof p.excerpt !== 'string' || [...p.excerpt].length > 240 || !Number.isSafeInteger(p.seq) || number(p.seq) < 1 || typeof p.created_at !== 'string' || !timestamp(p.created_at) || p.content_kind !== 'text') throw new ApiError(502, 'invalid_room_preview');
+  return { id: text(p.id), roomId, authorId: text(p.author_id), authorName: p.author_name, authorKind: p.author_kind as 'human' | 'agent', excerpt: p.excerpt, seq: number(p.seq), createdAt: p.created_at, contentKind: 'text' };
+}
+function invitation(value: unknown, workspaceId?: string): WorkspaceInvitation {
+  const i = object(value);
+  if (!uuid(text(i.id)) || !uuid(text(i.workspace_id)) || workspaceId && i.workspace_id !== workspaceId || !uuid(text(i.created_by)) || !text(i.create_action_id) || i.role !== 'member' || !['pending', 'accepted', 'revoked', 'expired'].includes(text(i.status)) || !timestamp(i.created_at) || !timestamp(i.expires_at) || new Date(text(i.expires_at)).getTime() <= new Date(text(i.created_at)).getTime() || i.accepted_by !== undefined && !uuid(text(i.accepted_by)) || i.accepted_at !== undefined && !timestamp(i.accepted_at) || i.revoked_at !== undefined && !timestamp(i.revoked_at)) throw new ApiError(502, 'invalid_invitation');
+  return { id: text(i.id), workspaceId: text(i.workspace_id), createdBy: text(i.created_by), createActionId: text(i.create_action_id), role: 'member', status: i.status as WorkspaceInvitation['status'], createdAt: timestamp(i.created_at), expiresAt: timestamp(i.expires_at), ...(i.accepted_by ? { acceptedBy: text(i.accepted_by) } : {}), ...(i.accepted_at ? { acceptedAt: timestamp(i.accepted_at) } : {}), ...(i.revoked_at ? { revokedAt: timestamp(i.revoked_at) } : {}) };
+}
+
 /** An adapter is retired permanently on identity change, including A → B → A. */
 abstract class HttpClient implements CollaborationClient {
   abstract readonly mode: 'startup' | 'legacy';
@@ -140,13 +153,15 @@ abstract class HttpClient implements CollaborationClient {
   close() { this.lifecycle.abort(); this.token = async () => null; }
 }
 
-export class StartupClient extends HttpClient implements OnboardingClient {
+export class StartupClient extends HttpClient implements OnboardingClient, WorkspaceInvitationClient {
   private principalId = '';
   private assets = new Map<string, string>();
   readonly mode = 'startup' as const;
   readonly capabilities: Capabilities = { directory: false, documents: false, roomPreferences: false, createRoom: false, mentions: false, liveEvents: false, readReceipts: false, reactions: false, replies: false };
   readonly onboardingCapabilities = { profileRead: false, profileUpdate: false, workspaces: false, workspaceCreate: false, workspaceMembers: false, roomMembers: false, roomCreate: false };
   get onboarding(): OnboardingClient { return this; }
+  readonly invitationCapabilities = { list: false, create: false, revoke: false, accept: false, actionRead: false };
+  get invitations(): WorkspaceInvitationClient { return this; }
   protected get prefix() { return '/v1'; }
   async me(signal?: AbortSignal): Promise<Principal> {
     const me = await super.me(signal);
@@ -157,6 +172,8 @@ export class StartupClient extends HttpClient implements OnboardingClient {
     this.capabilities.reactions = supported('message.reaction.set') && supported('message.reaction.read') && supported('emoji.read');
     Object.assign(this.onboardingCapabilities, { profileRead: supported('profile.read'), profileUpdate: supported('profile.update'), workspaces: supported('workspace.list'), workspaceCreate: supported('workspace.create'), workspaceMembers: supported('workspace.member.list'), roomMembers: supported('room.member.list'), roomCreate: supported('room.create') });
     this.capabilities.createRoom = this.onboardingCapabilities.roomCreate && this.onboardingCapabilities.workspaces && this.onboardingCapabilities.workspaceMembers;
+    Object.assign(this.invitationCapabilities, Object.fromEntries(['list', 'create', 'revoke', 'accept'].map(kind => [kind, me.kind === 'human' && supported(`workspace.invitation.${kind}`)])));
+    this.invitationCapabilities.actionRead = me.kind === 'human' && supported('workspace.invitation.action.read');
     this.principalId = me.id;
     return me;
   }
@@ -166,7 +183,9 @@ export class StartupClient extends HttpClient implements OnboardingClient {
       const result = await this.request(`/rooms${after ? `?after=${after}` : ''}`, 'GET', undefined, signal);
       if (!Array.isArray(result.rooms) || result.rooms.length > 100 || typeof result.cursor !== 'string') throw new ApiError(502, 'invalid_room_page');
       for (const value of result.rooms) {
-        const raw = object(value), item = room(raw);
+        const raw = object(value), item = room({ ...raw, last_message: undefined });
+        item.preview = roomPreview(raw.last_message, item.id);
+        item.previewState = item.preview === undefined ? 'unavailable' : item.preview === null ? 'empty' : 'ready';
         if (!uuid(item.id) || !uuid(text(raw.workspace_id)) || seen.has(item.id) || after && item.id <= after || values.length && item.id <= values.at(-1)!.id) throw new ApiError(502, 'invalid_room_page');
         seen.add(item.id); values.push(item);
       }
@@ -238,6 +257,53 @@ export class StartupClient extends HttpClient implements OnboardingClient {
     const r = object((await this.request('/rooms', 'POST', { action_id: intent.actionId, workspace_id: intent.workspaceId, title: intent.title.trim(), members: intent.memberIds }, signal)).room);
     if (!uuid(text(r.id)) || r.workspace_id !== intent.workspaceId || r.title !== intent.title.trim() || r.kind !== 'group' || !Number.isSafeInteger(r.version) || number(r.version) < 1 || !Number.isSafeInteger(r.scope_epoch) || number(r.scope_epoch) < 1) throw new ApiError(502, 'invalid_room_receipt');
     return { ...room(r), workspaceId: intent.workspaceId };
+  }
+  async workspaceInvitations(workspaceId: string, signal?: AbortSignal): Promise<WorkspaceInvitation[]> {
+    if (!this.invitationCapabilities.list) return this.unsupported();
+    if (!uuid(workspaceId)) throw new ApiError(422, 'invalid_workspace');
+    return (await this.accountPages(`/workspaces/${workspaceId}/invitations`, 'invitations', signal)).map(value => invitation(value, workspaceId));
+  }
+  private invitationReceipt(value: Json, workspaceId: string): InvitationReceipt {
+    const item = invitation(value.invitation, workspaceId);
+    if (typeof value.replayed !== 'boolean' || typeof value.code_available !== 'boolean' || value.code_available && (value.replayed || item.status !== 'pending' || typeof value.code !== 'string' || !validInvitationCode(value.code)) || !value.code_available && value.code !== undefined) throw new ApiError(502, 'invalid_invitation_receipt');
+    return { invitation: item, replayed: value.replayed, codeAvailable: value.code_available, ...(value.code_available ? { code: text(value.code) } : {}) };
+  }
+  async createInvitation(intent: InvitationCreateIntent, signal?: AbortSignal): Promise<InvitationReceipt> {
+    if (!this.invitationCapabilities.create) return this.unsupported();
+    if (!uuid(intent.actionId) || !uuid(intent.workspaceId) || !Number.isSafeInteger(intent.expiresInSeconds) || intent.expiresInSeconds < 60 || intent.expiresInSeconds > 604800) throw new ApiError(422, 'invalid_invitation_intent');
+    const receipt = this.invitationReceipt(await this.request(`/workspaces/${intent.workspaceId}/invitations`, 'POST', { action_id: intent.actionId, expires_in_seconds: intent.expiresInSeconds }, signal), intent.workspaceId);
+    if (receipt.invitation.createActionId !== intent.actionId || receipt.invitation.createdBy !== this.principalId) throw new ApiError(502, 'invalid_invitation_owner');
+    return receipt;
+  }
+  async revokeInvitation(intent: InvitationRevokeIntent, signal?: AbortSignal): Promise<InvitationReceipt> {
+    if (!this.invitationCapabilities.revoke) return this.unsupported();
+    if (!uuid(intent.actionId) || !uuid(intent.workspaceId) || !uuid(intent.invitationId)) throw new ApiError(422, 'invalid_invitation_intent');
+    const receipt = this.invitationReceipt(await this.request(`/workspaces/${intent.workspaceId}/invitations/${intent.invitationId}/revoke`, 'POST', { action_id: intent.actionId }, signal), intent.workspaceId);
+    if (receipt.invitation.id !== intent.invitationId || receipt.codeAvailable) throw new ApiError(502, 'invalid_invitation_receipt');
+    return receipt;
+  }
+  private acceptance(value: Json): InvitationAcceptance {
+    const item = invitation(value.invitation);
+    if (value.code_available !== false || value.code !== undefined || value.workspace_id !== item.workspaceId || value.principal_id !== this.principalId || !['owner', 'admin', 'member'].includes(text(value.role)) || typeof value.already_member !== 'boolean' || typeof value.replayed !== 'boolean' || value.execution_scope_extended !== false || item.status !== 'accepted' || item.acceptedBy !== this.principalId) throw new ApiError(502, 'invalid_invitation_acceptance');
+    return { invitation: item, workspaceId: item.workspaceId, principalId: this.principalId, role: text(value.role), alreadyMember: value.already_member, replayed: value.replayed, executionScopeExtended: false };
+  }
+  async acceptInvitation(intent: InvitationAcceptIntent, signal?: AbortSignal): Promise<InvitationAcceptance> {
+    if (!this.invitationCapabilities.accept) return this.unsupported();
+    if (!uuid(intent.actionId) || !validInvitationCode(intent.code)) throw new ApiError(422, 'invalid_invitation_intent');
+    return this.acceptance(await this.request('/workspace-invitations/accept', 'POST', { action_id: intent.actionId, code: intent.code.trim() }, signal));
+  }
+  async invitationAction(actionId: string, signal?: AbortSignal): Promise<InvitationAction> {
+    if (!this.invitationCapabilities.actionRead) return this.unsupported();
+    if (!uuid(actionId)) throw new ApiError(422, 'invalid_invitation_action');
+    const value = await this.request(`/workspace-invitation-actions/${actionId}`, 'GET', undefined, signal);
+    const kinds: Record<string, 'create' | 'revoke' | 'accept'> = { 'workspace.invitation.create': 'create', 'workspace.invitation.revoke': 'revoke', 'workspace.invitation.accept': 'accept' };
+    const kind = kinds[text(value.kind)];
+    if (value.action_id !== actionId || !kind || !this.invitationCapabilities[kind]) throw new ApiError(502, 'invalid_invitation_action');
+    const raw = object(value.receipt);
+    if (kind === 'accept') { const receipt = this.acceptance(raw); if (!receipt.replayed) throw new ApiError(502, 'invalid_invitation_action'); return { actionId, kind, receipt }; }
+    const receipt = this.invitationReceipt(raw, text(object(raw.invitation).workspace_id));
+    if (receipt.codeAvailable || !receipt.replayed || kind === 'create' && (receipt.invitation.createActionId !== actionId || receipt.invitation.createdBy !== this.principalId)) throw new ApiError(502, 'invalid_invitation_action');
+    return { actionId, kind, receipt };
   }
   async rongCloudEvents(after: number, signal?: AbortSignal) {
     if (!Number.isSafeInteger(after) || after < 0) throw new ApiError(422, 'invalid_transport_cursor');

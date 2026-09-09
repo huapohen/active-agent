@@ -21,13 +21,29 @@ type Principal struct {
 }
 
 type Room struct {
-	ID          string `json:"id"`
-	WorkspaceID string `json:"workspace_id"`
-	Title       string `json:"title"`
-	Kind        string `json:"kind"`
-	Version     int64  `json:"version"`
-	ScopeEpoch  int64  `json:"scope_epoch"`
-	Stopped     bool   `json:"stopped"`
+	ID          string       `json:"id"`
+	WorkspaceID string       `json:"workspace_id"`
+	Title       string       `json:"title"`
+	Kind        string       `json:"kind"`
+	Version     int64        `json:"version"`
+	ScopeEpoch  int64        `json:"scope_epoch"`
+	Stopped     bool         `json:"stopped"`
+	LastMessage *RoomPreview `json:"last_message,omitempty"`
+}
+
+// RoomPreview is an authorized, bounded list excerpt, not a full Message.
+// List endpoints serialize nil explicitly as an empty conversation. Other
+// room metadata receipts omit the preview when they have not read messages.
+type RoomPreview struct {
+	ID          string    `json:"id"`
+	RoomID      string    `json:"room_id"`
+	AuthorID    string    `json:"author_id"`
+	AuthorName  string    `json:"author_name"`
+	AuthorKind  string    `json:"author_kind"`
+	Excerpt     string    `json:"excerpt"`
+	Seq         int64     `json:"seq"`
+	CreatedAt   time.Time `json:"created_at"`
+	ContentKind string    `json:"content_kind"`
 }
 
 type Message struct {

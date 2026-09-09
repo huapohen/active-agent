@@ -124,6 +124,7 @@ func New(s *store.Store, v auth.Verifier, r *transport.RongCloud, origins []stri
 	mountEmoji(v1, s, cfg.emoji)
 	mountMessageInteractions(v1, s, cfg)
 	mountProfileWorkspace(v1, s)
+	mountWorkspaceInvitations(v1, s)
 	if err := MountRongCloudIngress(g, v1, s, cfg.rongCloudBridges); err != nil {
 		panic("invalid RongCloud receiver configuration")
 	}
@@ -159,12 +160,7 @@ func New(s *store.Store, v auth.Verifier, r *transport.RongCloud, origins []stri
 			fail(c, err)
 			return
 		}
-		cursor := ""
-		if len(rooms) > 100 {
-			rooms = rooms[:100]
-			cursor = rooms[99].ID
-		}
-		c.JSON(200, gin.H{"rooms": rooms, "cursor": cursor})
+		c.JSON(200, roomListPage(rooms))
 	})
 	v1.POST("/rooms", func(c *gin.Context) {
 		if denyUnscopedMachineMutation(c) {
@@ -278,6 +274,18 @@ func safeError(err error) (int, string) {
 	case errors.Is(err, domain.ErrInvalid):
 		code = 400
 		message = "invalid_request"
+	case errors.Is(err, domain.ErrInvitationNotFound):
+		code = 404
+		message = "invitation_not_found"
+	case errors.Is(err, domain.ErrInvitationExpired):
+		code = 410
+		message = "invitation_expired"
+	case errors.Is(err, domain.ErrInvitationRevoked):
+		code = 410
+		message = "invitation_revoked"
+	case errors.Is(err, domain.ErrInvitationUsed):
+		code = 409
+		message = "invitation_used"
 	case errors.Is(err, domain.ErrProfileVersionConflict):
 		code = 409
 		message = "profile_version_conflict"

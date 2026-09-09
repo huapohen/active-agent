@@ -391,7 +391,12 @@ func (s *Store) Rooms(ctx context.Context, actor, after string) ([]domain.Room, 
 	if actorID.Scan(actor) != nil || afterID.Scan(after) != nil {
 		return nil, domain.ErrInvalid
 	}
-	rows, err := sqlgen.New(s.Pool).ListAuthorizedRooms(ctx, sqlgen.ListAuthorizedRoomsParams{PrincipalID: actorID, AfterID: afterID})
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	rows, err := sqlgen.New(tx).ListAuthorizedRooms(ctx, sqlgen.ListAuthorizedRoomsParams{PrincipalID: actorID, AfterID: afterID})
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +404,10 @@ func (s *Store) Rooms(ctx context.Context, actor, after string) ([]domain.Room, 
 	for _, r := range rows {
 		out = append(out, domain.Room{ID: r.ID, WorkspaceID: r.WorkspaceID, Title: r.Title, Kind: r.Kind, Version: r.Version, ScopeEpoch: r.ScopeEpoch, Stopped: r.Stopped})
 	}
-	return out, nil
+	if err = loadRoomPreviews(ctx, tx, out); err != nil {
+		return nil, err
+	}
+	return out, tx.Commit(ctx)
 }
 
 func (s *Store) Messages(ctx context.Context, actor, room string, after int64) ([]domain.Message, error) {

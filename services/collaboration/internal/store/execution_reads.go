@@ -120,6 +120,9 @@ func (s *Store) ExecutionRooms(ctx context.Context, issuer, subject, runID, afte
 	if err != nil {
 		return nil, err
 	}
+	if err = loadRoomPreviews(ctx, tx, out); err != nil {
+		return nil, err
+	}
 	return out, tx.Commit(ctx)
 }
 
@@ -176,6 +179,9 @@ func (s *Store) ExecutorRooms(ctx context.Context, issuer, subject, after string
 	}
 	out, err := scanExecutionRooms(rows)
 	if err != nil {
+		return nil, err
+	}
+	if err = loadRoomPreviews(ctx, tx, out); err != nil {
 		return nil, err
 	}
 	return out, tx.Commit(ctx)

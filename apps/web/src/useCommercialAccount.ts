@@ -154,5 +154,16 @@ export function useCommercialAccount(client: CollaborationClient, initial: Princ
     onRefreshMembers: async (id, caller) => { if (caller === scopeKey && id === effectiveWorkspaceId) await members.refetch(); },
     onOpenRoom: (id, caller) => { if (caller === scopeKey && roomState?.status === 'succeeded' && roomState.result.id === id) openRoom(id); },
   };
-  return { view, me, error: storageError ? '本地操作记录暂不可用。为防止重复创建，提交已暂停。' : profile.isError ? errorMessage(profile.error) : undefined };
+  async function onMembershipChanged(workspaceId: string, callerSignal: AbortSignal) {
+    if (!api) throw new ApiError(501, 'account_unavailable');
+    const signal = AbortSignal.any([lifecycle.current.signal, callerSignal]);
+    const [currentSpaces, currentMembers, currentRooms] = await Promise.all([api.workspaces(signal), api.workspaceMembers(workspaceId, signal), client.rooms(signal)]);
+    if (!alive(signal)) throw new DOMException('Aborted', 'AbortError');
+    const current = currentSpaces.find(item => item.id === workspaceId);
+    if (!current || !currentMembers.some(item => item.id === initial.id)) throw new ApiError(403, 'joined_workspace_unavailable');
+    if (!await publishCurrent(['workspaces', scopeKey], currentSpaces, signal) || !await publishCurrent(['workspace-members', scopeKey, workspaceId], currentMembers, signal) || !await publishCurrent(['rooms'], currentRooms, signal)) throw new DOMException('Aborted', 'AbortError');
+    if (!pending.current.room) setSelectedWorkspace(workspaceId);
+    return current;
+  }
+  return { view, me, onMembershipChanged, error: storageError ? '本地操作记录暂不可用。为防止重复创建，提交已暂停。' : profile.isError ? errorMessage(profile.error) : undefined };
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/components/tool/utils"
@@ -59,6 +60,16 @@ func validateRoomPage(r RunContext, after string, page RoomPage) error {
 		}
 		if room.ID == "" || room.ID <= last {
 			return ErrInvalid
+		}
+		if preview := room.LastMessage; preview != nil {
+			if preview.RoomID != room.ID {
+				return ErrDenied
+			}
+			if !validResourceIDs(preview.ID, preview.AuthorID) || preview.Seq < 1 || preview.Seq > 9007199254740991 || preview.CreatedAt.IsZero() || preview.ContentKind != "text" ||
+				(preview.AuthorKind != "human" && preview.AuthorKind != "agent") || !utf8.ValidString(preview.Excerpt) || utf8.RuneCountInString(preview.Excerpt) > 240 ||
+				!utf8.ValidString(preview.AuthorName) || utf8.RuneCountInString(preview.AuthorName) > 80 {
+				return ErrInvalid
+			}
 		}
 		last = room.ID
 	}

@@ -6,7 +6,8 @@ export type ReactionIntent = { actionId: string; emoji: string; active: boolean;
 export type ReactionReceipt = { roomId: string; messageId: string; principalId: string; emoji: string; active: boolean; version: number; replayed: boolean };
 export type ReactionPage = { summaries: ReactionSummary[]; version: number; nextAfter?: string };
 export type Message = { id: string; roomId: string; authorId: string; authorName?: string; authorKind?: string; content: string; seq: number; createdAt: string; retracted: boolean; hidden?: boolean; receipt?: Receipt; mentions: string[]; isVoice?: boolean; attachmentCount?: number; replyTo?: string; reply?: ReplySummary; reactionSummaries?: ReactionSummary[]; reactionVersion?: number; reactionsHasMore?: boolean; reactions?: Record<string, string[]> };
-export type Room = { id: string; workspaceId?: string; title: string; kind: string; version: number; scopeEpoch?: number; stopped?: boolean; unread?: number; pinned?: boolean; muted?: boolean; firstUnreadSeq?: number; lastMessage?: Message };
+export type RoomPreview = { id: string; roomId: string; authorId: string; authorName: string; authorKind: 'human' | 'agent'; excerpt: string; seq: number; createdAt: string; contentKind: 'text' };
+export type Room = { id: string; workspaceId?: string; title: string; kind: string; version: number; scopeEpoch?: number; stopped?: boolean; unread?: number; pinned?: boolean; muted?: boolean; firstUnreadSeq?: number; lastMessage?: Message; preview?: RoomPreview | null; previewState?: 'ready' | 'empty' | 'unavailable' };
 export type RoomPage = { rooms: Room[]; cursor: number };
 export type MessagePage = { messages: Message[]; hasMoreBefore: boolean; hasMoreAfter: boolean; firstUnreadSeq?: number };
 export type SendIntent = { actionId: string; content: string; mentions: string[]; scopeEpoch?: number; replyTo?: string };
@@ -23,6 +24,22 @@ export type WorkspaceMember = Principal & { role: string };
 export type ProfileIntent = { actionId: string; displayName: string; expectedVersion: number };
 export type WorkspaceIntent = { actionId: string; title: string };
 export type RoomIntent = { actionId: string; workspaceId: string; title: string; memberIds: string[] };
+export type WorkspaceInvitation = { id: string; workspaceId: string; createdBy: string; createActionId: string; role: 'member'; status: 'pending' | 'accepted' | 'revoked' | 'expired'; createdAt: string; expiresAt: string; acceptedBy?: string; acceptedAt?: string; revokedAt?: string };
+export type InvitationCreateIntent = { actionId: string; workspaceId: string; expiresInSeconds: number };
+export type InvitationRevokeIntent = { actionId: string; workspaceId: string; invitationId: string };
+/** Code is sensitive and must never enter a persistent intent or query cache. */
+export type InvitationAcceptIntent = { actionId: string; code: string };
+export type InvitationReceipt = { invitation: WorkspaceInvitation; replayed: boolean; codeAvailable: boolean; code?: string };
+export type InvitationAcceptance = { invitation: WorkspaceInvitation; workspaceId: string; principalId: string; role: string; alreadyMember: boolean; replayed: boolean; executionScopeExtended: false };
+export type InvitationAction = { actionId: string; kind: 'create' | 'revoke'; receipt: InvitationReceipt } | { actionId: string; kind: 'accept'; receipt: InvitationAcceptance };
+export interface WorkspaceInvitationClient {
+  readonly invitationCapabilities: { list: boolean; create: boolean; revoke: boolean; accept: boolean; actionRead: boolean };
+  workspaceInvitations(workspaceId: string, signal?: AbortSignal): Promise<WorkspaceInvitation[]>;
+  createInvitation(intent: InvitationCreateIntent, signal?: AbortSignal): Promise<InvitationReceipt>;
+  revokeInvitation(intent: InvitationRevokeIntent, signal?: AbortSignal): Promise<InvitationReceipt>;
+  acceptInvitation(intent: InvitationAcceptIntent, signal?: AbortSignal): Promise<InvitationAcceptance>;
+  invitationAction(actionId: string, signal?: AbortSignal): Promise<InvitationAction>;
+}
 /** Each operation retains one intent until its receipt is reconciled. */
 export interface OnboardingClient {
   readonly onboardingCapabilities: { profileRead: boolean; profileUpdate: boolean; workspaces: boolean; workspaceCreate: boolean; workspaceMembers: boolean; roomMembers: boolean; roomCreate: boolean };
@@ -40,6 +57,7 @@ export interface CollaborationClient {
   readonly endpoint: string;
   readonly capabilities: Capabilities;
   readonly onboarding?: OnboardingClient;
+  readonly invitations?: WorkspaceInvitationClient;
   me(signal?: AbortSignal): Promise<Principal>;
   rooms(signal?: AbortSignal): Promise<RoomPage>;
   messages(roomId: string, options?: { before?: number; firstUnread?: boolean; signal?: AbortSignal }): Promise<MessagePage>;

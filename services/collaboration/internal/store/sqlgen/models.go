@@ -191,6 +191,30 @@ type RoomMember struct {
 	Role        string      `json:"role"`
 }
 
+type TransportBridgeStatus struct {
+	BridgeID        string             `json:"bridge_id"`
+	ReceiverID      pgtype.UUID        `json:"receiver_id"`
+	RoomID          pgtype.UUID        `json:"room_id"`
+	ConnectionState string             `json:"connection_state"`
+	HeartbeatAt     pgtype.Timestamptz `json:"heartbeat_at"`
+	HeartbeatSeq    int64              `json:"heartbeat_seq"`
+}
+
+type TransportInbox struct {
+	ID                 int64              `json:"id"`
+	BridgeID           string             `json:"bridge_id"`
+	ReceiverID         pgtype.UUID        `json:"receiver_id"`
+	RoomID             pgtype.UUID        `json:"room_id"`
+	MessageID          pgtype.UUID        `json:"message_id"`
+	EventID            int64              `json:"event_id"`
+	ProviderUid        string             `json:"provider_uid"`
+	Kind               string             `json:"kind"`
+	ObservedScopeEpoch int64              `json:"observed_scope_epoch"`
+	SdkReceivedTime    int64              `json:"sdk_received_time"`
+	EnvelopeSha256     string             `json:"envelope_sha256"`
+	ReceivedAt         pgtype.Timestamptz `json:"received_at"`
+}
+
 type TransportOutbox struct {
 	ID                 int64              `json:"id"`
 	EventID            int64              `json:"event_id"`
@@ -209,6 +233,25 @@ type Workspace struct {
 	ID        pgtype.UUID        `json:"id"`
 	Title     string             `json:"title"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type WorkspaceInvitation struct {
+	ID              pgtype.UUID        `json:"id"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	CreatedBy       pgtype.UUID        `json:"created_by"`
+	CreateActionID  string             `json:"create_action_id"`
+	CreatorRole     string             `json:"creator_role"`
+	CodeHash        string             `json:"code_hash"`
+	Role            string             `json:"role"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	ExpiresAt       pgtype.Timestamptz `json:"expires_at"`
+	AcceptedBy      pgtype.UUID        `json:"accepted_by"`
+	AcceptedAt      pgtype.Timestamptz `json:"accepted_at"`
+	AcceptedRunID   pgtype.UUID        `json:"accepted_run_id"`
+	RevokedAt       pgtype.Timestamptz `json:"revoked_at"`
+	RevokedBy       pgtype.UUID        `json:"revoked_by"`
+	IssuedRunID     pgtype.UUID        `json:"issued_run_id"`
+	IssuedAuthority []byte             `json:"issued_authority"`
 }
 
 type WorkspaceMember struct {

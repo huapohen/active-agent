@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/huapohen/active-agent/services/collaboration/internal/domain"
@@ -241,4 +243,33 @@ func TestNativeHTTPRoomPaginationUsesSharedValidation(t *testing.T) {
 	got, err = g.ReadRooms(context.Background(), r, r.RoomID)
 	require.ErrorIs(t, err, ErrInvalid)
 	require.Empty(t, got.Rooms, "transport must discard the entire non-progressing page")
+}
+
+func TestNativeRoomPreviewCannotBroadenPluginReadOrExceedBounds(t *testing.T) {
+	r := runContext()
+	valid := domain.RoomPreview{ID: "00000000-0000-4000-8000-000000000011", RoomID: r.RoomID, AuthorID: "00000000-0000-4000-8000-000000000012", AuthorName: "同事", AuthorKind: "agent", Excerpt: strings.Repeat("协", 240), Seq: 1, CreatedAt: time.Now(), ContentKind: "text"}
+	for _, tc := range []struct {
+		name  string
+		alter func(*domain.RoomPreview)
+		want  error
+	}{
+		{"valid", func(p *domain.RoomPreview) {}, nil},
+		{"foreign-preview", func(p *domain.RoomPreview) { p.RoomID = "outside-run" }, ErrDenied},
+		{"fake-message-id", func(p *domain.RoomPreview) { p.ID = "fake" }, ErrInvalid},
+		{"oversized-unicode", func(p *domain.RoomPreview) { p.Excerpt += "作" }, ErrInvalid},
+		{"unsafe-sequence", func(p *domain.RoomPreview) { p.Seq = 9007199254740992 }, ErrInvalid},
+		{"invented-kind", func(p *domain.RoomPreview) { p.ContentKind = "voice" }, ErrInvalid},
+		{"missing-time", func(p *domain.RoomPreview) { p.CreatedAt = time.Time{} }, ErrInvalid},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			preview := valid
+			tc.alter(&preview)
+			err := validateRoomPage(r, "", RoomPage{Rooms: []domain.Room{{ID: r.RoomID, LastMessage: &preview}}})
+			if tc.want == nil {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, tc.want)
+			}
+		})
+	}
 }

@@ -15,29 +15,9 @@ import (
 
 var ErrIngressAwaitingAcceptance = errors.New("transport_ingress_awaiting_acceptance")
 
-type TransportArrival struct {
-	Cursor      int64     `json:"cursor"`
-	EventID     int64     `json:"event_id"`
-	RoomID      string    `json:"room_id"`
-	MessageID   string    `json:"message_id"`
-	Kind        string    `json:"kind"`
-	ProviderUID string    `json:"provider_uid"`
-	ReceivedAt  time.Time `json:"received_at"`
-}
-type TransportBridgeStatus struct {
-	BridgeState     string     `json:"bridge_state"`
-	LastHeartbeatAt *time.Time `json:"last_heartbeat_at"`
-	LastReceivedAt  *time.Time `json:"last_received_at"`
-}
-type TransportArrivalPage struct {
-	Schema     string                `json:"schema"`
-	Transport  string                `json:"transport"`
-	Mode       string                `json:"mode"`
-	Events     []TransportArrival    `json:"events"`
-	NextCursor int64                 `json:"next_cursor"`
-	HasMore    bool                  `json:"has_more"`
-	Status     TransportBridgeStatus `json:"status"`
-}
+type TransportArrival = domain.TransportArrival
+type TransportBridgeStatus = domain.TransportBridgeStatus
+type TransportArrivalPage = domain.TransportArrivalPage
 
 // RecordTransportIngress never makes a new canonical message or modifies an
 // outbox outcome. A received SDK envelope must match the same accepted message
@@ -213,7 +193,18 @@ func (s *Store) TransportArrivals(ctx context.Context, actor string, after int64
 	if len(ids) == 0 {
 		return out, tx.Commit(ctx)
 	}
-	rows, err := tx.Query(ctx, `SELECT i.id,i.event_id,i.room_id::text,i.message_id::text,i.kind,i.provider_uid,i.received_at FROM transport_inbox i JOIN rooms r ON r.id=i.room_id WHERE i.receiver_id=$1 AND EXISTS(SELECT 1 FROM unnest($2::text[],$5::uuid[]) AS coverage(bridge_id,room_id) WHERE coverage.bridge_id=i.bridge_id AND coverage.room_id=i.room_id) AND i.id>$3 AND ($6 OR (NOT r.stopped AND i.observed_scope_epoch=r.scope_epoch)) ORDER BY i.id LIMIT $4`, actor, ids, after, limit+1, rooms, reader.Kind == "human")
+	out, err = readTransportArrivalPage(ctx, tx, actor, after, limit, ids, rooms, reader.Kind == "human")
+	if err != nil {
+		return out, err
+	}
+	return out, tx.Commit(ctx)
+}
+
+// The caller must hold current authorization locks for exactly these coverage
+// tuples. This helper performs no identity lookup and never widens coverage.
+func readTransportArrivalPage(ctx context.Context, tx pgx.Tx, actor string, after int64, limit int, ids, rooms []string, human bool) (TransportArrivalPage, error) {
+	out := emptyTransportArrivalPage(after)
+	rows, err := tx.Query(ctx, `SELECT i.id,i.event_id,i.room_id::text,i.message_id::text,i.kind,i.provider_uid,i.received_at FROM transport_inbox i JOIN rooms r ON r.id=i.room_id WHERE i.receiver_id=$1 AND EXISTS(SELECT 1 FROM unnest($2::text[],$5::uuid[]) AS coverage(bridge_id,room_id) WHERE coverage.bridge_id=i.bridge_id AND coverage.room_id=i.room_id) AND i.id>$3 AND ($6 OR (NOT r.stopped AND i.observed_scope_epoch=r.scope_epoch)) ORDER BY i.id LIMIT $4`, actor, ids, after, limit+1, rooms, human)
 	if err != nil {
 		return out, err
 	}
@@ -251,9 +242,9 @@ func (s *Store) TransportArrivals(ctx context.Context, actor string, after int64
 	if connected {
 		out.Status.BridgeState = "connected"
 	}
-	err = tx.QueryRow(ctx, `SELECT max(i.received_at) FROM transport_inbox i JOIN rooms r ON r.id=i.room_id WHERE i.receiver_id=$1 AND EXISTS(SELECT 1 FROM unnest($2::text[],$3::uuid[]) AS coverage(bridge_id,room_id) WHERE coverage.bridge_id=i.bridge_id AND coverage.room_id=i.room_id) AND ($4 OR (NOT r.stopped AND i.observed_scope_epoch=r.scope_epoch))`, actor, ids, rooms, reader.Kind == "human").Scan(&out.Status.LastReceivedAt)
+	err = tx.QueryRow(ctx, `SELECT max(i.received_at) FROM transport_inbox i JOIN rooms r ON r.id=i.room_id WHERE i.receiver_id=$1 AND EXISTS(SELECT 1 FROM unnest($2::text[],$3::uuid[]) AS coverage(bridge_id,room_id) WHERE coverage.bridge_id=i.bridge_id AND coverage.room_id=i.room_id) AND ($4 OR (NOT r.stopped AND i.observed_scope_epoch=r.scope_epoch))`, actor, ids, rooms, human).Scan(&out.Status.LastReceivedAt)
 	if err != nil {
 		return out, err
 	}
-	return out, tx.Commit(ctx)
+	return out, nil
 }
