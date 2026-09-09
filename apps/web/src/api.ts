@@ -1,6 +1,9 @@
-import type { Capabilities, CollaborationClient, Document, DocumentContent, EmojiPage, EventPage, Message, MessagePage, Principal, Room, RoomPage, SendIntent, ReactionIntent, ReactionReceipt, ReactionPage, ReactionSummary, ReplySummary } from './types';
+import type { Capabilities, CollaborationClient, Document, DocumentContent, EmojiPage, EventPage, Message, MessagePage, Principal, Room, RoomPage, SendIntent, ReactionIntent, ReactionReceipt, ReactionPage, ReactionSummary, ReplySummary, OnboardingClient, Profile, ProfileIntent, WorkspaceInfo, WorkspaceIntent, WorkspaceMember, RoomIntent } from './types';
 
 type Json = Record<string, unknown>;
+const uuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value);
+export const validProfileName = (value: string) => { const name = value.trim(); return [...name].length > 0 && [...name].length <= 80 && !/[\p{Cc}\p{Cf}\p{Cs}\u2028\u2029]/u.test(name); };
+export const validWorkspaceTitle = (value: string) => value.trim().length > 0 && new TextEncoder().encode(value.trim()).length <= 240 && !/[\p{Cc}\p{Cf}\p{Cs}\u2028\u2029]/u.test(value.trim());
 const object = (value: unknown): Json => value && typeof value === 'object' && !Array.isArray(value) ? value as Json : {};
 const list = (value: unknown): Json[] => Array.isArray(value) ? value.map(object) : [];
 const text = (value: unknown, fallback = '') => typeof value === 'string' ? value : fallback;
@@ -9,6 +12,14 @@ const timestamp = (value: unknown) => {
   const date = typeof value === 'number' || typeof value === 'string' ? new Date(value) : null;
   return date && Number.isFinite(date.getTime()) ? typeof value === 'string' ? value : date.toISOString() : '';
 };
+function workspaceInfo(value: Json, full = false): WorkspaceInfo {
+  if (!uuid(text(value.id)) || typeof value.title !== 'string' || !validWorkspaceTitle(value.title) || full && (!['owner', 'admin', 'member'].includes(text(value.role)) || !timestamp(value.created_at))) throw new ApiError(502, 'invalid_workspace');
+  return { id: text(value.id), title: value.title, ...(full ? { role: text(value.role), createdAt: timestamp(value.created_at) } : {}) };
+}
+function memberInfo(value: Json): WorkspaceMember {
+  if (!uuid(text(value.principal_id)) || !['human', 'agent'].includes(text(value.kind)) || typeof value.display_name !== 'string' || !['owner', 'admin', 'member'].includes(text(value.role))) throw new ApiError(502, 'invalid_member');
+  return { ...principal(value), role: text(value.role) };
+}
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string) {
@@ -68,7 +79,7 @@ function reactionSummaries(value: unknown, limit: number): ReactionSummary[] {
 export function room(value: unknown): Room {
   const r = object(value);
   if (!text(r.id)) throw new ApiError(502, 'invalid_room');
-  return { id: text(r.id), title: text(r.title, text(r.name, '未命名会话')), kind: text(r.kind, 'group'), version: number(r.version, number(r.revision, 1)), scopeEpoch: typeof r.scope_epoch === 'number' ? r.scope_epoch : undefined, stopped: typeof r.stopped === 'boolean' ? r.stopped : undefined, unread: typeof r.unread_count === 'number' ? r.unread_count : undefined, pinned: typeof r.is_pinned === 'boolean' ? r.is_pinned : undefined, muted: typeof r.muted === 'boolean' ? r.muted : undefined, firstUnreadSeq: typeof r.first_unread_seq === 'number' ? r.first_unread_seq : undefined, lastMessage: r.last_message ? message(r.last_message, text(r.id)) : undefined };
+  return { id: text(r.id), ...(typeof r.workspace_id === 'string' ? { workspaceId: r.workspace_id } : {}), title: text(r.title, text(r.name, '未命名会话')), kind: text(r.kind, 'group'), version: number(r.version, number(r.revision, 1)), scopeEpoch: typeof r.scope_epoch === 'number' ? r.scope_epoch : undefined, stopped: typeof r.stopped === 'boolean' ? r.stopped : undefined, unread: typeof r.unread_count === 'number' ? r.unread_count : undefined, pinned: typeof r.is_pinned === 'boolean' ? r.is_pinned : undefined, muted: typeof r.muted === 'boolean' ? r.muted : undefined, firstUnreadSeq: typeof r.first_unread_seq === 'number' ? r.first_unread_seq : undefined, lastMessage: r.last_message ? message(r.last_message, text(r.id)) : undefined };
 }
 
 /** An adapter is retired permanently on identity change, including A → B → A. */
@@ -97,7 +108,9 @@ abstract class HttpClient implements CollaborationClient {
     combined.throwIfAborted();
     if (!response.ok) {
       const json = object(result), nested = object(json.error);
-      throw new ApiError(response.status, text(json.code, text(nested.code, 'request_failed')));
+      // Go uses {error: code}; the migration service can use {error:{code}}.
+      const code = text(json.code, text(nested.code, text(json.error, 'request_failed')));
+      throw new ApiError(response.status, /^[a-z][a-z0-9_]{0,95}$/.test(code) ? code : 'request_failed');
     }
     return object(result);
   }
@@ -127,11 +140,13 @@ abstract class HttpClient implements CollaborationClient {
   close() { this.lifecycle.abort(); this.token = async () => null; }
 }
 
-export class StartupClient extends HttpClient {
+export class StartupClient extends HttpClient implements OnboardingClient {
   private principalId = '';
   private assets = new Map<string, string>();
   readonly mode = 'startup' as const;
   readonly capabilities: Capabilities = { directory: false, documents: false, roomPreferences: false, createRoom: false, mentions: false, liveEvents: false, readReceipts: false, reactions: false, replies: false };
+  readonly onboardingCapabilities = { profileRead: false, profileUpdate: false, workspaces: false, workspaceCreate: false, workspaceMembers: false, roomMembers: false, roomCreate: false };
+  get onboarding(): OnboardingClient { return this; }
   protected get prefix() { return '/v1'; }
   async me(signal?: AbortSignal): Promise<Principal> {
     const me = await super.me(signal);
@@ -140,8 +155,101 @@ export class StartupClient extends HttpClient {
     const supported = (id: string) => registry.capabilities instanceof Array && registry.capabilities.some(value => { const c = object(value); return c.id === id && c.version === '1' && object(c.protocols).api === true && c.available === true; });
     this.capabilities.replies = supported('message.reply');
     this.capabilities.reactions = supported('message.reaction.set') && supported('message.reaction.read') && supported('emoji.read');
+    Object.assign(this.onboardingCapabilities, { profileRead: supported('profile.read'), profileUpdate: supported('profile.update'), workspaces: supported('workspace.list'), workspaceCreate: supported('workspace.create'), workspaceMembers: supported('workspace.member.list'), roomMembers: supported('room.member.list'), roomCreate: supported('room.create') });
+    this.capabilities.createRoom = this.onboardingCapabilities.roomCreate && this.onboardingCapabilities.workspaces && this.onboardingCapabilities.workspaceMembers;
     this.principalId = me.id;
     return me;
+  }
+  async rooms(signal?: AbortSignal): Promise<RoomPage> {
+    let after = ''; const values: Room[] = []; const seen = new Set<string>();
+    for (let page = 0; page < 100; page++) {
+      const result = await this.request(`/rooms${after ? `?after=${after}` : ''}`, 'GET', undefined, signal);
+      if (!Array.isArray(result.rooms) || result.rooms.length > 100 || typeof result.cursor !== 'string') throw new ApiError(502, 'invalid_room_page');
+      for (const value of result.rooms) {
+        const raw = object(value), item = room(raw);
+        if (!uuid(item.id) || !uuid(text(raw.workspace_id)) || seen.has(item.id) || after && item.id <= after || values.length && item.id <= values.at(-1)!.id) throw new ApiError(502, 'invalid_room_page');
+        seen.add(item.id); values.push(item);
+      }
+      if (!result.cursor) return { rooms: values, cursor: 0 };
+      if (!uuid(result.cursor) || result.cursor !== values.at(-1)?.id || result.cursor === after) throw new ApiError(502, 'invalid_room_cursor');
+      after = result.cursor;
+    }
+    throw new ApiError(422, 'room_directory_too_large');
+  }
+  private profileValue(value: Json): Profile {
+    const p = object(value.principal);
+    if (p.id !== this.principalId || !['human', 'agent'].includes(text(p.kind)) || typeof p.display_name !== 'string' || !Number.isSafeInteger(value.version) || number(value.version) < 1) throw new ApiError(502, 'invalid_profile');
+    return { principal: principal(p), version: number(value.version) };
+  }
+  async profile(signal?: AbortSignal): Promise<Profile> {
+    if (!this.onboardingCapabilities.profileRead) return this.unsupported();
+    return this.profileValue(await this.request('/profile', 'GET', undefined, signal));
+  }
+  async updateProfile(intent: ProfileIntent, signal?: AbortSignal): Promise<Profile & { replayed: boolean }> {
+    if (!this.onboardingCapabilities.profileUpdate) return this.unsupported();
+    if (!intent.actionId || !Number.isSafeInteger(intent.expectedVersion) || intent.expectedVersion < 1 || !validProfileName(intent.displayName)) throw new ApiError(422, 'invalid_profile_intent');
+    const r = await this.request('/profile', 'POST', { action_id: intent.actionId, display_name: intent.displayName.trim(), expected_version: intent.expectedVersion }, signal);
+    const result = this.profileValue(r);
+    if (typeof r.replayed !== 'boolean' || result.principal.displayName !== intent.displayName.trim() || result.version !== intent.expectedVersion + 1) throw new ApiError(502, 'invalid_profile_receipt');
+    return { ...result, replayed: r.replayed };
+  }
+  /** Follow only validated UUID cursors. Never silently present a partial directory. */
+  private async accountPages(path: string, field: string, signal?: AbortSignal): Promise<Json[]> {
+    let after = ''; const entries: Json[] = []; const seen = new Set<string>();
+    for (let page = 0; page < 100; page++) {
+      const result = await this.request(`${path}?limit=100${after ? `&after=${after}` : ''}`, 'GET', undefined, signal);
+      if (!Array.isArray(result[field]) || result[field].length > 100 || typeof result.cursor !== 'string') throw new ApiError(502, 'invalid_account_page');
+      const values = list(result[field]);
+      for (const value of values) {
+        const id = text(value.id, text(value.principal_id));
+        if (!uuid(id) || seen.has(id) || (after && id <= after) || (entries.length && id <= text(entries.at(-1)?.id, text(entries.at(-1)?.principal_id)))) throw new ApiError(502, 'invalid_account_cursor');
+        seen.add(id); entries.push(value);
+      }
+      if (!result.cursor) return entries;
+      if (!uuid(result.cursor) || !values.length || result.cursor !== text(values.at(-1)?.id, text(values.at(-1)?.principal_id)) || result.cursor === after) throw new ApiError(502, 'invalid_account_cursor');
+      after = result.cursor;
+    }
+    throw new ApiError(422, 'account_directory_too_large');
+  }
+  async workspaces(signal?: AbortSignal): Promise<WorkspaceInfo[]> {
+    if (!this.onboardingCapabilities.workspaces) return this.unsupported();
+    return (await this.accountPages('/workspaces', 'workspaces', signal)).map(value => workspaceInfo(value, true));
+  }
+  async workspaceMembers(workspaceId: string, signal?: AbortSignal): Promise<WorkspaceMember[]> {
+    if (!this.onboardingCapabilities.workspaceMembers) return this.unsupported();
+    if (!uuid(workspaceId)) throw new ApiError(422, 'invalid_workspace');
+    return (await this.accountPages(`/workspaces/${workspaceId}/members`, 'members', signal)).map(memberInfo);
+  }
+  async members(roomId: string, signal?: AbortSignal): Promise<Principal[]> {
+    if (!this.onboardingCapabilities.roomMembers) return this.unsupported();
+    if (!uuid(roomId)) throw new ApiError(422, 'invalid_room');
+    return (await this.accountPages(`/rooms/${roomId}/members`, 'members', signal)).map(memberInfo);
+  }
+  async createWorkspace(intent: WorkspaceIntent, signal?: AbortSignal): Promise<WorkspaceInfo> {
+    if (!this.onboardingCapabilities.workspaceCreate) return this.unsupported();
+    if (!intent.actionId || !validWorkspaceTitle(intent.title)) throw new ApiError(422, 'invalid_workspace_intent');
+    const result = workspaceInfo(object((await this.request('/workspaces', 'POST', { action_id: intent.actionId, title: intent.title.trim() }, signal)).workspace));
+    if (result.title !== intent.title.trim()) throw new ApiError(502, 'invalid_workspace_receipt');
+    return result;
+  }
+  async createWorkspaceRoom(intent: RoomIntent, signal?: AbortSignal): Promise<Room> {
+    if (!this.onboardingCapabilities.roomCreate) return this.unsupported();
+    if (!intent.actionId || !uuid(intent.workspaceId) || !validWorkspaceTitle(intent.title) || intent.memberIds.length > 100 || intent.memberIds.some(id => !uuid(id)) || new Set(intent.memberIds).size !== intent.memberIds.length || !intent.memberIds.includes(this.principalId)) throw new ApiError(422, 'invalid_room_intent');
+    const r = object((await this.request('/rooms', 'POST', { action_id: intent.actionId, workspace_id: intent.workspaceId, title: intent.title.trim(), members: intent.memberIds }, signal)).room);
+    if (!uuid(text(r.id)) || r.workspace_id !== intent.workspaceId || r.title !== intent.title.trim() || r.kind !== 'group' || !Number.isSafeInteger(r.version) || number(r.version) < 1 || !Number.isSafeInteger(r.scope_epoch) || number(r.scope_epoch) < 1) throw new ApiError(502, 'invalid_room_receipt');
+    return { ...room(r), workspaceId: intent.workspaceId };
+  }
+  async rongCloudEvents(after: number, signal?: AbortSignal) {
+    if (!Number.isSafeInteger(after) || after < 0) throw new ApiError(422, 'invalid_transport_cursor');
+    const r = await this.request(`/transport/events?after=${after}&limit=50`, 'GET', undefined, signal), status = object(r.status);
+    if (r.schema !== 'renji.transport.events.v1' || r.transport !== 'rongcloud' || r.mode !== 'trusted_development_bridge' || !Array.isArray(r.events) || r.events.length > 50 || !Number.isSafeInteger(r.next_cursor) || number(r.next_cursor, -1) < after || typeof r.has_more !== 'boolean' || !['connected', 'disconnected', 'unavailable'].includes(text(status.bridge_state))) throw new ApiError(502, 'invalid_transport_events');
+    const events = r.events.map((value, index) => {
+      const e = object(value);
+      if (!Number.isSafeInteger(e.cursor) || number(e.cursor) <= (index ? number(object((r.events as unknown[])[index - 1]).cursor) : after) || number(e.cursor) > number(r.next_cursor) || (!Number.isSafeInteger(e.event_id) || number(e.event_id) < 1) || !uuid(text(e.room_id)) || !uuid(text(e.message_id)) || !text(e.provider_uid) || !['message.created', 'message.reaction_set'].includes(text(e.kind)) || !timestamp(e.received_at)) throw new ApiError(502, 'invalid_transport_event');
+      return { cursor: number(e.cursor), roomId: text(e.room_id), messageId: text(e.message_id) };
+    });
+    if (r.has_more && number(r.next_cursor) === after || status.last_received_at && !timestamp(status.last_received_at) || status.last_heartbeat_at && !timestamp(status.last_heartbeat_at)) throw new ApiError(502, 'invalid_transport_status');
+    return { events, nextCursor: number(r.next_cursor), hasMore: r.has_more, state: status.bridge_state as 'connected' | 'disconnected' | 'unavailable', lastReceivedAt: timestamp(status.last_received_at) };
   }
   async send(roomId: string, intent: SendIntent, signal?: AbortSignal): Promise<Message> {
     if (intent.mentions.length) throw new ApiError(501, 'mentions_unavailable');

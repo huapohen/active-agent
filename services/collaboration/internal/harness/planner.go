@@ -107,6 +107,13 @@ func (p *EinoPlanner) Plan(parent context.Context, input StageInput) (StageResul
 		}
 		stageTools = append(stageTools, reads...)
 	}
+	if reader, ok := p.config.Gateway.(NativeProfileReader); ok {
+		reads, err := nativeProfileTools(reader, trace)
+		if err != nil {
+			return StageResult{}, err
+		}
+		stageTools = append(stageTools, reads...)
+	}
 	skills, err := skill.NewMiddleware(ctx, &skill.Config{Backend: &stageSkills{trace: trace}})
 	if err != nil {
 		return StageResult{}, err

@@ -41,31 +41,42 @@ export class RongCloudWebTransport implements ReceiveTransport {
   }
   async disconnect() { this.alive = false; this.verified = false; for (const off of this.unlisten) off(); this.unlisten = []; const sdk = this.sdk; this.sdk = undefined; if (sdk) { await sdk.disconnect(true, true); await sdk.destroy(); } }
 }
-class RongCloudDesktopTransport implements ReceiveTransport {
-  private off?: () => void;
-  async connect(config: TransportConfig, notice: (notice: TransportNotice) => void) { const bridge = window.renjiDesktop!; this.off = bridge.onRongCloud(notice); const result = await bridge.connectRongCloud(config); if (!result.connected) throw new Error('desktop_transport_unavailable'); }
-  async disconnect() { this.off?.(); this.off = undefined; await window.renjiDesktop!.disconnectRongCloud(); }
-}
-let transportQueue = Promise.resolve();
-let transportCleanupUncertain = false;
+/** Commercial renderers receive authorized arrival notices from Go. RongCloud
+ * credentials remain inside the trusted development receiver process. */
 export function useRongCloud(client: CollaborationClient, onChanged: () => void) {
   const [state, setState] = useState<TransportState>('connecting');
+  const [lastReceivedAt, setLastReceivedAt] = useState('');
   const changed = useRef(onChanged); changed.current = onChanged;
   useEffect(() => {
-    if (!(client instanceof StartupClient)) { setState('unavailable'); return; }
     const controller = new AbortController();
-    let live = true;
-    const transport: ReceiveTransport = window.renjiDesktop ? new RongCloudDesktopTransport() : new RongCloudWebTransport();
-    const notice = (event: TransportNotice) => { if (!live) return; if (event.kind === 'changed') changed.current(); else setState(event.state); };
-    // Setup does not block cleanup on a still-pending provider connect promise.
-    transportQueue = transportQueue.then(async () => {
-      if (!live) return;
-      if (transportCleanupUncertain) { setState('unavailable'); return; }
-      const config = await client.rongCloudSession(controller.signal);
-      if (!live) return;
-      void transport.connect(config, notice).catch(() => { if (live) setState('unavailable'); });
-    }).catch(() => { if (live) setState('unavailable'); });
-    return () => { live = false; controller.abort(); transportQueue = transportQueue.then(() => transport.disconnect()).catch(() => { transportCleanupUncertain = true; }); };
+    setState(client instanceof StartupClient ? 'connecting' : 'unavailable');
+    setLastReceivedAt('');
+    if (!(client instanceof StartupClient)) return () => controller.abort();
+    let cursor = 0;
+    const pause = (milliseconds: number) => new Promise<void>(resolve => {
+      const done = () => { clearTimeout(timer); controller.signal.removeEventListener('abort', done); resolve(); };
+      const timer = setTimeout(done, milliseconds);
+      controller.signal.addEventListener('abort', done, { once: true });
+      if (controller.signal.aborted) done();
+    });
+    async function poll() {
+      while (!controller.signal.aborted) {
+        let delay = 1500;
+        try {
+          const page = await (client as StartupClient).rongCloudEvents(cursor, controller.signal);
+          if (controller.signal.aborted) return;
+          cursor = page.nextCursor;
+          setState(page.state); setLastReceivedAt(page.lastReceivedAt);
+          if (page.events.length) changed.current();
+          if (page.hasMore) delay = 50;
+        } catch {
+          if (controller.signal.aborted) return;
+          setState('unavailable'); setLastReceivedAt(''); delay = 5000;
+        }
+        await pause(delay);
+      }
+    }
+    void poll(); return () => controller.abort();
   }, [client]);
-  return { state, label: ({ connecting: '融云正在连接', connected: '融云已连接', disconnected: '融云连接已断开', unavailable: '融云暂不可用' })[state] };
+  return { state, lastReceivedAt, label: ({ connecting: '融云接收桥正在连接', connected: '融云接收桥已连接', disconnected: '融云接收桥已断开', unavailable: '融云接收桥未接入' })[state] };
 }

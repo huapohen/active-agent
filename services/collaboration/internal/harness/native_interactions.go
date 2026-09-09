@@ -338,6 +338,8 @@ func actionSchemaInstruction(actions []string) string {
 			out.WriteString("\nmessage.send payload: {room_id?: root room only, content: nonempty text, reply_to?: existing message ID from the same room}. The server constructs reply author and excerpt.")
 		case "reaction.set":
 			out.WriteString("\nreaction.set payload: {room_id?: root room only, message_id: existing root-room message ID, emoji: an observed stable catalog ID, active: required true or false}. This sets the state; it never toggles. Read current canonical state to reconcile historical receipts. Planning proposes the action; only the workflow gateway commits it.")
+		case "profile.update":
+			out.WriteString("\nprofile.update payload: {display_name: 1..80 Unicode characters without control characters, expected_version: the current positive profile version from im_profile_read}. Updates only this Agent's own name. No principal_id, kind, role or endpoint is accepted. All original Run scopes and stopping rules still apply. On version conflict, read the new profile and make a new intentional action; never change the payload under a completed action key.")
 		}
 	}
 	return out.String()

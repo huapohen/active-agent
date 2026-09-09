@@ -36,6 +36,13 @@ func executionJSON(raw json.RawMessage) (json.RawMessage, error) {
 // Effects are typed and canonicalized before admission. All source scopes,
 // the action, its reaction/message mutation and Outbox link commit together.
 func (s *Store) ExecuteAction(ctx context.Context, issuer, subject string, rc harness.RunContext, a harness.Action) (harness.Receipt, error) {
+	if a.Type == "profile.update" {
+		return s.executeProfileAction(ctx, issuer, subject, rc, a)
+	}
+	return s.executeAction(ctx, issuer, subject, rc, a)
+}
+
+func (s *Store) executeAction(ctx context.Context, issuer, subject string, rc harness.RunContext, a harness.Action) (harness.Receipt, error) {
 	var out harness.Receipt
 	if !validExecutionID(a.ID) || len(a.Payload) > 60000 {
 		return out, domain.ErrInvalid
@@ -50,6 +57,10 @@ func (s *Store) ExecuteAction(ctx context.Context, issuer, subject string, rc ha
 		MessageID string `json:"message_id"`
 		Emoji     string `json:"emoji"`
 		Active    *bool  `json:"active"`
+	}
+	var profilePayload struct {
+		DisplayName     string `json:"display_name"`
+		ExpectedVersion *int64 `json:"expected_version"`
 	}
 	var canonical []byte
 	var room string
@@ -74,6 +85,17 @@ func (s *Store) ExecuteAction(ctx context.Context, issuer, subject string, rc ha
 		}
 		room = reactionPayload.RoomID
 		canonical, _ = json.Marshal(reactionPayload)
+	case "profile.update":
+		if d.Decode(&profilePayload) != nil || d.Decode(new(any)) != io.EOF || profilePayload.ExpectedVersion == nil {
+			return out, domain.ErrInvalid
+		}
+		cmd, err := normalizeProfileCommand(domain.UpdateProfile{ActionID: a.ID, DisplayName: profilePayload.DisplayName, ExpectedVersion: *profilePayload.ExpectedVersion})
+		if err != nil {
+			return out, err
+		}
+		profilePayload.DisplayName = cmd.DisplayName
+		room = rc.RoomID
+		canonical, _ = json.Marshal(profilePayload)
 	default:
 		return out, domain.ErrInvalid
 	}
@@ -89,6 +111,14 @@ func (s *Store) ExecuteAction(ctx context.Context, issuer, subject string, rc ha
 		return out, err
 	}
 	defer tx.Rollback(ctx)
+	if a.Type == "profile.update" {
+		if _, err = tx.Exec(ctx, "SET LOCAL lock_timeout='150ms'"); err != nil {
+			return out, err
+		}
+		if err = lockMachineProfile(ctx, tx, issuer, subject, rc.PrincipalID); err != nil {
+			return out, err
+		}
+	}
 	b, run, err := executionIdentity(ctx, tx, issuer, subject, rc)
 	if err != nil {
 		return out, err
@@ -152,6 +182,12 @@ func (s *Store) ExecuteAction(ctx context.Context, issuer, subject string, rc ha
 		messageID = receipt.MessageID
 		eventType = "message.reaction_set"
 		result, _ = json.Marshal(map[string]any{"reaction": receipt, "message_id": messageID, "room_id": receipt.RoomID, "canonical_status": "committed", "transport_status": "pending"})
+	case "profile.update":
+		receipt, profileErr := updateProfileTx(ctx, tx, b.Principal.ID, domain.UpdateProfile{ActionID: a.ID, DisplayName: profilePayload.DisplayName, ExpectedVersion: *profilePayload.ExpectedVersion})
+		if profileErr != nil {
+			return out, profileErr
+		}
+		result, _ = json.Marshal(map[string]any{"profile": receipt, "canonical_status": "committed", "transport_status": "not_applicable"})
 	}
 	// Success is canonical PostgreSQL commit, not provider acknowledgement.
 	result, err = executionJSON(result)
@@ -160,16 +196,18 @@ func (s *Store) ExecuteAction(ctx context.Context, issuer, subject string, rc ha
 	}
 	out = harness.Receipt{ActionID: a.ID, Status: "succeeded", Result: result}
 	raw, _ = json.Marshal(out)
-	_, err = tx.Exec(ctx, `INSERT INTO execution_actions(run_id,action_id,request_hash,action_type,payload,receipt,message_id) VALUES($1,$2,$3,$4,$5,$6,$7)`, rc.RunID, a.ID, digest, a.Type, canonical, raw, messageID)
+	_, err = tx.Exec(ctx, `INSERT INTO execution_actions(run_id,action_id,request_hash,action_type,payload,receipt,message_id) VALUES($1,$2,$3,$4,$5,$6,NULLIF($7,'')::uuid)`, rc.RunID, a.ID, digest, a.Type, canonical, raw, messageID)
 	if err != nil {
 		return out, err
 	}
-	updated, err := tx.Exec(ctx, `UPDATE transport_outbox o SET execution_run_id=$1 FROM events e WHERE o.event_id=e.id AND e.principal_id=$2 AND e.action_id=$3 AND e.type=$4`, rc.RunID, b.Principal.ID, a.ID, eventType)
-	if err != nil {
-		return out, err
-	}
-	if updated.RowsAffected() != 1 {
-		return out, domain.ErrConflict
+	if eventType != "" {
+		updated, err := tx.Exec(ctx, `UPDATE transport_outbox o SET execution_run_id=$1 FROM events e WHERE o.event_id=e.id AND e.principal_id=$2 AND e.action_id=$3 AND e.type=$4`, rc.RunID, b.Principal.ID, a.ID, eventType)
+		if err != nil {
+			return out, err
+		}
+		if updated.RowsAffected() != 1 {
+			return out, domain.ErrConflict
+		}
 	}
 	if err = event(ctx, tx, rc.RoomID, b.Principal.ID, a.ID, "execution.action.committed", map[string]any{"run_id": rc.RunID, "executor_id": b.ExecutorID, "receipt": out}, false); err != nil {
 		return out, err

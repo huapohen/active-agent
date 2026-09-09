@@ -6,10 +6,12 @@ import (
 )
 
 var (
-	ErrForbidden = errors.New("forbidden")
-	ErrConflict  = errors.New("action_conflict")
-	ErrStopped   = errors.New("scope_stopped_or_stale")
-	ErrInvalid   = errors.New("invalid_request")
+	ErrForbidden              = errors.New("forbidden")
+	ErrConflict               = errors.New("action_conflict")
+	ErrStopped                = errors.New("scope_stopped_or_stale")
+	ErrInvalid                = errors.New("invalid_request")
+	ErrProfileVersionConflict = errors.New("profile_version_conflict")
+	ErrProfileBusy            = errors.New("profile_update_busy")
 )
 
 type Principal struct {

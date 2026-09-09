@@ -58,7 +58,7 @@ describe('credential and domain boundary', () => {
   });
   it('uses fresh Clerk token for each request and validates transport binding shape', async () => {
     const token = vi.fn().mockResolvedValueOnce('one').mockResolvedValueOnce('two');
-    const fetcher = vi.fn().mockResolvedValueOnce(json({ rooms: [], cursor: 0 })).mockResolvedValueOnce(json({ app_key: 'public-key', user_id: 'principal-mapping', token: 'transport-token' }));
+    const fetcher = vi.fn().mockResolvedValueOnce(json({ rooms: [], cursor: '' })).mockResolvedValueOnce(json({ app_key: 'public-key', user_id: 'principal-mapping', token: 'transport-token' }));
     const client = new StartupClient('https://work.example', token, fetcher);
     await client.rooms(); expect(await client.rongCloudSession()).toEqual({ appKey: 'public-key', userId: 'principal-mapping', token: 'transport-token' });
     expect(fetcher.mock.calls.map(call => call[1].headers.Authorization)).toEqual(['Bearer one', 'Bearer two']);

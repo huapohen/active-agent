@@ -42,7 +42,7 @@ func TestMCPInteractionCapabilityRegistryAndSchemas(t *testing.T) {
 			code, caps := request(t, g, "", "GET", "/v1/capabilities", nil)
 			require.Equal(t, 200, code)
 			require.Equal(t, "renji.capabilities.v1", caps["schema"])
-			require.Len(t, caps["capabilities"], 17)
+			require.Len(t, caps["capabilities"], 23)
 			ids := map[string]bool{}
 			for _, raw := range caps["capabilities"].([]any) {
 				c := raw.(map[string]any)
@@ -50,22 +50,35 @@ func TestMCPInteractionCapabilityRegistryAndSchemas(t *testing.T) {
 				ids[id] = true
 				require.Equal(t, "1", c["version"])
 				available := catalog != nil || (id != "emoji.read" && id != "message.reaction.set")
+				reason := "emoji_catalog_unavailable"
+				if isMachine && c["machine_access"] == "gateway_action_pending" {
+					available = false
+					reason = "machine_action_not_implemented"
+				}
+				if id == "transport.session" {
+					available = false
+					reason = "rongcloud_client_write_policy_unverified"
+				}
+				if isMachine && id == "transport.arrival.read" {
+					available = false
+					reason = "run_scoped_receive_pending"
+				}
 				require.Equal(t, available, c["available"], id)
 				if !available {
-					require.Equal(t, "emoji_catalog_unavailable", c["unavailable_reason"])
+					require.Equal(t, reason, c["unavailable_reason"])
 				} else {
 					require.NotContains(t, c, "unavailable_reason")
 				}
 			}
-			for _, id := range []string{"message.reply", "message.reaction.set", "message.reaction.read", "emoji.read"} {
+			for _, id := range []string{"message.reply", "message.reaction.set", "message.reaction.read", "emoji.read", "transport.arrival.read"} {
 				require.True(t, ids[id], id)
 			}
 			code, out := request(t, g, "", "POST", "/v1/mcp", map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
 			require.Equal(t, 200, code)
 			tools := out["result"].(map[string]any)["tools"].([]any)
-			expected := 15
+			expected := 20
 			if isMachine {
-				expected = 12
+				expected = 17
 			}
 			if catalog == nil {
 				expected -= 3
@@ -76,7 +89,7 @@ func TestMCPInteractionCapabilityRegistryAndSchemas(t *testing.T) {
 				tool := raw.(map[string]any)
 				name := tool["name"].(string)
 				names[name] = true
-				if name != "message_send" && name != "message_reaction_set" {
+				if name != "message_send" && name != "message_reaction_set" && name != "profile_update" {
 					continue
 				}
 				schema := tool["inputSchema"].(map[string]any)
@@ -88,8 +101,11 @@ func TestMCPInteractionCapabilityRegistryAndSchemas(t *testing.T) {
 				if name == "message_reaction_set" {
 					require.Contains(t, schema["required"], "active")
 					require.Equal(t, "boolean", props["active"].(map[string]any)["type"])
-				} else {
+				} else if name == "message_send" {
 					require.Contains(t, props, "reply_to")
+				} else {
+					require.Contains(t, schema["required"], "expected_version")
+					require.Contains(t, schema["required"], "display_name")
 				}
 			}
 			for _, name := range []string{"message_get", "message_reaction_read"} {
@@ -119,6 +135,47 @@ func mcpRejectArguments(t *testing.T, h http.Handler, token, name string, args a
 	code, out := request(t, h, token, "POST", "/v1/mcp", map[string]any{"jsonrpc": "2.0", "id": 7, "method": "tools/call", "params": map[string]any{"name": name, "arguments": args}})
 	require.Equal(t, 200, code)
 	require.Equal(t, float64(-32602), out["error"].(map[string]any)["code"])
+}
+
+func TestTransportCapabilitiesMatchPrincipalReadiness(t *testing.T) {
+	allowed := uuid.NewString()
+	for _, tc := range []struct {
+		name, principal string
+		machine         bool
+		wantSession     bool
+	}{
+		{"ordinary_human", uuid.NewString(), false, false},
+		{"allowlisted_human", allowed, false, true},
+		{"ordinary_machine", uuid.NewString(), true, false},
+		{"allowlisted_machine", allowed, true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := gin.New()
+			v1 := g.Group("/v1")
+			v1.Use(func(c *gin.Context) {
+				c.Set("principal", domain.Principal{ID: tc.principal})
+				if tc.machine {
+					c.Set("machine", auth.MachineIdentity{Issuer: "fixture", MachineSubject: "fixture"})
+				}
+			})
+			mountNative(v1, nil, config{transportTestPrincipals: map[string]bool{allowed: true}})
+			code, result := request(t, g, "", "GET", "/v1/capabilities", nil)
+			require.Equal(t, 200, code)
+			found := map[string]map[string]any{}
+			for _, raw := range result["capabilities"].([]any) {
+				entry := raw.(map[string]any)
+				found[entry["id"].(string)] = entry
+			}
+			require.Equal(t, tc.wantSession, found["transport.session"]["available"])
+			arrival := found["transport.arrival.read"]
+			require.Equal(t, !tc.machine, arrival["available"])
+			require.Equal(t, true, arrival["exportable"])
+			require.Equal(t, map[string]any{"api": true, "mcp": false, "a2a": false}, arrival["protocols"])
+			if tc.machine {
+				require.Equal(t, "run_scoped_receive_pending", arrival["unavailable_reason"])
+			}
+		})
+	}
 }
 
 func TestMCPHumanInteractionsMatchAPIAndCurrentRoomAuthorization(t *testing.T) {

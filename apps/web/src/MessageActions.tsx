@@ -155,14 +155,14 @@ export function MessageActions({ client, messages, children, reactionBlocked, on
         <button aria-label="表情回应" title={client.capabilities.reactions ? '表情回应' : '当前服务尚未开放表情回应'} disabled={!client.capabilities.reactions || reactionBlocked} data-capability="im.messages.reactions.toggle" onPointerEnter={event => { if (event.pointerType !== 'touch' && client.capabilities.reactions && !reactionBlocked) setPalette(true); }} onClick={() => setPalette(!palette)} aria-expanded={palette}><Smile size={18} /></button>
         <button aria-label="回复消息" title="回复消息" disabled={!client.capabilities.replies} data-capability="im.messages.reply" onClick={() => act(onReply)}><Reply size={18} /></button>
         <button aria-label="复制消息" title="复制消息" disabled={!selected.content} onClick={() => { void copy(); }}><Copy size={17} /></button>
-        <button aria-label="请 Agent 协作" title={!client.capabilities.mentions ? '当前服务尚未开放会话成员，Agent 入口未接入' : '请 Agent 协作'} disabled={!client.capabilities.mentions || !client.capabilities.replies} onClick={() => act(onAgent)}><Sparkles size={18} /></button>
+        <button aria-label="请 Agent 协作" title={!client.capabilities.mentions ? '当前服务尚未开放 @ 协作，Agent 入口未接入' : '请 Agent 协作'} disabled={!client.capabilities.mentions || !client.capabilities.replies} onClick={() => act(onAgent)}><Sparkles size={18} /></button>
         <button aria-label="更多消息操作" title="更多" onClick={() => { setPalette(false); const next = { ...surface, kind: 'menu' as const, keyboard: true }; state.current = next; setSurface(next); }}><MoreHorizontal size={19} /></button>
       </div> : <div {...toolProps} className="message-action-menu" role="menu" aria-label="更多消息操作" style={{ left, top }}>
         <time dateTime={selected.createdAt}>{sourceTime(selected.createdAt)}</time>
         <button role="menuitem" disabled={!client.capabilities.reactions || reactionBlocked} onClick={() => setPalette(!palette)}><Smile />表情回应</button>
         <button role="menuitem" disabled={!client.capabilities.replies} onClick={() => act(onReply)}><Reply />回复消息</button>
         <button role="menuitem" disabled={!selected.content} onClick={() => { void copy(); }}><Copy />复制消息</button>
-        <button role="menuitem" title={!client.capabilities.mentions ? '当前服务尚未开放会话成员，Agent 入口未接入' : undefined} disabled={!client.capabilities.mentions || !client.capabilities.replies} onClick={() => act(onAgent)}><Sparkles />请 Agent 协作</button>
+        <button role="menuitem" title={!client.capabilities.mentions ? '当前服务尚未开放 @ 协作，Agent 入口未接入' : undefined} disabled={!client.capabilities.mentions || !client.capabilities.replies} onClick={() => act(onAgent)}><Sparkles />请 Agent 协作</button>
       </div>}
       {surface.kind === 'toolbar' && <time className="message-source-time" dateTime={selected.createdAt} style={{ left, top: top >= 30 ? top - 23 : top + 39 }}>{sourceTime(selected.createdAt)}</time>}
       {palette && <div {...toolProps} className="message-emoji-panel" style={{ left: Math.max(8, Math.min(left, window.innerWidth - 344 - 8)), top: paletteTop, height: paletteHeight }}>

@@ -194,8 +194,8 @@ func mountExecution(g *gin.Engine, v1 *gin.RouterGroup, s *store.Store, cfg conf
 			fail(c, domain.ErrForbidden)
 			return
 		}
-		actions := []string{"message.send"}
-		reads := []string{"message.get", "reaction.list"}
+		actions := []string{"message.send", "profile.update"}
+		reads := []string{"message.get", "reaction.list", "profile.read"}
 		if cfg.emoji != nil {
 			actions = append(actions, "reaction.set")
 			reads = append(reads, "emoji.list")

@@ -103,7 +103,7 @@ func lockPrincipal(ctx context.Context, tx pgx.Tx, id string) (domain.Principal,
 
 func (s *Store) CreateWorkspace(ctx context.Context, actor, action, title string) (string, error) {
 	title = strings.TrimSpace(title)
-	if title == "" || len(title) > 240 || !validAction(action) {
+	if !singleLine(title, 240, 240) || !validAction(action) {
 		return "", domain.ErrInvalid
 	}
 	tx, err := s.Pool.Begin(ctx)
@@ -144,7 +144,7 @@ func (s *Store) CreateWorkspace(ctx context.Context, actor, action, title string
 
 func (s *Store) CreateRoom(ctx context.Context, actor, action, workspace, title string, members []string) (domain.Room, error) {
 	r := domain.Room{ID: uuid.NewString(), WorkspaceID: workspace, Title: strings.TrimSpace(title), Kind: "group", Version: 1, ScopeEpoch: 1}
-	if r.Title == "" || len(r.Title) > 240 || len(members) > 100 || !validAction(action) {
+	if !singleLine(r.Title, 240, 240) || len(members) > 100 || !validAction(action) || !executionUUIDs(workspace) {
 		return r, domain.ErrInvalid
 	}
 	tx, err := s.Pool.Begin(ctx)

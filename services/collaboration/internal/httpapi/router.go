@@ -19,6 +19,11 @@ type config struct {
 	machine                 auth.MachineVerifier
 	transportTestPrincipals map[string]bool
 	emoji                   emoji.Provider
+	rongCloudBridges        []transport.BridgeBinding
+}
+
+func WithRongCloudBridges(bindings []transport.BridgeBinding) Option {
+	return func(c *config) { c.rongCloudBridges = append([]transport.BridgeBinding(nil), bindings...) }
 }
 
 func WithMachineVerifier(v auth.MachineVerifier) Option { return func(c *config) { c.machine = v } }
@@ -118,6 +123,10 @@ func New(s *store.Store, v auth.Verifier, r *transport.RongCloud, origins []stri
 	mountNative(v1, s, cfg)
 	mountEmoji(v1, s, cfg.emoji)
 	mountMessageInteractions(v1, s, cfg)
+	mountProfileWorkspace(v1, s)
+	if err := MountRongCloudIngress(g, v1, s, cfg.rongCloudBridges); err != nil {
+		panic("invalid RongCloud receiver configuration")
+	}
 	mountExecution(g, v1, s, cfg)
 	v1.GET("/me", func(c *gin.Context) { c.JSON(200, gin.H{"principal": principal(c)}) })
 	v1.POST("/workspaces", func(c *gin.Context) {
@@ -128,8 +137,7 @@ func New(s *store.Store, v auth.Verifier, r *transport.RongCloud, origins []stri
 			ActionID string `json:"action_id"`
 			Title    string `json:"title"`
 		}
-		if c.ShouldBindJSON(&q) != nil {
-			fail(c, domain.ErrInvalid)
+		if !strictBody(c, &q) {
 			return
 		}
 		q.Title = strings.TrimSpace(q.Title)
@@ -168,7 +176,10 @@ func New(s *store.Store, v auth.Verifier, r *transport.RongCloud, origins []stri
 			Title       string   `json:"title"`
 			Members     []string `json:"members"`
 		}
-		if c.ShouldBindJSON(&q) != nil || !validID(q.WorkspaceID) {
+		if !strictBody(c, &q) {
+			return
+		}
+		if !validID(q.WorkspaceID) {
 			fail(c, domain.ErrInvalid)
 			return
 		}
@@ -267,6 +278,12 @@ func safeError(err error) (int, string) {
 	case errors.Is(err, domain.ErrInvalid):
 		code = 400
 		message = "invalid_request"
+	case errors.Is(err, domain.ErrProfileVersionConflict):
+		code = 409
+		message = "profile_version_conflict"
+	case errors.Is(err, domain.ErrProfileBusy):
+		code = 503
+		message = "profile_update_busy"
 	case errors.Is(err, domain.ErrConflict):
 		code = 409
 		message = "action_conflict"

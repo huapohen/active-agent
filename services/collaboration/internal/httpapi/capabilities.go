@@ -25,20 +25,22 @@ type capability struct {
 
 func registry(cfg config) []capability {
 	out := []capability{}
-	for _, id := range []string{"identity.read", "workspace.create", "room.list", "room.create", "message.read", "message.send", "message.reply", "message.reaction.set", "message.reaction.read", "emoji.read", "room.execution_policy", "transport.session", "executor.register", "agent.execution_policy", "execution.run.create", "execution.run.read", "execution.evidence.read"} {
-		mcp := id != "transport.session" && id != "executor.register" && id != "agent.execution_policy"
+	for _, id := range []string{"identity.read", "profile.read", "profile.update", "workspace.list", "workspace.member.list", "room.member.list", "workspace.create", "room.list", "room.create", "message.read", "message.send", "message.reply", "message.reaction.set", "message.reaction.read", "emoji.read", "room.execution_policy", "transport.session", "transport.arrival.read", "executor.register", "agent.execution_policy", "execution.run.create", "execution.run.read", "execution.evidence.read"} {
+		mcp := id != "transport.session" && id != "transport.arrival.read" && id != "executor.register" && id != "agent.execution_policy"
 		access := "authenticated"
 		switch id {
 		case "execution.evidence.read":
 			access = "all_source_audit_or_live_execution"
-		case "message.send", "message.reply", "message.reaction.set":
+		case "message.send", "message.reply", "message.reaction.set", "profile.update":
 			access = "run_required"
 		case "workspace.create", "room.create", "room.execution_policy", "executor.register", "agent.execution_policy":
 			access = "gateway_action_pending"
 		case "transport.session":
 			access = "isolated_test_only"
+		case "transport.arrival.read":
+			access = "run_scoped_receive_pending"
 		}
-		entry := capability{ID: id, MachineAccess: access, Version: "1", Protocols: map[string]bool{"api": true, "mcp": mcp, "a2a": false}, Available: true, Exportable: id == "room.list" || id == "message.read" || id == "message.reaction.read" || id == "emoji.read" || id == "execution.run.read" || id == "execution.evidence.read"}
+		entry := capability{ID: id, MachineAccess: access, Version: "1", Protocols: map[string]bool{"api": true, "mcp": mcp, "a2a": false}, Available: true, Exportable: id == "room.list" || id == "workspace.list" || id == "workspace.member.list" || id == "room.member.list" || id == "profile.read" || id == "message.read" || id == "message.reaction.read" || id == "emoji.read" || id == "execution.run.read" || id == "execution.evidence.read" || id == "transport.arrival.read"}
 		if cfg.emoji == nil && (id == "message.reaction.set" || id == "emoji.read") {
 			entry.Available = false
 			entry.UnavailableReason = "emoji_catalog_unavailable"
@@ -50,7 +52,24 @@ func registry(cfg config) []capability {
 func mountNative(v1 *gin.RouterGroup, s *store.Store, cfg config) {
 	v1.GET("/mcp", func(c *gin.Context) { c.Header("Allow", "POST"); c.Status(405) })
 	v1.GET("/capabilities", func(c *gin.Context) {
-		c.JSON(200, gin.H{"schema": "renji.capabilities.v1", "capabilities": registry(cfg)})
+		capabilities := registry(cfg)
+		_, isMachine := machine(c)
+		for i := range capabilities {
+			entry := &capabilities[i]
+			if entry.ID == "transport.session" && !cfg.transportTestPrincipals[principal(c).ID] {
+				entry.Available = false
+				entry.UnavailableReason = "rongcloud_client_write_policy_unverified"
+			}
+			if isMachine && entry.MachineAccess == "gateway_action_pending" {
+				entry.Available = false
+				entry.UnavailableReason = "machine_action_not_implemented"
+			}
+			if isMachine && entry.ID == "transport.arrival.read" {
+				entry.Available = false
+				entry.UnavailableReason = "run_scoped_receive_pending"
+			}
+		}
+		c.JSON(200, gin.H{"schema": "renji.capabilities.v1", "capabilities": capabilities})
 	})
 	v1.POST("/mcp", func(c *gin.Context) {
 		var req struct {
@@ -95,6 +114,11 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store, cfg config) {
 			respond(gin.H{})
 		case "tools/list":
 			respond(gin.H{"tools": visibleTools(c, cfg, []any{
+				toolSchema("profile_read", "Read this authenticated identity's current display name and profile version; a machine run_id applies all original source fences.", []string{}, map[string]any{"run_id": schemaString()}),
+				toolSchema("profile_update", "Update only this authenticated identity's display name using a durable action and current profile version. Never changes identity, roles or another colleague.", []string{"action_id", "display_name", "expected_version"}, map[string]any{"action_id": schemaString(), "display_name": gin.H{"type": "string", "minLength": 1, "maxLength": 80}, "expected_version": gin.H{"type": "integer", "minimum": 1}, "run_id": schemaString()}),
+				toolSchema("workspace_list", "List currently authorized workspaces. Machine reads remain limited to their registered workspace; optional run_id retains all source checks.", []string{}, map[string]any{"after": schemaString(), "limit": gin.H{"type": "integer", "minimum": 1, "maximum": 100}, "run_id": schemaString()}),
+				toolSchema("workspace_member_list", "List current authorized workspace colleagues, including human and Agent identities. Explicit Run reads include only colleagues in inherited rooms; no global directory lookup.", []string{"workspace_id"}, map[string]any{"workspace_id": schemaString(), "after": schemaString(), "limit": gin.H{"type": "integer", "minimum": 1, "maximum": 100}, "run_id": schemaString()}),
+				toolSchema("room_member_list", "List current human and Agent members of an authorized room using an exclusive principal cursor.", []string{"room_id"}, map[string]any{"room_id": schemaString(), "after": schemaString(), "limit": gin.H{"type": "integer", "minimum": 1, "maximum": 100}, "run_id": schemaString()}),
 				toolSchema("run_create", "Create an authorized persistent run; inherited source scopes come from the server.", []string{"action_id", "executor_id", "room_id", "scope_epoch", "goal"}, map[string]any{"action_id": schemaString(), "executor_id": schemaString(), "room_id": schemaString(), "scope_epoch": gin.H{"type": "integer", "minimum": 1}, "parent_run_id": schemaString(), "goal": schemaString()}),
 				toolSchema("run_evidence", "Export complete durable Run actions, raw events and transport facts. Audit remains readable after stop with current all-source membership; execution additionally enforces current executor epochs.", []string{"run_id"}, map[string]any{"run_id": schemaString(), "after": gin.H{"type": "integer", "minimum": 0}, "through": gin.H{"type": "integer", "minimum": 0}, "limit": gin.H{"type": "integer", "minimum": 1, "maximum": 100}, "mode": gin.H{"type": "string", "enum": []string{"audit", "execution"}}}),
 				toolSchema("run_read", "Read the current authorized run and its recorded scope.", []string{"run_id"}, map[string]any{"run_id": schemaString()}),
@@ -122,7 +146,7 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store, cfg config) {
 			}
 
 			known := false
-			for _, name := range []string{"identity_read", "room_list", "message_read", "message_send", "message_get", "message_reaction_set", "message_reaction_read", "emoji_list", "emoji_get", "workspace_create", "room_create", "room_execution_policy", "run_create", "run_read", "run_evidence"} {
+			for _, name := range []string{"profile_read", "profile_update", "workspace_list", "workspace_member_list", "room_member_list", "identity_read", "room_list", "message_read", "message_send", "message_get", "message_reaction_set", "message_reaction_read", "emoji_list", "emoji_get", "workspace_create", "room_create", "room_execution_policy", "run_create", "run_read", "run_evidence"} {
 				if p.Name == name {
 					known = true
 				}
@@ -153,6 +177,7 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store, cfg config) {
 				Mode                    string          `json:"mode"`
 				WorkspaceID             string          `json:"workspace_id"`
 				Title                   string          `json:"title"`
+				DisplayName             string          `json:"display_name"`
 				Members                 []string        `json:"members"`
 				ExpectedVersion         int64           `json:"expected_version"`
 				Stopped                 *bool           `json:"stopped"`
@@ -181,6 +206,25 @@ func mountNative(v1 *gin.RouterGroup, s *store.Store, cfg config) {
 			}
 			if err == nil {
 				switch p.Name {
+				case "profile_read":
+					result, err = s.ReadProfile(ctx, accountReader(c), q.RunID)
+				case "profile_update":
+					result, err = nativeProfileUpdate(c, s, profileCommand{ActionID: q.ActionID, DisplayName: q.DisplayName, ExpectedVersion: q.ExpectedVersion, RunID: q.RunID})
+				case "workspace_list", "workspace_member_list", "room_member_list":
+					var after string
+					if len(q.After) > 0 && json.Unmarshal(q.After, &after) != nil {
+						err = domain.ErrInvalid
+						break
+					}
+					query := store.AccountQuery{After: after, Limit: q.Limit, RunID: q.RunID}
+					switch p.Name {
+					case "workspace_list":
+						result, err = s.Workspaces(ctx, accountReader(c), query)
+					case "workspace_member_list":
+						result, err = s.WorkspaceMembers(ctx, accountReader(c), q.WorkspaceID, query)
+					case "room_member_list":
+						result, err = s.RoomMembers(ctx, accountReader(c), q.RoomID, query)
+					}
 				case "run_create":
 					if q.ScopeEpoch == nil {
 						err = domain.ErrInvalid
@@ -376,6 +420,8 @@ func toolSchema(name, description string, required []string, properties map[stri
 
 func validToolArguments(name string, raw json.RawMessage) bool {
 	fields := map[string]string{
+		"profile_read": "run_id", "profile_update": "action_id display_name expected_version run_id",
+		"workspace_list": "after limit run_id", "workspace_member_list": "workspace_id after limit run_id", "room_member_list": "room_id after limit run_id",
 		"identity_read": "", "room_list": "after run_id", "message_read": "room_id after before limit run_id",
 		"message_send": "room_id action_id content scope_epoch run_id reply_to", "workspace_create": "action_id title",
 		"message_get": "room_id message_id run_id", "message_reaction_set": "room_id message_id action_id emoji active scope_epoch run_id",
@@ -391,7 +437,7 @@ func validToolArguments(name string, raw json.RawMessage) bool {
 	if json.Unmarshal(raw, &args) != nil || args == nil {
 		return false
 	}
-	if name == "run_evidence" || name == "message_read" || name == "message_reaction_read" || name == "emoji_list" {
+	if name == "run_evidence" || name == "message_read" || name == "message_reaction_read" || name == "emoji_list" || name == "workspace_list" || name == "workspace_member_list" || name == "room_member_list" {
 		if raw, ok := args["limit"]; ok {
 			var n int
 			max := 100
@@ -437,6 +483,14 @@ func validToolArguments(name string, raw json.RawMessage) bool {
 			}
 		}
 	}
+	if name == "workspace_list" || name == "workspace_member_list" || name == "room_member_list" {
+		if raw, ok := args["after"]; ok {
+			var value *string
+			if json.Unmarshal(raw, &value) != nil || value == nil {
+				return false
+			}
+		}
+	}
 	for field := range args {
 		if !allowed[field] {
 			return false
@@ -461,12 +515,15 @@ func visibleTools(c *gin.Context, cfg config, tools []any) []any {
 		if name == "workspace_create" || name == "room_create" || name == "room_execution_policy" {
 			continue
 		}
-		if name == "message_send" || name == "message_reaction_set" {
+		if name == "message_send" || name == "message_reaction_set" || name == "profile_update" {
 			schema := tool["inputSchema"].(gin.H)
 			schema["required"] = append(schema["required"].([]string), "run_id")
 			properties := schema["properties"].(gin.H)
 			properties["action_id"] = gin.H{"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
 			tool["description"] = "Act through the registered run, current source scopes and durable action ledger. action_id is a 64-hex stable action ID; reaction active must be explicit, never toggle."
+			if name == "profile_update" {
+				tool["description"] = "Update this Agent's own display name through its live registered Run and all inherited source fences. Read the current profile version first; action_id must be a stable 64-hex ID. Cannot change identity, roles or another principal."
+			}
 		}
 		out = append(out, tool)
 	}

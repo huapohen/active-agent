@@ -164,11 +164,12 @@ type MessageReaction struct {
 }
 
 type Principal struct {
-	ID          pgtype.UUID        `json:"id"`
-	Kind        string             `json:"kind"`
-	DisplayName string             `json:"display_name"`
-	Disabled    bool               `json:"disabled"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	ID             pgtype.UUID        `json:"id"`
+	Kind           string             `json:"kind"`
+	DisplayName    string             `json:"display_name"`
+	Disabled       bool               `json:"disabled"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	ProfileVersion int64              `json:"profile_version"`
 }
 
 type Room struct {

@@ -51,6 +51,11 @@ func main() {
 		addr = "127.0.0.1:3318"
 	}
 	options := []httpapi.Option{httpapi.WithTransportTestPrincipals(strings.FieldsFunc(os.Getenv("RENJI_RONGCLOUD_TEST_PRINCIPALS"), func(r rune) bool { return r == ',' || r == ' ' || r == '\n' }))}
+	bridges, err := loadBridgeBindings(os.Getenv("RENJI_RONGCLOUD_BRIDGE_CONFIG"))
+	if err != nil {
+		log.Fatal("RongCloud receiver configuration invalid; verify private file permissions and bindings")
+	}
+	options = append(options, httpapi.WithRongCloudBridges(bridges))
 	if dir := os.Getenv("RENJI_EMOJI_DIR"); dir != "" {
 		catalog, err := emoji.NewLocal(dir)
 		if err != nil {
