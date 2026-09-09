@@ -1,0 +1,4 @@
+ok  	github.com/huapohen/active-agent/services/collaboration/internal/store	1.815s
+ok  	github.com/huapohen/active-agent/services/collaboration/internal/httpapi	1.648s
+ok  	github.com/huapohen/active-agent/services/collaboration/internal/transport	0.796s
+ok  	github.com/huapohen/active-agent/services/collaboration/cmd/transport-policy-check	1.613s

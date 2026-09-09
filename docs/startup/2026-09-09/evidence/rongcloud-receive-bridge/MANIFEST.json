@@ -1,0 +1,88 @@
+{
+  "schema": "renji.evidence.manifest.v1",
+  "created_at": "2026-09-09T09:44:47.431271+08:00",
+  "implementation_commit": "e975e94e900cc892e39ed52ac0ce94ccd71c6ea1",
+  "scope": "one controlled canonical text, actual RongCloud Web SDK receive, local replay, state identity and heartbeat regression plus same-scope migration9 restart; excludes credentials and provider browser state",
+  "files": [
+    {
+      "path": "bound-queue.json",
+      "bytes": 1086,
+      "sha256": "b2d976b31148dbe8d7c5020d727fadec377a3e1f76acf7ef778db4406ddfca9e"
+    },
+    {
+      "path": "bound-scope-manifest.json",
+      "bytes": 576,
+      "sha256": "89ed840ac4c89a0380c3d59bc45f211d63e1f29c76cf37db9ac557becc4d4b8b"
+    },
+    {
+      "path": "bound-sdk-observations.jsonl",
+      "bytes": 1368,
+      "sha256": "515913b4661b520bcc88dad992dc54235252b131508cd608677fdceaadf36d21"
+    },
+    {
+      "path": "bound-state.json",
+      "bytes": 418,
+      "sha256": "54ebc2d5c7c26437b1bd59197844dc7aaeadcedd524072e343edee63962928db"
+    },
+    {
+      "path": "final-ingress-tests.log",
+      "bytes": 350,
+      "sha256": "18031a0e913d4d4b2b1d21254bd264c6c48987fee156e8e4636528baefc98ceb"
+    },
+    {
+      "path": "group-policy-read.json",
+      "bytes": 790,
+      "sha256": "28158c4b581c9501a8bf971b93a8ac7434f3e8d043e9c395bb441d57f3c8a38c"
+    },
+    {
+      "path": "heartbeat9-canonical-readback.json",
+      "bytes": 559,
+      "sha256": "6231fdbf0fba4fff2265f0f02c05ed21419beb5633a47101bbb49c0ea4f292a4"
+    },
+    {
+      "path": "heartbeat9-restart-before.json",
+      "bytes": 1250,
+      "sha256": "64c5cddf43c1cc9e2bb530e767425665401e0066eac883a953940320eea788e1"
+    },
+    {
+      "path": "heartbeat9-restart-readback.json",
+      "bytes": 2211,
+      "sha256": "571d348dbc725495268824526bddd46ba93ec8543fa7124e7e8eb755a8b253fe"
+    },
+    {
+      "path": "independent-race-tests.jsonl",
+      "bytes": 9830,
+      "sha256": "ca746e88c10490b9f56fc016ae458818450452b06ecd0db1699f140930daf23b"
+    },
+    {
+      "path": "ingress-repeat-readback.json",
+      "bytes": 530,
+      "sha256": "91eab8fb2ab8b16c0f7419dc31f0520b4ce587ccd21eca63ea21e2eb27ebb3e5"
+    },
+    {
+      "path": "native-sdk-31003-state.json",
+      "bytes": 360,
+      "sha256": "89342144e217e624df544cc6ea8b9c4399b1102d57617e27452df7c996f9f2a2"
+    },
+    {
+      "path": "provider-result.json",
+      "bytes": 265,
+      "sha256": "83f9d629afc6e97c61bd9669141e845c6bb0ec7049ba4136ae25735b20c787f0"
+    },
+    {
+      "path": "publish-intent.json",
+      "bytes": 349,
+      "sha256": "1dff856493550e148997f0761d02b88114c2da85b016450e18612103e57cff48"
+    },
+    {
+      "path": "receive-plan.json",
+      "bytes": 786,
+      "sha256": "356a8fe99745a38cc3f525acbf84e8164129a46848675086656c78ed429a28b2"
+    },
+    {
+      "path": "sdk-received.jsonl",
+      "bytes": 1282,
+      "sha256": "798fc2cbc02ec716e006ecf589844736595421b642b40427486858e1370c1843"
+    }
+  ]
+}

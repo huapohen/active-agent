@@ -1,0 +1,1541 @@
+{
+  "schema": "renji.profile-workspace-stage-evidence.v1",
+  "recorded_at": "2026-09-09T09:11:10.330499+08:00",
+  "implementation_commit": "e975e94e900cc892e39ed52ac0ce94ccd71c6ea1",
+  "implementation_status": "uncommitted source; baseline is not this implementation",
+  "baseline_commit": "ddd947c7c3f74168ad1a17b11d4b04b5eb4599ad",
+  "baseline_time": "2026-09-09T08:34:06+08:00",
+  "baseline_description": "docs(startup): preserve message phase publication and native repair receipts",
+  "verification": {
+    "postgresql": "real PostgreSQL, unique temporary schema per fixture; fixture migrations only; cleaned after tests",
+    "authentication": "synthetic fixture human verifier and machine binding; no live Clerk calls in these tests",
+    "eino_temporal": "actual Eino planner plus Temporal SDK test environment; scripted fake model; real httptest HTTP and PostgreSQL; no external model or live Temporal worker",
+    "go_command_first": [
+      "/opt/homebrew/bin/go",
+      "test",
+      "-p",
+      "2",
+      "-race",
+      "-count=1",
+      "-json",
+      "./internal/store",
+      "./internal/httpapi",
+      "./internal/harness"
+    ],
+    "go_command_final": [
+      "/opt/homebrew/bin/go",
+      "test",
+      "-p",
+      "2",
+      "-race",
+      "-count=1",
+      "-json",
+      "./internal/httpapi"
+    ],
+    "log_runs": [
+      {
+        "log_path": "/tmp/renji-profile-workspace-race-20260909.log",
+        "sha256": "a7ee98d804a57291ca939531600ef4d26c08063b3bad14c121c93c6250fa7bc9",
+        "counts": {
+          "pass_top_level": 133,
+          "pass_subtests": 98
+        },
+        "package_outcomes": {
+          "github.com/huapohen/active-agent/services/collaboration/internal/httpapi": "pass",
+          "github.com/huapohen/active-agent/services/collaboration/internal/harness": "pass",
+          "github.com/huapohen/active-agent/services/collaboration/internal/store": "pass"
+        },
+        "tests": [
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestDecodeRejectsChangedScopeOrUnsupportedActionFields",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestEinoDeepAgentConstructsAndUsesExplicitSkill",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestEinoDiscardsModelOutputAfterScopeStop",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestEinoExtendedReadsAndReactionPlanAreRealToolsButNotBusinessWrites",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestEinoNativeReadToolsRecordEvidenceWithoutBusinessWrites",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestEinoReductionOffloadsAndReadsPrivateEvidence",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestEinoSummaryMiddlewareRunsAtConfiguredThreshold",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestEinoTemporarySubagentProducesSeparateTrace",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestExtendedHTTPUnadvertisedCapabilitiesMakeNoRequest",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestExtendedReadPluginsDiscardForeignOrStoppedDataBeforeTrace",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestExtendedReadPluginsDiscardForeignOrStoppedDataBeforeTrace/im_emoji_list/late=false",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestExtendedReadPluginsDiscardForeignOrStoppedDataBeforeTrace/im_emoji_list/late=true",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestExtendedReadPluginsDiscardForeignOrStoppedDataBeforeTrace/im_message_get/late=false",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestExtendedReadPluginsDiscardForeignOrStoppedDataBeforeTrace/im_message_get/late=true",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestExtendedReadPluginsDiscardForeignOrStoppedDataBeforeTrace/im_reaction_list/late=false",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestExtendedReadPluginsDiscardForeignOrStoppedDataBeforeTrace/im_reaction_list/late=true",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestHTTPBindingCapabilitiesAreExplicitCopiedAndClearedOnFailure",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestHTTPGatewayBindsMachineAndRejectsRedirect",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestHTTPGatewayRequiresAllServerReadinessAcknowledgements",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestHTTPModelTransportsEinoToolSchemaAndNoSecretErrors",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeHTTPRoomPaginationUsesSharedValidation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionHTTPReadsCarryRunAndDiscardLateResults",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionHTTPReadsCarryRunAndDiscardLateResults/emoji.list/stop=false",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionHTTPReadsCarryRunAndDiscardLateResults/emoji.list/stop=true",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionHTTPReadsCarryRunAndDiscardLateResults/message.get/stop=false",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionHTTPReadsCarryRunAndDiscardLateResults/message.get/stop=true",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionHTTPReadsCarryRunAndDiscardLateResults/reaction.list/stop=false",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionHTTPReadsCarryRunAndDiscardLateResults/reaction.list/stop=true",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionValidatorsRejectForgedVersionsPaginationAndForeignReply",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionValidatorsRejectForgedVersionsPaginationAndForeignReply/duplicate",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionValidatorsRejectForgedVersionsPaginationAndForeignReply/forged_cursor",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionValidatorsRejectForgedVersionsPaginationAndForeignReply/negative_count",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeInteractionValidatorsRejectForgedVersionsPaginationAndForeignReply/zero_version",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/count-budget",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/duplicate-sequence",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/empty-continuation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/empty-terminal",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/foreign-response",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/negative",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/ordered",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/outside-request",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/repeated-sequence",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/messages/wrong-cursor",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/count-budget",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/descending",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/duplicate",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/empty-continuation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/empty-terminal",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/foreign",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/next",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/ordered",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/repeated-cursor",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativePageValidatorsRejectScopeAndPaginationViolations/rooms/wrong-cursor",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeProfileReadKeepsIdentityAndLateStopFence",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeProfileReadKeepsIdentityAndLateStopFence/late_stop",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeProfileReadKeepsIdentityAndLateStopFence/ok",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeProfileReadKeepsIdentityAndLateStopFence/unavailable",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeProfileReadKeepsIdentityAndLateStopFence/wrong_identity",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeReadPluginsCannotLeakForeignOrRevokedPagesToModelOrTrace",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeReadPluginsCannotLeakForeignOrRevokedPagesToModelOrTrace/im_message_read/foreign",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeReadPluginsCannotLeakForeignOrRevokedPagesToModelOrTrace/im_message_read/stopped-after-read",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeReadPluginsCannotLeakForeignOrRevokedPagesToModelOrTrace/im_room_list/foreign",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeReadPluginsCannotLeakForeignOrRevokedPagesToModelOrTrace/im_room_list/stopped-after-read",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestNativeReadsAreRunBoundPagedAndDiscardedAfterStop",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestReplayCompletedArchiveConsumesHistoryWithoutCallingPlugin",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestReplayLegacyBusinessHistoryDoesNotAddTerminalOrArchiveActivity",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestResponsesDoesNotRedirectCredentialsOrMixIndependentHistories",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestResponsesRejectsIncompleteUnsafeAndUnknownOutputs",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestResponsesRejectsIncompleteUnsafeAndUnknownOutputs/{\"status\":\"completed\",\"output\":[{\"type\":\"function_call\",\"call_id\":\"1\",\"name\":\"x\",\"arguments\":\"oops\"}]}",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestResponsesRejectsIncompleteUnsafeAndUnknownOutputs/{\"status\":\"completed\",\"output\":[{\"type\":\"function_call\",\"call_id\":\"1\",\"name\":\"x\",\"arguments\":\"{}\"},{\"type\":\"function_call\",\"call_id\":\"1\",\"name\":\"x\",\"arguments\":\"{}\"}]}",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestResponsesRejectsIncompleteUnsafeAndUnknownOutputs/{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"refusal\",\"text\":\"x\"}]}]}",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestResponsesRejectsIncompleteUnsafeAndUnknownOutputs/{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"status\":\"in_progress\",\"content\":[{\"type\":\"output_text\",\"text\":\"partial\"}]}]}",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestResponsesRejectsIncompleteUnsafeAndUnknownOutputs/{\"status\":\"completed\",\"output\":[{\"type\":\"web_search_call\"}]}",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestResponsesRejectsIncompleteUnsafeAndUnknownOutputs/{\"status\":\"incomplete\",\"output\":[]}",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestResponsesToolContinuationPreservesOpaqueItemsWithoutArchivingThem",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestReviewResponsesCommentaryDoesNotCorruptFinalPlan",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestReviewResponsesReasoningStaysPrivateAcrossEinoSummarization",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestReviewResponsesToolReplayRetainsCommentaryPhase",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestReviewResponsesUnknownPhaseCannotBecomeAPlan",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalActionKeyCannotChangePayload",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveAbsentConfigurationIsDurableDisabled",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveClaimLeaseWaitDoesNotRepeatBusinessOrTerminal",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveIsSkippedWhenTerminalCommitFails",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveRetriesOnlyArchiveAndBoundsKnownIDReconciliation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveRetriesOnlyArchiveAndBoundsKnownIDReconciliation/exhausts",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveRetriesOnlyArchiveAndBoundsKnownIDReconciliation/recovers",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveRunsOnlyAfterTerminalAndKeepsBusinessResult",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveUnknownWithoutIDNeverRetriesAndErrorsAreBounded",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveUnknownWithoutIDNeverRetriesAndErrorsAreBounded/invalid-provider-result",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveUnknownWithoutIDNeverRetriesAndErrorsAreBounded/panic",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveUnknownWithoutIDNeverRetriesAndErrorsAreBounded/raw-error",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalArchiveUnknownWithoutIDNeverRetriesAndErrorsAreBounded/unknown",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalCancellationEndsDurableWait",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalDurableWaitRechecksStoppedOrigin",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalEinoLostActionReplyDoesNotDuplicateEffect",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalFailedAndCancelledBusinessStillExposeArchiveQuery",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalFailedAndCancelledBusinessStillExposeArchiveQuery/cancel",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalFailedAndCancelledBusinessStillExposeArchiveQuery/failure",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalFailureStillPersistsAuditWithoutReexecutingActions",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalLegacyHistoryVersionDoesNotScheduleNewArchive",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalPersistsTerminalAfterCommittedActions",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalReplanPreservesLogicalActionID",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalStoppedOriginRejectsBeforeModel",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+            "name": "TestTemporalUnknownReceiptStopsWithoutNextAction",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestAPIAndMCPShareActionsAndCurrentPermissions",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestExecutionEvidenceRESTAndMCPShareCurrentAllSourceAuthorization",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHTTPEmojiCatalogAndBinaryAssetsRequireCurrentAuthentication",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHTTPMessageHistoryReplyAndReactionReconciliation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHarnessCatalogRemovalClearsStoreValidatorAndNativeAdvertisement",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHarnessInteractionsEinoHTTPAndPostgresCommitReplyAndReaction",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHarnessInteractionsHTTPGlobalCatalogKeepsRunScopeAndUnconfiguredCapabilities",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMCPHumanInteractionsMatchAPIAndCurrentRoomAuthorization",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMCPInteractionCapabilityRegistryAndSchemas",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMCPMachineInteractionsUseRunLedgerAndInheritedScope",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMCPProtocolAndOriginBoundaries",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMachineProfileAPIAndMCPUseExactRunAndNoUnscopedBootstrap",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMachineRoutesRequireServerRunAndInheritedStopScope",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestProfileBodyRejectsTrailingObject",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestProfileEinoReadsCurrentVersionAndCommitsThroughRealHTTPPG",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestProfileWorkspaceEmptyAccountAPIAndMCPOnboarding",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestProfileWorkspaceStrictInputsAndDistinctVersionConflict",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewCurrentPermissionsAndCrossResourceActionFence",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/forbidden",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/invalid",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPParameterlessToolsPermitOmittedArguments",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPParameterlessToolsPermitOmittedArguments/identity_read",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPParameterlessToolsPermitOmittedArguments/room_list",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPUnknownToolIsProtocolError",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewPaginationAcrossAPIAndMCP",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewWorkspaceCanonicalReceiptAcrossAPIAndMCP",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestRongCloudSessionIsNotGenerallyIssuedBeforeWritePolicyVerification",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestTrustedBridgeHeartbeatIsNotReceiptAndStatusIsIdentityScoped",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestTrustedBridgeIngressRejectsBrowserAndRemoteWithoutStoreAccess",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestArchiveOverviewRejectsMismatchedFactsAndPreservesRawEvidence",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestArchiveOverviewUsesActualLedgerNotModelClaims",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestArchiveRendererUpgradeReusesFrozenVerifiedPrefix",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestConcurrentMessageReceiptAndRevocation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestCreateAndStopActionsAreDurableAndCurrentlyAuthorized",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionAgentOwnerHasEqualAdministrationAndProactiveSelfControl",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionArchiveConcurrentPreparationClaimsAndFinalCursor",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionArchiveDeterministicUnknownNeverRecreatesAndLateReadback",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionArchiveLosslessChunksAndModelCannotForgeReceipt",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionArchiveRequestMarkerBlocksConcurrentDuplicateAndExpiredOwner",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionArchiveRevocationPreventsWriteAndReadButAllowsActualLateFact",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionBindingRequiresCurrentWorkspaceAdministrationAndMachineIdentity",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionChecksAllScopesInsideMessageTransaction",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionCompletedRunMayDeliverAlreadyCommittedAction",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionConcurrentActionCommitsOneMessageAndPayloadCollisionConflicts",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionEvidenceAfterStopIsIdempotentButCannotInventSuccess",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionEvidenceAuditAfterStopAndRevocationAcrossAllScopes",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionEvidenceCompleteStablePaginationAndRawFacts",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionEvidenceConcurrentAppendHasNoCursorHoles",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionEvidenceMachineWorkspaceAndEqualAuditRoles",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionEvidenceReadWaitsForCurrentScopeRevocation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/executor_version",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/policy_version",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPendingTransportFencesSourceStopAndPolicyVersion/source_stop",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/epoch",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/executor",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/origin_epoch",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/origins_deleted",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/principal",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/root",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/run",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/runtime",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionPersistedContextRejectsImpersonationAndScopeReduction/workflow",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionProfileMessageLockOrderAndStopBeforeCommit",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionProfileMessageLockOrderAndStopBeforeCommit/profile_and_message_concurrent",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionProfileMessageLockOrderAndStopBeforeCommit/source_stop_before_admission",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionProfileRetriesConfirmedRollbackAcrossMemberAdmissionLocks",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionProfileSharesDurableActionAndNoTransport",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionOutboxBlocksAllOriginsAndPolicyChanges",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionOutboxBlocksAllOriginsAndPolicyChanges/executor_version",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionOutboxBlocksAllOriginsAndPolicyChanges/membership",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionOutboxBlocksAllOriginsAndPolicyChanges/policy_version",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionOutboxBlocksAllOriginsAndPolicyChanges/source_stop",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionStrictPayloadConcurrentCommitAndOrigins",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionStrictPayloadConcurrentCommitAndOrigins/forged_count",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionStrictPayloadConcurrentCommitAndOrigins/missing_active",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionStrictPayloadConcurrentCommitAndOrigins/null_active",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReactionStrictPayloadConcurrentCommitAndOrigins/unknown_emoji",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReadHoldsAllScopeChecksInTheReadingTransaction",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReadsStayInsideInheritedScopeAndUseCurrentEpoch",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionReplyAndReactionWorkspaceReadIsolation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/executor",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/origin_member",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/principal",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionRevocationDeniesChecksActionsEvidenceAndRunReads/workspace",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutionStopAndResumeNeverRevivesInheritedEpoch",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestExecutorBindingCannotReadAnotherWorkspaceOfSameAgent",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestIdentityIsolation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestMachineAccountReadsKeepWorkspaceAndAllRunScopes",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestMessageReplySnapshotSameRoomAndLegacyDigest",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestMessageReplySnapshotSameRoomAndLegacyDigest/foreign",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestMessageReplySnapshotSameRoomAndLegacyDigest/malformed",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestMessageReplySnapshotSameRoomAndLegacyDigest/missing",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestMessageSelectionMachineRetainsAllSourcesAndWorkspaceBoundary",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestMessageSelectionTraversesMoreThanOneHundredWithoutGaps",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxClaimExpiredWhileWaitingForAuthorizationCannotCallProvider",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxExpiredClaimCannotSendButCanRecordItsLateResponse",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxGroupRegistrationRechecksEachMember",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxHeartbeatProtectsHealthyOldClaim",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxReceiptSurvivesCallerCancellationAfterProviderSuccess",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxReplacementClaimRejectsOldReceiptAndReportsZeroRows",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxResumeDoesNotReviveOldEpochAndMissingEpochFailsClosed",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxRevokedWorkspaceMemberCannotPublish",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxStopBlocksPendingAgentDeliveryAndHumanCanIntervene",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestOutboxUnknownPublishIsNotRetried",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestProfileConcurrentIdempotencyVersionAndIdentity",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestProfileInputBoundariesAndEmptyAccountOnboarding",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionAgentPolicyAndRevokedReplay",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionCatalogAndTargetFailClosed",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionConcurrentIdempotencyExplicitStateAndServerCounts",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionConcurrentIdempotencyExplicitStateAndServerCounts/active",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionConcurrentIdempotencyExplicitStateAndServerCounts/emoji",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionOutboxInvalidationUnknownAndMissingPlugin",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionOutboxInvalidationUnknownAndMissingPlugin/missing",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionOutboxInvalidationUnknownAndMissingPlugin/success",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionOutboxInvalidationUnknownAndMissingPlugin/unknown",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestReactionPaginationBoundedAndVersionFenced",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestTransportIngressAgentBrakePreservesHumanIntervention",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestTransportIngressAgentBrakePreservesHumanIntervention/agent",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestTransportIngressAgentBrakePreservesHumanIntervention/human",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestTransportIngressDoesNotExposeAnotherReceiverOrRevokedRoom",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestTransportIngressRequiresAcceptedCanonicalReceiptAndIsIdempotent",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/store",
+            "name": "TestWorkspaceAndMemberPaginationUseCurrentRolesAndACL",
+            "outcome": "pass"
+          }
+        ]
+      },
+      {
+        "log_path": "/tmp/renji-profile-workspace-http-final-20260909.log",
+        "sha256": "acab85005dad37c5e9ae265e557aecb8f0b6fc0cf8789c4a8208c4fa14f4f1d4",
+        "counts": {
+          "pass_top_level": 27,
+          "pass_subtests": 8
+        },
+        "package_outcomes": {
+          "github.com/huapohen/active-agent/services/collaboration/internal/httpapi": "pass"
+        },
+        "tests": [
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestAPIAndMCPShareActionsAndCurrentPermissions",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestExecutionEvidenceRESTAndMCPShareCurrentAllSourceAuthorization",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHTTPEmojiCatalogAndBinaryAssetsRequireCurrentAuthentication",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHTTPMessageHistoryReplyAndReactionReconciliation",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHarnessCatalogRemovalClearsStoreValidatorAndNativeAdvertisement",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHarnessInteractionsEinoHTTPAndPostgresCommitReplyAndReaction",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestHarnessInteractionsHTTPGlobalCatalogKeepsRunScopeAndUnconfiguredCapabilities",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMCPHumanInteractionsMatchAPIAndCurrentRoomAuthorization",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMCPInteractionCapabilityRegistryAndSchemas",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMCPMachineInteractionsUseRunLedgerAndInheritedScope",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMCPProtocolAndOriginBoundaries",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMachineProfileAPIAndMCPUseExactRunAndNoUnscopedBootstrap",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestMachineRoutesRequireServerRunAndInheritedStopScope",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestProfileBodyRejectsTrailingObject",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestProfileEinoReadsCurrentVersionAndCommitsThroughRealHTTPPG",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestProfileWorkspaceEmptyAccountAPIAndMCPOnboarding",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestProfileWorkspaceStrictInputsAndDistinctVersionConflict",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewCurrentPermissionsAndCrossResourceActionFence",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/forbidden",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPExecutionErrorsCarrySameSafeCodeAsAPI/invalid",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPParameterlessToolsPermitOmittedArguments",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPParameterlessToolsPermitOmittedArguments/identity_read",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPParameterlessToolsPermitOmittedArguments/room_list",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewMCPUnknownToolIsProtocolError",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewPaginationAcrossAPIAndMCP",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestReviewWorkspaceCanonicalReceiptAcrossAPIAndMCP",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestRongCloudSessionIsNotGenerallyIssuedBeforeWritePolicyVerification",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestTransportCapabilitiesMatchPrincipalReadiness",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestTransportCapabilitiesMatchPrincipalReadiness/allowlisted_human",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestTransportCapabilitiesMatchPrincipalReadiness/allowlisted_machine",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestTransportCapabilitiesMatchPrincipalReadiness/ordinary_human",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestTransportCapabilitiesMatchPrincipalReadiness/ordinary_machine",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestTrustedBridgeHeartbeatIsNotReceiptAndStatusIsIdentityScoped",
+            "outcome": "pass"
+          },
+          {
+            "package": "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+            "name": "TestTrustedBridgeIngressRejectsBrowserAndRemoteWithoutStoreAccess",
+            "outcome": "pass"
+          }
+        ]
+      }
+    ],
+    "nonoverlapping_latest_test_outcomes": {
+      "pass_top_level": 134,
+      "pass_subtests": 102
+    },
+    "counting_note": "Final HTTP pass rechecks and supersedes overlapping HTTP tests. Do not add the two run counts. Counts include inherited package regressions, not only tests newly added in this phase.",
+    "git_diff_check": "passed at 2026-09-09T09:10+08:00"
+  },
+  "contracts": {
+    "capability_count": 23,
+    "mcp_tools_catalog_present": {
+      "human": 20,
+      "machine": 17
+    },
+    "mcp_tools_catalog_absent": {
+      "human": 17,
+      "machine": 14
+    },
+    "new_machine_action": "profile.update",
+    "new_harness_read_tool": "im_profile_read",
+    "profile_version_conflict": "HTTP 409 profile_version_conflict",
+    "profile_confirmed_rollback_retry_exhausted": "HTTP 503 profile_update_busy",
+    "transport_arrival_machine": "unavailable: run_scoped_receive_pending",
+    "transport_session": "available only for configured isolated test principals; no proof of provider connectivity"
+  },
+  "boundaries": {
+    "no_live_business_writes_by_this_task": true,
+    "no_live_database_migration_by_this_task": true,
+    "no_external_model_call": true,
+    "no_live_worker_started": true,
+    "no_transport_dispatch": true,
+    "machine_workspace_create": "not implemented: needs separately authorized global bootstrap",
+    "machine_room_create": "not implemented: needs persistent creation origin provenance and mandatory source inheritance for future Runs",
+    "membership_mutations": "not added; current authorized roster reads and existing room creation members only",
+    "a2a": "not implemented",
+    "profile_transport": "not_applicable; durable PG action and evidence without fabricated transport arrival",
+    "runtime_and_workflow_versions": "unchanged",
+    "archive_renderer_versions": "unchanged"
+  },
+  "source_snapshot": [
+    {
+      "path": "services/collaboration/internal/domain/profile_workspace.go",
+      "sha256": "56c7d7c1628fb0a2ae0b23c62207597075e76ff3ea08c22719f76db9847bcf93",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/domain/types.go",
+      "sha256": "528a38f38938426a10782e9f1c173f0e3f3a3c3c15da19b2801e7e944856791f",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/store/profile_workspace.go",
+      "sha256": "b09a363077f6bf61a43d685624ca7a48fd90fb6f47c75ad3f6fb230d48a4df91",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/store/execution_profile_retry.go",
+      "sha256": "5326782136b6e74bd1b31e291bf0f3150c45a0ce4e840bcfe6082ec9f09cf9d1",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/store/execution_actions.go",
+      "sha256": "2d8052b562c3c80fa091d7ced03570bf646071a520b10d50480c8dd84c342b6c",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/store/store.go",
+      "sha256": "11dbddd646a8aff1c188c3b47d844e64c597026efbf21c3f3af9772931b8578f",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/store/migrations/00007_profile_version.sql",
+      "sha256": "fcafc3c2d234d662b711d639741f1d8e2f3e726b2e399cf5214efbafa1c8a847",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/store/sqlgen/models.go",
+      "sha256": "1626c957c40635bf502adc8f8467414617c2a582cafe9c4b8766cbbc30f9e997",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/store/profile_workspace_test.go",
+      "sha256": "e7fac673eea08f1e9c218344a95ac090a9c979b24440f0f9e5b5068334beb8b9",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/profile_workspace.go",
+      "sha256": "5029c28596b8229f4c393e07a18c4a5dfc37ba22685372bd207d6121405309e5",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/profile_workspace_test.go",
+      "sha256": "40d13b670f0a22a3ae85a0ac20fd8438e6459a562083ae017aa34899792f4afe",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/capabilities.go",
+      "sha256": "76b98ed1deab5bc80ec730d60d1d822601268303c0f43ba06c49da39e2c2589b",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/execution.go",
+      "sha256": "cb03b62147ed1842a5a10cbe8842d6396516dc71f18e656da7973a069cec8730",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/router.go",
+      "sha256": "311c2c8b89c998d877357ef459106c82b3923bdeaaf3a6190bcbc15c0915927d",
+      "shared_with_root": true
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/router_test.go",
+      "sha256": "7075a81d223cbb6ea9474c1035a660261a7f849634d2a38f3da09c8a665634c4",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/mcp_interactions_test.go",
+      "sha256": "ae3518144b1fbe7525beececc1094ed5e2ef0bbd362da93bbba044bd071e984b",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/harness_interactions_test.go",
+      "sha256": "539756fe654b5750724d480b491ba6102faa102181b61174b527adf26394319d",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/harness/native_profile.go",
+      "sha256": "9a456845f49d84d54bf89a504843416a6a527bfb1edf4184037c4bdb6aac5eb6",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/harness/native_profile_test.go",
+      "sha256": "bfc7b27de7e17efa7ee1c026b0077901b0f37f222491a9e088d0458d230176fe",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/harness/native_interactions.go",
+      "sha256": "f997e2fbdb274e4dcbbb0a230603fe91badf905e20b86ca0d0d0049133a45973",
+      "shared_with_root": false
+    },
+    {
+      "path": "services/collaboration/internal/harness/planner.go",
+      "sha256": "84afc4f780655413006f1d86e7061329ba5ac12457a3f091d0f4669679b2e602",
+      "shared_with_root": false
+    }
+  ],
+  "implementation_committed_at": "2026-09-09T09:35:36+08:00"
+}

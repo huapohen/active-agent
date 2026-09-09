@@ -1,0 +1,14 @@
+{
+  "accepted": true,
+  "at": "2026-09-09T01:13:28.122214Z",
+  "delivery": {
+    "code": 200,
+    "messageUIDs": [
+      {
+        "groupId": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+        "messageUID": "D0GE-T1V8-LGOE-75D4"
+      }
+    ]
+  },
+  "unknown": false
+}

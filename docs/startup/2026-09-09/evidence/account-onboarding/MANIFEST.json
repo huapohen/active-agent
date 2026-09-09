@@ -1,0 +1,51 @@
+{
+  "created_at": "2026-09-09T09:41:48.782256+08:00",
+  "implementation_commit": "e975e94e900cc892e39ed52ac0ce94ccd71c6ea1",
+  "files": [
+    {
+      "path": "client-review.json",
+      "bytes": 1986,
+      "sha256": "bcfc11475fc25aadb56e8f62891f2e2513aedd22c1a77404cb63587763728282"
+    },
+    {
+      "path": "human-emoji-catalog-native.png",
+      "bytes": 94430,
+      "sha256": "f5db5dac9958af905e91908b47181526ac9e44e9d9dcaa7df87d0fd47a8f47a7"
+    },
+    {
+      "path": "human-messages-reply-reaction-native.png",
+      "bytes": 64784,
+      "sha256": "b5419a5ca7ab9fcbe5329f2d3c4d91f2a069ee2850915cd2e22426dc963eb746"
+    },
+    {
+      "path": "human-native-readback.json",
+      "bytes": 1672,
+      "sha256": "87e756b7b2f7fec5895b65a9dd9faaac647a80663b82d329e9275d1758cfccef"
+    },
+    {
+      "path": "human-onboarding-created-native.png",
+      "bytes": 84552,
+      "sha256": "8fb4324a7fcc388f750133b802eae95bbb692aca7a5e5acc6580c6082f4e4ecf"
+    },
+    {
+      "path": "pre-migration-backup.json",
+      "bytes": 259,
+      "sha256": "a7a83d71ece0164c0992e840eba3d8d75b43c5c50d4d49a508842857d08ed647"
+    },
+    {
+      "path": "runtime-upgrade.json",
+      "bytes": 505,
+      "sha256": "13dd00b1e6f67aa9b688910dcaff719e3e2c378709c48fc81a861e537f1ad077"
+    },
+    {
+      "path": "transport-independent-review.md",
+      "bytes": 8587,
+      "sha256": "91ee3342c1a20c973c3093e551b60ebbeed2dcb2cef87e8885c60cb82d9c888a"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 1977,
+      "sha256": "7d6341fdfd53f0a2676fe5a0a29c3cca2340f16bb8857dbd424685713ccd2746"
+    }
+  ]
+}

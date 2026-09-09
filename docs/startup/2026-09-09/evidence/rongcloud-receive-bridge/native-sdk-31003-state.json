@@ -1,0 +1,1 @@
+{"schema":"renji.trusted-bridge.state.v1","bridge_id":"receive-e11c13d2-9206-4ea9-9b8d-265907e8cb00","receiver_id":"19519294-3539-479b-8615-a9ee68709c2d","room_id":"63892e35-efbd-40cb-86e6-17c7cab37aa6","state":"unavailable","at":"2026-09-09T01:11:32.193Z","queued":0,"actual_sdk_receipts":0,"failure_code":"provider_identity_unverified","provider_code":31003}

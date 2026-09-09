@@ -1,0 +1,26 @@
+{
+  "at": "2026-09-09T09:41:16.694399+08:00",
+  "old_pid": 3351,
+  "scope_fingerprint": "02090f42dc95a6a60a44a5cb02e37bfb2ee8c201ac882b9aa8830a2cf51b5e6e",
+  "preserved_files": {
+    "publish-intent.json": "1dff856493550e148997f0761d02b88114c2da85b016450e18612103e57cff48",
+    "provider-result.json": "83f9d629afc6e97c61bd9669141e845c6bb0ec7049ba4136ae25735b20c787f0",
+    "plan.json": "356a8fe99745a38cc3f525acbf84e8164129a46848675086656c78ed429a28b2"
+  },
+  "bound_queue_sha256": "b2d976b31148dbe8d7c5020d727fadec377a3e1f76acf7ef778db4406ddfca9e",
+  "bound_sdk_journal_sha256": "515913b4661b520bcc88dad992dc54235252b131508cd608677fdceaadf36d21",
+  "bridge_state": {
+    "schema": "renji.trusted-bridge.state.v1",
+    "scope_fingerprint": "02090f42dc95a6a60a44a5cb02e37bfb2ee8c201ac882b9aa8830a2cf51b5e6e",
+    "bridge_id": "receive-e11c13d2-9206-4ea9-9b8d-265907e8cb00",
+    "receiver_id": "19519294-3539-479b-8615-a9ee68709c2d",
+    "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+    "state": "connected",
+    "at": "2026-09-09T01:33:17.103Z",
+    "queued": 0,
+    "actual_sdk_receipts": 1,
+    "failure_code": null,
+    "provider_code": null
+  },
+  "intent": "same-token, same-scope restart after API migration9; no provider message send"
+}

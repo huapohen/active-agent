@@ -1,0 +1,57 @@
+{
+  "rooms": [
+    {
+      "id": "2165d8f6-8c1d-48c5-ab09-0bf3b70a1094",
+      "kind": "group",
+      "role": "owner",
+      "title": "人机 · 新账号协作验收",
+      "version": 1,
+      "scope_epoch": 1,
+      "member_count": 1,
+      "workspace_id": "79915db9-b843-4197-bc39-6dc46bed5248"
+    }
+  ],
+  "messages": [
+    {
+      "id": "cc0cbc27-d5a4-4721-b433-e670b51e5e76",
+      "seq": 1,
+      "content": "中文协作验收：新账号已完成资料、工作空间和群聊创建。",
+      "room_id": "2165d8f6-8c1d-48c5-ab09-0bf3b70a1094",
+      "reply_to": null,
+      "author_id": "f14c260d-e727-410d-9fd7-672d6eab5d55",
+      "created_at": "2026-09-09T01:11:34.98103+00:00"
+    },
+    {
+      "id": "715d91c8-d659-410d-b8d8-d9df4fe9fa60",
+      "seq": 2,
+      "content": "回复验收：引用原消息，刷新后应保留。",
+      "room_id": "2165d8f6-8c1d-48c5-ab09-0bf3b70a1094",
+      "reply_to": "cc0cbc27-d5a4-4721-b433-e670b51e5e76",
+      "author_id": "f14c260d-e727-410d-9fd7-672d6eab5d55",
+      "created_at": "2026-09-09T01:15:04.615429+00:00"
+    }
+  ],
+  "principal": {
+    "id": "f14c260d-e727-410d-9fd7-672d6eab5d55",
+    "kind": "human",
+    "disabled": false,
+    "display_name": "huapohen",
+    "profile_version": 2
+  },
+  "reactions": [
+    {
+      "emoji": "feishu:OK",
+      "active": true,
+      "message_id": "715d91c8-d659-410d-b8d8-d9df4fe9fa60",
+      "principal_id": "f14c260d-e727-410d-9fd7-672d6eab5d55"
+    }
+  ],
+  "checked_at": "2026-09-09T01:21:12.422125+00:00",
+  "workspaces": [
+    {
+      "id": "79915db9-b843-4197-bc39-6dc46bed5248",
+      "role": "owner",
+      "title": "人机共创工作空间"
+    }
+  ]
+}

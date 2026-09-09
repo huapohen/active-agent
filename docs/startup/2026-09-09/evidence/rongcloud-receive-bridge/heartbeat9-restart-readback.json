@@ -1,0 +1,58 @@
+{
+  "schema": "renji.trusted-bridge.heartbeat9-restart.v1",
+  "at": "2026-09-09T09:43:43.081050+08:00",
+  "implementation_commit": "e975e94e900cc892e39ed52ac0ce94ccd71c6ea1",
+  "old_pid": 3351,
+  "new_pid": 6521,
+  "scope_fingerprint": "02090f42dc95a6a60a44a5cb02e37bfb2ee8c201ac882b9aa8830a2cf51b5e6e",
+  "same_scope": true,
+  "provider_message_sends_during_restart": 0,
+  "provider_session_token_requests_during_restart": 0,
+  "original_plan_intent_provider_receipt_unchanged": true,
+  "original_bound_sdk_journal_unchanged": true,
+  "db_readback": {
+    "schema_version": 9,
+    "heartbeat": {
+      "bridge_id": "receive-e11c13d2-9206-4ea9-9b8d-265907e8cb00",
+      "receiver_id": "19519294-3539-479b-8615-a9ee68709c2d",
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "connection_state": "connected",
+      "heartbeat_seq": 1788918221613000,
+      "heartbeat_at": "2026-09-09T01:43:41.627062+00:00"
+    },
+    "message_arrival_count": 1,
+    "outbox": {
+      "id": 7,
+      "event_id": 22,
+      "status": "delivered",
+      "attempts": 1
+    }
+  },
+  "local_state": {
+    "schema": "renji.trusted-bridge.state.v1",
+    "scope_fingerprint": "02090f42dc95a6a60a44a5cb02e37bfb2ee8c201ac882b9aa8830a2cf51b5e6e",
+    "bridge_id": "receive-e11c13d2-9206-4ea9-9b8d-265907e8cb00",
+    "receiver_id": "19519294-3539-479b-8615-a9ee68709c2d",
+    "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+    "state": "connected",
+    "at": "2026-09-09T01:41:36.914Z",
+    "queued": 0,
+    "actual_sdk_receipts": 1,
+    "failure_code": null,
+    "provider_code": null
+  },
+  "local_sequence": {
+    "scope_fingerprint": "02090f42dc95a6a60a44a5cb02e37bfb2ee8c201ac882b9aa8830a2cf51b5e6e",
+    "sequence": 1788918221613000
+  },
+  "stable_original_arrival": {
+    "cursor": 1,
+    "event_id": 22,
+    "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+    "message_id": "f35e0e72-e008-437f-8d45-59b93413c2d0",
+    "kind": "message.created",
+    "provider_uid": "D0GE-T1V8-LGOE-75D4",
+    "received_at": "2026-09-09T09:13:28.230111+08:00"
+  },
+  "scope_note": "Restart connection confirmed; no new message sent and no new arrival synthesized. Existing accepted queue/inbox retained original UID/cursor/time."
+}

@@ -1,0 +1,17 @@
+{
+  "http_status": 200,
+  "same_stable_receipt": true,
+  "request_sha256": "54de6bed697dd47dfc35992da90235ce3b9e3156c291ecb055aeceea9365ebb4",
+  "receipt": {
+    "arrival": {
+      "cursor": 1,
+      "event_id": 22,
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "message_id": "f35e0e72-e008-437f-8d45-59b93413c2d0",
+      "kind": "message.created",
+      "provider_uid": "D0GE-T1V8-LGOE-75D4",
+      "received_at": "2026-09-09T09:13:28.230111+08:00"
+    },
+    "schema": "renji.transport.ingress-receipt.v1"
+  }
+}

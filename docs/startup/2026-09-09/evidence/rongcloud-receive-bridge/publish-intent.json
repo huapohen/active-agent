@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-09T01:13:28.059671Z",
+  "event_id": 22,
+  "message_id": "f35e0e72-e008-437f-8d45-59b93413c2d0",
+  "network_write_budget": 1,
+  "new_outbox_id": 7,
+  "operation": "message.group.publish",
+  "plan_sha256": "356a8fe99745a38cc3f525acbf84e8164129a46848675086656c78ed429a28b2",
+  "target_group": "63892e35-efbd-40cb-86e6-17c7cab37aa6"
+}

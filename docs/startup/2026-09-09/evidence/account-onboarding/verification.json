@@ -1,0 +1,60 @@
+{
+  "implementation_commit": "e975e94e900cc892e39ed52ac0ce94ccd71c6ea1",
+  "checked_at": "2026-09-09T09:36:59.143107+08:00",
+  "go_scope": [
+    "./cmd/...",
+    "./internal/..."
+  ],
+  "go_counts": {
+    "pass_top": 235,
+    "pass_sub": 264
+  },
+  "web_tests": 155,
+  "desktop_tests": 6,
+  "bridge_tests": 8,
+  "checks": [
+    {
+      "kind": "go_race",
+      "log_path": "/tmp/renji-account-bridge-final-production-race-20260909.jsonl",
+      "bytes": 615343,
+      "sha256": "cab476ca359eb64a8f7d31cc344f743a6e0422ea47dc695e2518396dd797fe13"
+    },
+    {
+      "kind": "web_tests",
+      "log_path": "/tmp/renji-account-bridge-web-final-20260909.log",
+      "bytes": 911,
+      "sha256": "8e63ed457d86e58dd09ff7ea184681fa147ec6eb14d960b34ec167d2d31cbd9a"
+    },
+    {
+      "kind": "web_build",
+      "log_path": "/tmp/renji-account-bridge-web-build-20260909.log",
+      "bytes": 12133,
+      "sha256": "b5633c2dbde9fb0d461d932ce0a8199319309c1b8c4dbdaee07b5e912df8a1f8"
+    },
+    {
+      "kind": "bridge_tests",
+      "log_path": "/tmp/renji-account-bridge-node-final-20260909.log",
+      "bytes": 800,
+      "sha256": "04b3114a174fb60ea24150fca23c2b1ef2ae25cbf7ece7beeec33fb9ce4aea17"
+    },
+    {
+      "kind": "desktop_tests",
+      "log_path": "/tmp/renji-account-bridge-desktop-tests-20260909.log",
+      "bytes": 636,
+      "sha256": "3d1d2c40390b33bed559d601144284abe8451aca7ccce32bfdf25393714171e3"
+    },
+    {
+      "kind": "desktop_check",
+      "log_path": "/tmp/renji-account-bridge-desktop-check-20260909.log",
+      "bytes": 124,
+      "sha256": "6473f8ce9d50063ba0d3e16200617e5bcfd92d8f5b35e45a5199209c625d7943"
+    },
+    {
+      "kind": "go_vet",
+      "log_path": "/tmp/renji-account-bridge-vet-20260909.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "excluded": "Ignored historical probe output has two main functions; preserved, excluded from production package verification."
+}

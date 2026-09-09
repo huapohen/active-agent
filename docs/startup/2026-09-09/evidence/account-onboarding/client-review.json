@@ -1,0 +1,65 @@
+{
+  "at": "2026-09-09T09:11:26+08:00",
+  "git_baseline": "ddd947c7c3f74168ad1a17b11d4b04b5eb4599ad",
+  "implementation_uncommitted": true,
+  "tests": {
+    "component": 39,
+    "independent_hook": 16,
+    "total": 55,
+    "passed": true,
+    "files": 2
+  },
+  "typecheck_passed": true,
+  "native_gui_verified_by_this_agent": false,
+  "model_calls": 0,
+  "production_requests": 0,
+  "files": [
+    {
+      "path": "apps/web/src/CommercialOnboarding.tsx",
+      "sha256": "11c1197f77b71df67bccd830ed2451c80ca5905eb4f5d7f45cae27ac1096e542",
+      "bytes": 25232
+    },
+    {
+      "path": "apps/web/src/commercial-onboarding.css",
+      "sha256": "1b869a0635e1b7f45c086c0a14a263925a95d0c25230e7968fe25c47d374b886",
+      "bytes": 7146
+    },
+    {
+      "path": "apps/web/src/CommercialOnboarding.test.tsx",
+      "sha256": "75e759b588949bfb230bfe04cbebe21a9c8c8f26e5ed4a14f4c81657fa9f0626",
+      "bytes": 21761
+    },
+    {
+      "path": "apps/web/src/useCommercialAccount.test.tsx",
+      "sha256": "f11116930d4417a3a6cc3fb725362d243d7bc0e7307ad32a9fa4ae7e70c253e7",
+      "bytes": 19147
+    },
+    {
+      "path": "apps/web/src/useCommercialAccount.ts",
+      "sha256": "7a907c5893dbd828f623038ba7558793cafcf4643e3919ba444652287bcda0a5",
+      "bytes": 14201
+    },
+    {
+      "path": "apps/web/src/api.ts",
+      "sha256": "829fff8c72a2f3735fe8e3de9c927bb73afe19750534e6a6f249d5fc5fad9bce",
+      "bytes": 41121
+    },
+    {
+      "path": "apps/web/src/App.tsx",
+      "sha256": "c7e4d0d26ade06b5ce5be56c4cda98de7a5a93568ce0553133d4abd7d1ff6a40",
+      "bytes": 41050
+    }
+  ],
+  "logs": [
+    {
+      "path": "/tmp/renji-account-components-independent-final-20260909.log",
+      "sha256": "31f5dfdd9c7cbb73099a6b8b8cbe10064fe26b1d9bd883f26e3c38e0b6d18a1b",
+      "bytes": 353
+    },
+    {
+      "path": "/tmp/renji-account-components-independent-check-20260909.log",
+      "sha256": "0bcb9330790f38442785e28a8dc646e9eca491fa72c2eb0af3f3418cece96aa8",
+      "bytes": 42
+    }
+  ]
+}
