@@ -1,0 +1,24 @@
+{
+  "at": "2026-09-08T23:43:38.991899+00:00",
+  "backup_bytes": 69093,
+  "backup_sha256": "52eca4318e60d901f56f5bfe32ebc8a59767259150f72e4bf311c674c77072f9",
+  "before": {
+    "schema_version": "5",
+    "messages": "4",
+    "outbox": "6",
+    "actions": "15"
+  },
+  "after": {
+    "schema_version": "6",
+    "messages": "4",
+    "outbox": "6",
+    "actions": "15",
+    "reactions": "0"
+  },
+  "health": {
+    "protocol": "renji.v1",
+    "service": "renji-collaboration",
+    "transport": "rongcloud"
+  },
+  "verified_at": "2026-09-08T23:49:34.159477+00:00"
+}

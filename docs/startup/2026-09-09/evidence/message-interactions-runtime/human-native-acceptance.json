@@ -1,0 +1,22 @@
+{
+  "at": "2026-09-09T00:17:02.655129+00:00",
+  "implementation": "50570cac03b1314c831fc856e6ed826f60486fa8",
+  "user_completed_cloudflare_and_email_verification": true,
+  "native_commercial_human_login_verified": true,
+  "native_route": "http://127.0.0.1:5173/",
+  "migration_mode": false,
+  "visible_display_name": "新同事",
+  "visible_kind": "人类同事",
+  "visible_room_count": 0,
+  "create_room_ui_enabled": false,
+  "agent_directory_ui_enabled": false,
+  "documents_ui_enabled": false,
+  "rongcloud_client_status": "暂不可用",
+  "rongcloud_provider_required": true,
+  "ordinary_sdk_tokens_restricted_by_existing_server_policy": true,
+  "commercial_message_gui_acceptance": false,
+  "profile_username_editing_implemented": false,
+  "prior_blocked_observation_preserved": true,
+  "chat_messages_sent": 0,
+  "model_calls": 0
+}

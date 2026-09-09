@@ -1,0 +1,82 @@
+{
+  "schema": "renji.message-interactions-tests.v1",
+  "real_postgres_isolated_schemas": true,
+  "baseline_full_then_final_affected_checks": [
+    {
+      "log": "renji-commercial-interactions-go-full-20260909.log",
+      "sha256": "456579a044bfe0f9c935522c29e58f53047c116ed5f0079a8d74310e2d2789bf",
+      "bytes": 571414,
+      "top_pass": 208,
+      "sub_pass": 252,
+      "fail": 0,
+      "skip": 0,
+      "packages": [
+        "github.com/huapohen/active-agent/services/collaboration/cmd/document-sync",
+        "github.com/huapohen/active-agent/services/collaboration/cmd/execution-probe",
+        "github.com/huapohen/active-agent/services/collaboration/cmd/run-archive",
+        "github.com/huapohen/active-agent/services/collaboration/cmd/transport-probe",
+        "github.com/huapohen/active-agent/services/collaboration/cmd/worker",
+        "github.com/huapohen/active-agent/services/collaboration/internal/auth",
+        "github.com/huapohen/active-agent/services/collaboration/internal/documents",
+        "github.com/huapohen/active-agent/services/collaboration/internal/emoji",
+        "github.com/huapohen/active-agent/services/collaboration/internal/harness",
+        "github.com/huapohen/active-agent/services/collaboration/internal/httpapi",
+        "github.com/huapohen/active-agent/services/collaboration/internal/runarchive",
+        "github.com/huapohen/active-agent/services/collaboration/internal/store",
+        "github.com/huapohen/active-agent/services/collaboration/internal/transport"
+      ]
+    },
+    {
+      "log": "renji-message-http-catalog-fix-race-20260909.log",
+      "sha256": "c64e904fd7c5db811fc04dc5cb6f206410847802eb7bb31f652ede63a0b6421c",
+      "bytes": 27191,
+      "top_pass": 19,
+      "sub_pass": 4,
+      "fail": 0,
+      "skip": 0,
+      "packages": [
+        "github.com/huapohen/active-agent/services/collaboration/internal/httpapi"
+      ]
+    },
+    {
+      "log": "renji-native-interactions-harness-race-20260909.log",
+      "sha256": "f5ab6af2a1a176525952fd73f6bcd2e18763b8d851b91041baff83f917e07172",
+      "bytes": 168675,
+      "top_pass": 49,
+      "sub_pass": 54,
+      "fail": 0,
+      "skip": 0,
+      "packages": [
+        "github.com/huapohen/active-agent/services/collaboration/cmd/worker",
+        "github.com/huapohen/active-agent/services/collaboration/internal/harness"
+      ]
+    },
+    {
+      "log": "renji-native-interactions-http-pg-race-20260909.log",
+      "sha256": "b1a567187b96f0f39f248b4b25dab50dfb3ec1a6967b061d3945e3abcc50c4fe",
+      "bytes": 5794,
+      "top_pass": 2,
+      "sub_pass": 0,
+      "fail": 0,
+      "skip": 0,
+      "packages": [
+        "github.com/huapohen/active-agent/services/collaboration/internal/httpapi"
+      ]
+    }
+  ],
+  "web_tests_before_human_stop_fix": 82,
+  "desktop_tests": 6,
+  "production_web_build": "passed",
+  "vet": "passed",
+  "production_build_warnings": [
+    "RongCloud browser package path module externalized",
+    "JS chunk above advisory 500 kB threshold"
+  ],
+  "no_live_model_call": true,
+  "web_final": {
+    "tests": 85,
+    "files": 12,
+    "log_sha256": "5635d09e0b5fdc332f211cf539f8d18897129bb7323452c16b34ad62ac5f1cbd"
+  },
+  "human_intervention_preserved": true
+}

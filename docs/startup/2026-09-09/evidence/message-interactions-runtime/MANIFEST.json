@@ -1,0 +1,41 @@
+{
+  "schema": "renji.stage-evidence-manifest.v1",
+  "implementation": "50570cac03b1314c831fc856e6ed826f60486fa8",
+  "files": [
+    {
+      "path": "clerk-human-login-native.png",
+      "bytes": 44076,
+      "sha256": "44b4981ee73dead9e3346d877ab71091bdf321e89fe0af7794e6142c12459689"
+    },
+    {
+      "path": "human-identity-readback.json",
+      "bytes": 461,
+      "sha256": "c5aa158bd09d67d0eb736eb6235edf0b1c1783b603ea69a0b29358304960a13d"
+    },
+    {
+      "path": "human-native-acceptance.json",
+      "bytes": 840,
+      "sha256": "2f372a669257ff0c93f98288280ac72a1ae59bf993163cb134b307c421ab879e"
+    },
+    {
+      "path": "migration-receipt.json",
+      "bytes": 559,
+      "sha256": "ad9598f3bc58eb222e04bf5c09ab2a59e7de9aeffe9e5735b425e62c7fd3e0a2"
+    },
+    {
+      "path": "native-auth-observation.json",
+      "bytes": 1127,
+      "sha256": "06f15834346c79f4443d050fcfdd77299f371d814457740e7623f8840739b553"
+    },
+    {
+      "path": "runtime-final.json",
+      "bytes": 399,
+      "sha256": "45ef66b69cf9de82bf2d8a287dbd0f24f9a64166eb536170905da126d89e94bf"
+    },
+    {
+      "path": "tests.json",
+      "bytes": 3206,
+      "sha256": "a6ec1958fdba3529520127fa0348d0c142019e733375adf3b49fdaa04a3b754e"
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 # 人机本机手动启动教程
 
+2026-09-09 消息交互阶段更新：当前实施提交为 `50570cac03b1314c831fc856e6ed826f60486fa8`（`2026-09-09T07:55:18+08:00`，`feat(startup): deliver native replies reactions and authenticated emoji`）。本机已应用迁移 `00006_message_interactions.sql`，schema 为 6。第 3 节增加真实表情目录配置；商业注册已改为同源 Clerk 页面，用户已亲自完成 Cloudflare 和邮箱验证，随后 Electron 商业登录及持久 Human 身份已验证；新账号仍无工作空间或会话，客户端建群与昵称编辑待接通。以下旧时点记录保留为历史。
+
 2026-09-09 06:39 更新：当前实施提交为 `2fc663150ec66fa2c402e1a38668264f0d961e5a`（06:37:12+08:00，`feat(startup): automate execution archives and add native message actions`）。下列普通服务、电脑与模拟器启动步骤仍适用；本轮没有新增数据库迁移。Worker 增加 `RENJI_RUN_ARCHIVE_CONFIG` 私有部署配置，终态自动归档的启动条件、结果查询与有限重试见 [0621 专题](AUTOMATIC_TERMINAL_ARCHIVE_0621.md)。当前验收使用专用归档队列并已停止该 Worker；它不是打开电脑界面的前提。不要直接重跑验收工作流 start、旧 publisher 或 provisioning 来启动界面。
 
 记录时间：2026-09-09 04:25（Asia/Shanghai）。适用于本机 `startup` 分支，客户端实现提交 `71b80f8181fa243b7477ebac0c35c6ce13e2c960`（04:11:17），内核提交 `a9005c01ee059b3f093d877ae1eb13828075d692`（04:15:30）。依据当前根 `package.json`、`services/collaboration/README.md`、`apps/desktop/README.md` 和旧 Flutter 启动脚本编写。
@@ -10,7 +12,7 @@
 | --- | --- | --- | --- |
 | 新电脑端，查看已有账号和聊天数据 | Electron + React | 旧 IM 3218、Vite 5173 | 明确选择“现有数据迁移”入口，使用已有本地账号 |
 | 浏览器查看同一个新界面 | React Web | 旧 IM 3218、Vite 5173 | 同上 |
-| 新商业工作空间的开发验证 | React / Electron 的 Clerk 入口 | PostgreSQL、Go API 3318、Vite 5173 | Clerk；真人商业登录闭环尚未验收 |
+| 新商业工作空间的开发验证 | React / Electron 的 Clerk 入口 | PostgreSQL、Go API 3318、Vite 5173 | Clerk；Electron 人类登录已验证，新账号建群入口待接通 |
 | iPhone 模拟器的人机 | `apps/office` Flutter | 旧 IM 3218 与文档协作 1238 | 已有本地账号 |
 
 手机目前仍是旧 Flutter 栈；手机登录成功不代表已经迁入 Go、Clerk、融云的新栈。新版 Mac 桌面以 Electron 为主；旧 Flutter Mac 客户端仍可单独启动用于对照。
@@ -82,17 +84,20 @@ source data/startup/clerk.env
 source data/startup/rongcloud.env
 source data/startup/clerk-machine.env
 set +a
+export RENJI_EMOJI_DIR="$PWD/apps/office/assets/emoji"
 cd services/collaboration
 go run ./cmd/api
 ```
 
 这些文件仅在本机保存。不要开启 shell 的 `set -x`，不要打印环境变量，也不要将其中值复制到前端。融云是新服务的必需配置。`clerk-worker.env` 是短期机器测试凭证，不是打开桌面所需配置。
 
+`RENJI_EMOJI_DIR` 必须是包含目录、manifest 和经典 PNG 的绝对路径；上面的命令在项目根目录解析它。服务启动时核验资源并持有快照，修改该目录后需要重启服务。未配置时表情目录和添加/取消回应能力不会开放，配置后资源损坏则启动失败；不要用迁移服务的表情地址替代商业鉴权路径。
+
 ```sh
 curl --noproxy '*' --fail --silent --show-error http://127.0.0.1:3318/healthz
 ```
 
-首次部署或升级到带有新数据库迁移的版本时，按服务 README 使用 `--migrate`，只应用未执行的迁移。本阶段新增的 00004、00005 已在本机应用，普通重启无需重复初始化。正常开机不要重新执行 probe、fixture provision、文档实例 setup 或 transport worker；这些不是启动界面的必要步骤。
+首次部署或升级到带有新数据库迁移的版本时，按服务 README 使用 `--migrate`，只应用未执行的迁移。本机已应用 00004、00005、00006，普通重启无需重复初始化。正常开机不要重新执行 probe、fixture provision、文档实例 setup 或 transport worker；这些不是启动界面的必要步骤。
 
 ## 4. 启动新版 Mac 电脑端与 Web
 

@@ -1,0 +1,386 @@
+{
+  "schema": "renji.message-m2m-read-acceptance-archive.v1",
+  "archived_at": "2026-09-09T08:09:19+08:00",
+  "implementation": {
+    "commit": "50570cac03b1314c831fc856e6ed826f60486fa8",
+    "committed_at": "2026-09-09T07:55:18+08:00",
+    "description": "feat(startup): deliver native replies reactions and authenticated emoji"
+  },
+  "scope": "Real Clerk M2M token and read-only Go API/MCP acceptance; no new business actions, model calls or outbox dispatch. Prior unknown remains unchanged.",
+  "counts": {
+    "go_api_mcp_read_requests": 11,
+    "go_get_requests": 9,
+    "mcp_readonly_post_requests": 2,
+    "clerk_authenticated_list_requests": 8,
+    "clerk_token_creation_requests": 1,
+    "unauthenticated_route_probes": 2,
+    "business_writes": 0,
+    "outbox_dispatches": 0,
+    "model_calls": 0
+  },
+  "counting_rule": "11 application read requests = 9 GET + 2 read-only MCP POST. Clerk listing, issuance and unauthenticated probes are separate support requests, not additional application acceptance cases. 17 capabilities, 12 tools and 4126 catalog entries are data sizes, not test counts. Historical reconciliation is separate and not added.",
+  "sources": {
+    "attempt2": {
+      "source": "output/startup-message-interactions-20260909/machine-read-acceptance-attempt2-20260909-080335-a6b50746.json",
+      "sha256": "2d8f861fd68593fd52ee49a0ad52e273b647449d54654f09976ce3fb8efea63e",
+      "evidence": {
+        "schema": "renji.message-interactions-live-machine-attempt.v2",
+        "attempt": "attempt2-20260909-080335-a6b50746",
+        "at": 1788912215.0635462,
+        "prior_intent_sha256": "bbdb34706ea917baa28665672aef28df04cff0e340e2bba21365c1bebf74eec5",
+        "issuance_requests": 1,
+        "business_writes": 0,
+        "outbox_dispatches": 0,
+        "model_calls": 0,
+        "worker_started": false,
+        "private_directory": "data/startup/message-interactions-attempt2-20260909-080335-a6b50746",
+        "checks": [
+          {
+            "path": "/v1/me",
+            "method": "GET",
+            "status": 200,
+            "body_sha256": "41c25f0b002ea0db048da1cdfa2419d0f68879aa9d81b14baf156949b9d91e1e"
+          },
+          {
+            "path": "/v1/capabilities",
+            "method": "GET",
+            "status": 200,
+            "body_sha256": "689c7c3b1b0dda63c2a30360efa18211c4598e8065c2b2d6d869ff9fd887c889"
+          },
+          {
+            "path": "/v1/emoji?q=feishu%3AOK&limit=5",
+            "method": "GET",
+            "status": 200,
+            "body_sha256": "fa11cd2ac5e3999e3cbd3c8b9f97490e4548476354d60da86ad551271783a689"
+          },
+          {
+            "path": "/v1/emoji/entries/feishu:OK",
+            "method": "GET",
+            "status": 200,
+            "body_sha256": "0c082d80cabb7fab49efbc76ad08e488098c6a3e9d7213aced42da9c2b8ebb68"
+          },
+          {
+            "path": "/v1/emoji/assets/feishu/OK.png",
+            "method": "GET",
+            "status": 200,
+            "body_sha256": "4f000fd08c041fa1f96cb18128e3a6aff0f1071bffce570c9e3562c9af2478db"
+          },
+          {
+            "path": "/v1/mcp",
+            "method": "POST",
+            "status": 200,
+            "body_sha256": "07aa03cbb7c39e3ce273a14e620d6d5b1a11fc39dd15aaa839987194e3631722"
+          },
+          {
+            "path": "/v1/rooms",
+            "method": "GET",
+            "status": 200,
+            "body_sha256": "aabf4a08cf7fa5e4867c4d33b9a34510bf0defc4ae056c7f1db576161ea4e291"
+          },
+          {
+            "path": "/v1/rooms/63892e35-efbd-40cb-86e6-17c7cab37aa6/messages?before=0&limit=100",
+            "method": "GET",
+            "status": 200,
+            "body_sha256": "4be9e7c46849b32927fe263c69d34da5690807fe6607ebf0356a6bdee3bf7553"
+          },
+          {
+            "path": "/v1/rooms/63892e35-efbd-40cb-86e6-17c7cab37aa6/messages/0ca89e75-71f5-43e2-a147-da8a9369a82d",
+            "method": "GET",
+            "status": 200,
+            "body_sha256": "bc5c86073986fe50256cee4002b5d0c41b6ed36d14f1a6079dcd7b58021cb7f8"
+          },
+          {
+            "path": "/v1/rooms/63892e35-efbd-40cb-86e6-17c7cab37aa6/messages/0ca89e75-71f5-43e2-a147-da8a9369a82d/reactions?limit=50",
+            "method": "GET",
+            "status": 200,
+            "body_sha256": "698192e1c65d682b863325008ec21c985d4947cbd13a2b202b6103af99a9411e"
+          },
+          {
+            "path": "/v1/mcp",
+            "method": "POST",
+            "status": 200,
+            "body_sha256": "981cfb3f2faf77527f0e71038e434a55225bdc42e705ed8940a1cbabfb0c6008"
+          }
+        ],
+        "probes": [
+          {
+            "route": "direct",
+            "status": 401,
+            "seconds": 0.828
+          },
+          {
+            "route": "system_proxy",
+            "status": 401,
+            "seconds": 0.506
+          }
+        ],
+        "selected_route": "system_proxy",
+        "before": {
+          "at": 1788912220.768057,
+          "pages": [
+            {
+              "expired": "false",
+              "revoked": "false",
+              "offset": 0,
+              "status": 200,
+              "count": 0,
+              "total_count": 0,
+              "body_sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+            },
+            {
+              "expired": "false",
+              "revoked": "true",
+              "offset": 0,
+              "status": 200,
+              "count": 0,
+              "total_count": 0,
+              "body_sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+            },
+            {
+              "expired": "true",
+              "revoked": "false",
+              "offset": 0,
+              "status": 200,
+              "count": 3,
+              "total_count": 3,
+              "body_sha256": "da37ff910b4437ab8b84a54ef670509f17a550b7580143f15d84e203e874ad17"
+            },
+            {
+              "expired": "true",
+              "revoked": "true",
+              "offset": 0,
+              "status": 200,
+              "count": 0,
+              "total_count": 0,
+              "body_sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+            }
+          ],
+          "complete": true,
+          "total_unique": 3,
+          "old_attempt_window_matches": 0,
+          "tokens": [
+            {
+              "id_sha256": "e868b2118a099ccb92a4907c816a0cb1abbbeb8309f6df981248445b6fdfee48",
+              "created_at": 1788896968617,
+              "expiration": 1788900568617,
+              "expired": true,
+              "revoked": false
+            },
+            {
+              "id_sha256": "0ac02f85d6f82de0be7cee1c8c461a7ba131a11be591648274165dd784898276",
+              "created_at": 1788897065184,
+              "expiration": 1788900665184,
+              "expired": true,
+              "revoked": false
+            },
+            {
+              "id_sha256": "95a7665c79ddc0cdc263fcda08953de89ff7d2062942ae8aa5c40c6b71201db0",
+              "created_at": 1788901704511,
+              "expiration": 1788908904511,
+              "expired": true,
+              "revoked": false
+            }
+          ]
+        },
+        "issuance": {
+          "state": "created",
+          "http_status": 201,
+          "response_sha256": "c81db2f84ca30a9f8315b29b05c23cf63df55c9434750952e331c734baa554ec",
+          "expiration": 1788915821826,
+          "token_id_sha256": "6d26a3680dd6836918b673503e7024a9b8197154cc2b05b9cc9d5bba791b7903"
+        },
+        "after": {
+          "at": 1788912224.840945,
+          "pages": [
+            {
+              "expired": "false",
+              "revoked": "false",
+              "offset": 0,
+              "status": 200,
+              "count": 1,
+              "total_count": 1,
+              "body_sha256": "d24ab8e13d0f4931f821b2c08e54af35d5f469d64176fd2036e30476c1a21097"
+            },
+            {
+              "expired": "false",
+              "revoked": "true",
+              "offset": 0,
+              "status": 200,
+              "count": 0,
+              "total_count": 0,
+              "body_sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+            },
+            {
+              "expired": "true",
+              "revoked": "false",
+              "offset": 0,
+              "status": 200,
+              "count": 3,
+              "total_count": 3,
+              "body_sha256": "da37ff910b4437ab8b84a54ef670509f17a550b7580143f15d84e203e874ad17"
+            },
+            {
+              "expired": "true",
+              "revoked": "true",
+              "offset": 0,
+              "status": 200,
+              "count": 0,
+              "total_count": 0,
+              "body_sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+            }
+          ],
+          "complete": true,
+          "total_unique": 4,
+          "old_attempt_window_matches": 0,
+          "tokens": [
+            {
+              "id_sha256": "6d26a3680dd6836918b673503e7024a9b8197154cc2b05b9cc9d5bba791b7903",
+              "created_at": 1788912221826,
+              "expiration": 1788915821826,
+              "expired": false,
+              "revoked": false
+            },
+            {
+              "id_sha256": "e868b2118a099ccb92a4907c816a0cb1abbbeb8309f6df981248445b6fdfee48",
+              "created_at": 1788896968617,
+              "expiration": 1788900568617,
+              "expired": true,
+              "revoked": false
+            },
+            {
+              "id_sha256": "0ac02f85d6f82de0be7cee1c8c461a7ba131a11be591648274165dd784898276",
+              "created_at": 1788897065184,
+              "expiration": 1788900665184,
+              "expired": true,
+              "revoked": false
+            },
+            {
+              "id_sha256": "95a7665c79ddc0cdc263fcda08953de89ff7d2062942ae8aa5c40c6b71201db0",
+              "created_at": 1788901704511,
+              "expiration": 1788908904511,
+              "expired": true,
+              "revoked": false
+            }
+          ],
+          "created_token_listed": true,
+          "new_token_count": 1
+        },
+        "passed": true,
+        "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+        "capabilities": 17,
+        "mcp_tools": 12,
+        "catalog_count": 4126,
+        "asset_sha256": "4f000fd08c041fa1f96cb18128e3a6aff0f1071bffce570c9e3562c9af2478db",
+        "room_count": 2,
+        "point_parity": true,
+        "mcp_point_parity": true,
+        "reaction_page_verified": true,
+        "completed_at": 1788912230.97422,
+        "old_intent_unchanged": true,
+        "old_env_unchanged": true
+      }
+    },
+    "prior_readonly": {
+      "source": "output/startup-message-interactions-20260909/machine-token-filter-reconciliation.json",
+      "sha256": "1568e0480a45e0c60cdf1e09f4827a3888dd2a6b4ea5e2675bdd7beceb298c4c",
+      "evidence": {
+        "schema": "renji.clerk-token-readonly-filter-audit.v1",
+        "at": 1788911697.900125,
+        "original_intent_sha256": "bbdb34706ea917baa28665672aef28df04cff0e340e2bba21365c1bebf74eec5",
+        "original_issuance_http_status": null,
+        "mutations": 0,
+        "list_attempts": [
+          {
+            "expired": "false",
+            "revoked": "false",
+            "status": 200,
+            "body_sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b",
+            "count": 0,
+            "total_count": 0,
+            "complete": true
+          },
+          {
+            "expired": "false",
+            "revoked": "true",
+            "status": 200,
+            "body_sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b",
+            "count": 0,
+            "total_count": 0,
+            "complete": true
+          },
+          {
+            "expired": "true",
+            "revoked": "false",
+            "status": 200,
+            "body_sha256": "da37ff910b4437ab8b84a54ef670509f17a550b7580143f15d84e203e874ad17",
+            "count": 3,
+            "total_count": 3,
+            "complete": true
+          },
+          {
+            "expired": "true",
+            "revoked": "true",
+            "status": 200,
+            "body_sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b",
+            "count": 0,
+            "total_count": 0,
+            "complete": true
+          }
+        ],
+        "probe_results": [
+          {
+            "route": "direct",
+            "status": 401,
+            "seconds": 0.947
+          },
+          {
+            "route": "system_proxy",
+            "status": 401,
+            "seconds": 0.559
+          }
+        ],
+        "tokens": [
+          {
+            "id_sha256": "e868b2118a099ccb92a4907c816a0cb1abbbeb8309f6df981248445b6fdfee48",
+            "created_at": 1788896968617,
+            "expiration": 1788900568617,
+            "expired": true,
+            "revoked": false,
+            "scopes": [
+              "mch_3J3jf4PPVcLCndvQArqanHyKUCP"
+            ],
+            "secret_returned": false
+          },
+          {
+            "id_sha256": "0ac02f85d6f82de0be7cee1c8c461a7ba131a11be591648274165dd784898276",
+            "created_at": 1788897065184,
+            "expiration": 1788900665184,
+            "expired": true,
+            "revoked": false,
+            "scopes": [
+              "mch_3J3jf4PPVcLCndvQArqanHyKUCP"
+            ],
+            "secret_returned": false
+          },
+          {
+            "id_sha256": "95a7665c79ddc0cdc263fcda08953de89ff7d2062942ae8aa5c40c6b71201db0",
+            "created_at": 1788901704511,
+            "expiration": 1788908904511,
+            "expired": true,
+            "revoked": false,
+            "scopes": [
+              "mch_3J3jf4PPVcLCndvQArqanHyKUCP"
+            ],
+            "secret_returned": false
+          }
+        ],
+        "matches_intent_window": [],
+        "matching_ttl_1800": [],
+        "known_old_token_found": true,
+        "outcome": "all-four-state-filters-read",
+        "intent_unchanged": true,
+        "finished_at": 1788911703.0220108
+      }
+    }
+  }
+}

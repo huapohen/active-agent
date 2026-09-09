@@ -1,0 +1,78 @@
+{
+  "schema": "renji.reaction-transport-evidence.v1",
+  "at": "2026-09-09T07:53:24.339834+08:00",
+  "baseline_commit": "c3a6f2697544d6c9784c9d6e49da658c19736c78",
+  "implementation_status": "Current stage changes are not yet committed; baseline is the previous documentation commit, not this implementation commit.",
+  "scope": "One real RongCloud command acceptance in an existing verified synthetic group; no client E2E/delivery/read claim.",
+  "total_http_requests": 2,
+  "reaction_command_requests": 1,
+  "membership_read_requests": 1,
+  "provider_receipt_uid": "D0GD-MSGD-GO4E-75D4",
+  "schema_dropped": true,
+  "files": [
+    {
+      "path": "canonical-after.json",
+      "bytes": 4606,
+      "sha256": "c029ae1265160c3f0f263950ef38cb8e2b83da5552c560aad836d11ecfd02efd",
+      "sanitization": "Only expired claim_token fields removed; the isolated schema is already dropped.",
+      "original_output_sha256": "69b6e1ba47982e267a34da122ec731f7fdb70c70fe259c39130ceff7abc69bd7"
+    },
+    {
+      "path": "canonical-before.json",
+      "bytes": 882,
+      "sha256": "c7ee5281b6820d4e8c553881499ad567bb30fc78c59a214e00484a5ab985d377"
+    },
+    {
+      "path": "initial-preflight-stop.json",
+      "bytes": 610,
+      "sha256": "767fc84002532a983b33076bc4f4ef8ae2361f06429fb0cc90064fa0f5328d72"
+    },
+    {
+      "path": "observations.jsonl",
+      "bytes": 2440,
+      "sha256": "40f7d416eb0b0398a9cd65e643b5ca548199f4903e51ff7e13c492cf4df7bb18"
+    },
+    {
+      "path": "plan.json",
+      "bytes": 1796,
+      "sha256": "f928b7ed73a4fb2e6b063506a084244684d72b8144bcc9d744e4c360b34c671b"
+    },
+    {
+      "path": "probe-source.go.txt",
+      "bytes": 22808,
+      "sha256": "618865549365f00b491056d5f93c0ddc8b14ba797fd6ce320147fc18833c4f3f"
+    },
+    {
+      "path": "provider-response.raw.json",
+      "bytes": 114,
+      "sha256": "d8bf49ee5357ce22fbbce1aee4681c3aba3c4fed0f9fecb2578a9e3a8a66f33e",
+      "recovery": "Reconstructed key order from parsed response; these exact 114 bytes match the SHA-256 recorded from the actual HTTP response body."
+    },
+    {
+      "path": "receipt.json",
+      "bytes": 2398,
+      "sha256": "ebd47633dba159bcfbc967e882b111c45b6c6e1e694b2e96922e4ae6efd4e185"
+    },
+    {
+      "path": "request-wire.json",
+      "bytes": 1034,
+      "sha256": "643c00c934cb00a9506924d95935e1949cd516ae566fd2d7a764ef348290b034"
+    }
+  ],
+  "total_bytes": 36688,
+  "source_snapshot_at_packaging": [
+    {
+      "path": "services/collaboration/internal/store/message_interactions.go",
+      "sha256": "bbe543c976554e7be6107d0be2eabcbd72fb06f9f3f4618bda7ec4af21065614"
+    },
+    {
+      "path": "services/collaboration/internal/store/outbox.go",
+      "sha256": "ed4b3d4c1a8493b26502e139efbe1b9c0b2ec4132446336f903f2a940a117ea7"
+    },
+    {
+      "path": "services/collaboration/internal/transport/rongcloud.go",
+      "sha256": "23ba87c45feb62fc06b08e775edef96d3759421b519e5950f1d5746e577457be"
+    }
+  ],
+  "probe_binary_sha256": "f0a62da0dbc1cfdf88c919f4b0c6de78ec699204b5607a84c677ea1cb5285412"
+}

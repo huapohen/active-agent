@@ -1,0 +1,13 @@
+{
+  "at": "2026-09-09T00:09:48.710009+00:00",
+  "implementation": "50570cac03b1314c831fc856e6ed826f60486fa8",
+  "binary_sha256": "666ab35e8f9f1ac1b163197b823b426634a8005171ea875ed6075632b27a4e82",
+  "binary_git_revision_verified": true,
+  "listener_count": 1,
+  "health": {
+    "protocol": "renji.v1",
+    "service": "renji-collaboration",
+    "transport": "rongcloud"
+  },
+  "business_writes": 0
+}

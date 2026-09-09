@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-09T00:14:39.204291+00:00",
+  "identity_issuer_matched_current_clerk": true,
+  "verified_human_bindings_count": 1,
+  "principal_id": "f14c260d-e727-410d-9fd7-672d6eab5d55",
+  "kind": "human",
+  "display_name": "新同事",
+  "disabled": false,
+  "subject_sha256": "b53a5dc7d2ead91f25b7a858e808925726ab915a26fb6e72cb20f1a28545efb7",
+  "workspace_memberships": 0,
+  "room_memberships": 0,
+  "database_reads_only": true,
+  "business_writes": 0
+}

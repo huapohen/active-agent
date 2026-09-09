@@ -1,0 +1,42 @@
+{
+  "budgets": {
+    "group_members_read": 1,
+    "group_write": 0,
+    "reaction_command": 1,
+    "register": 0,
+    "text_publish": 0
+  },
+  "current_policy": {
+    "id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+    "workspace_id": "736b5198-479b-4505-8dbb-8d54b0d5c697",
+    "title": "融云人机同群合成验收 · 2164910f",
+    "kind": "group",
+    "version": 3,
+    "scope_epoch": 3,
+    "stopped": false
+  },
+  "historical_manifest_policy": {
+    "scope_epoch": 1,
+    "version": 1
+  },
+  "isolated_schema": "reaction_probe_dc566034964140e29cdba801d762edb2",
+  "old_fixture_hashes": {
+    "rongcloud-outbox-fixture-v1.json": "41436dafe6a223e828e11975384d609bcdd094344d3271fc7732efbd8df0b206",
+    "rongcloud-outbox-provider-observations-v1.jsonl": "a639c19552fad2ce55815e3bc44debde821f0c7c2c622149d7f8070bab05095e",
+    "rongcloud-outbox-readback-v1.json": "71e140ba8753718fb812d6f1432e0d51c40375aeeb4bf98cd3c227954aa4c197",
+    "rongcloud-outbox-restart-verification-v1.json": "1fa5f750bf0f6b659c326e10fa086dab28575bcfcd56f3811be1697da4bcb680"
+  },
+  "prepared_at": "2026-09-08T23:50:04.662964Z",
+  "prior_attempt": "reaction-transport-20260909-074313",
+  "prior_attempt_external_requests": 0,
+  "probe": "reaction-transport-20260909-074313-attempt2",
+  "provider_room": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+  "public_fixture_before_sha256": "dc44110a37ed6b5a13620cbd2f6de0077634142623616752d6b2ce02ca15e685",
+  "schema": "renji.reaction.transport.probe.v1",
+  "scope": "Synthetic provider acceptance only; local text is not published and is absent from the public business schema. No client delivery/read/UI-end-to-end claim.",
+  "sender": {
+    "id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+    "kind": "agent",
+    "display_name": "合成验收 · Agent同事 · 2164910f"
+  }
+}

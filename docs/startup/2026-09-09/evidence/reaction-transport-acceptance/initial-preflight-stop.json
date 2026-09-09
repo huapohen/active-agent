@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-08T23:48:54.108967+00:00",
+  "state": "preflight_stopped_before_network",
+  "reason": "controlled_room_version_changed_since_old_fixture",
+  "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+  "old_manifest_version": 1,
+  "old_manifest_scope_epoch": 1,
+  "observed_current_version": 3,
+  "observed_current_scope_epoch": 3,
+  "observed_stopped": false,
+  "observed_member_count": 3,
+  "external_requests": 0,
+  "temporary_schema_created": false,
+  "journal_bytes": 0,
+  "journal_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "old_manifest_unchanged": true
+}

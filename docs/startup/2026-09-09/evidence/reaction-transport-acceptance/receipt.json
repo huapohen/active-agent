@@ -1,0 +1,56 @@
+{
+  "actual_http_requests": 2,
+  "at": "2026-09-08T23:50:05.117076Z",
+  "canonical_action_id": "reaction-transport-20260909-074313-attempt2/reaction",
+  "canonical_replay_no_new_event_or_http": true,
+  "client_read_verified": false,
+  "client_receive_verified": false,
+  "group_members_read_requests": 1,
+  "group_write_requests": 0,
+  "isolated_schema": "reaction_probe_dc566034964140e29cdba801d762edb2",
+  "isolated_schema_dropped": true,
+  "message_id": "d04e00c1-7307-41cd-93b8-59892a04bc20",
+  "native_sources": [
+    "internal/store/message_interactions.go",
+    "internal/store/outbox.go",
+    "internal/transport/rongcloud.go"
+  ],
+  "observations_sha256": "40f7d416eb0b0398a9cd65e643b5ca548199f4903e51ff7e13c492cf4df7bb18",
+  "old_fixture_files_unchanged": true,
+  "old_fixture_hashes": {
+    "rongcloud-outbox-fixture-v1.json": "41436dafe6a223e828e11975384d609bcdd094344d3271fc7732efbd8df0b206",
+    "rongcloud-outbox-provider-observations-v1.jsonl": "a639c19552fad2ce55815e3bc44debde821f0c7c2c622149d7f8070bab05095e",
+    "rongcloud-outbox-readback-v1.json": "71e140ba8753718fb812d6f1432e0d51c40375aeeb4bf98cd3c227954aa4c197",
+    "rongcloud-outbox-restart-verification-v1.json": "1fa5f750bf0f6b659c326e10fa086dab28575bcfcd56f3811be1697da4bcb680"
+  },
+  "outbox_attempts": 1,
+  "outbox_status": "delivered",
+  "outbox_status_means": "provider accepted, not client delivery/read",
+  "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+  "probe": "reaction-transport-20260909-074313-attempt2",
+  "provider_acceptance_verified": true,
+  "provider_receipt": {
+    "code": 200,
+    "messageUIDs": [
+      {
+        "groupId": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+        "messageUID": "D0GD-MSGD-GO4E-75D4"
+      }
+    ]
+  },
+  "public_canonical_message_exists": false,
+  "public_fixture_sha256": "dc44110a37ed6b5a13620cbd2f6de0077634142623616752d6b2ce02ca15e685",
+  "public_fixture_unchanged": true,
+  "raw_response_hashes": [
+    "177a48f40588d76de68d13b32c6d355d45dc546e80ef40692128d1399eb6f9b4",
+    "d8bf49ee5357ce22fbbce1aee4681c3aba3c4fed0f9fecb2578a9e3a8a66f33e"
+  ],
+  "reaction_command_requests": 1,
+  "reaction_version": 1,
+  "register_requests": 0,
+  "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+  "schema": "renji.reaction.transport.probe.receipt.v1",
+  "second_dispatch_worked": false,
+  "text_publish_requests": 0,
+  "text_transport_suppressed_by_fixture": true
+}

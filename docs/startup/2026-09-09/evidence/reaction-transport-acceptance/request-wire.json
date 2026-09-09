@@ -1,0 +1,26 @@
+{
+  "request_path": "/message/group/publish.json",
+  "form": {
+    "fromUserId": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+    "toGroupId": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+    "objectName": "RC:CmdMsg",
+    "content": "{\"name\":\"renji.message.reaction\",\"data\":\"{\\\"schema\\\":\\\"renji.reaction.v1\\\",\\\"room_id\\\":\\\"63892e35-efbd-40cb-86e6-17c7cab37aa6\\\",\\\"message_id\\\":\\\"d04e00c1-7307-41cd-93b8-59892a04bc20\\\",\\\"version\\\":1}\"}",
+    "isIncludeSender": "1",
+    "isPersisted": "0",
+    "disablePush": "true",
+    "disableUpdateLastMsg": "true",
+    "needReadReceipt": "0"
+  },
+  "content_decoded": {
+    "name": "renji.message.reaction",
+    "data": {
+      "schema": "renji.reaction.v1",
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "message_id": "d04e00c1-7307-41cd-93b8-59892a04bc20",
+      "version": 1
+    }
+  },
+  "exact_form_sha256": "3b4384c2286a19b92b5d1d09dcea57cc6ba8c0cef4c9ee051304cf0ac260da93",
+  "matches_network_observation": true,
+  "auth_headers_excluded": true
+}

@@ -1,0 +1,137 @@
+{
+  "events": [
+    {
+      "id": 1,
+      "data": {
+        "id": "d04e00c1-7307-41cd-93b8-59892a04bc20",
+        "seq": 1,
+        "content": "[仅本地合成验收] 此文本不外发；只验证融云 reaction canonical失效通知的受理。",
+        "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+        "author_id": "19519294-3539-479b-8615-a9ee68709c2d",
+        "created_at": "2026-09-09T07:50:04.968743+08:00"
+      },
+      "type": "message.created",
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "action_id": "reaction-transport-20260909-074313-attempt2/local-text",
+      "created_at": "2026-09-08T23:50:04.968743+00:00",
+      "principal_id": "19519294-3539-479b-8615-a9ee68709c2d"
+    },
+    {
+      "id": 2,
+      "data": {
+        "count": 1,
+        "emoji": "feishu:OK",
+        "active": true,
+        "changed": true,
+        "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+        "version": 1,
+        "replayed": false,
+        "selected": true,
+        "message_id": "d04e00c1-7307-41cd-93b8-59892a04bc20",
+        "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465"
+      },
+      "type": "message.reaction_set",
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "action_id": "reaction-transport-20260909-074313-attempt2/reaction",
+      "created_at": "2026-09-08T23:50:04.976561+00:00",
+      "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465"
+    }
+  ],
+  "outbox": [
+    {
+      "id": 1,
+      "status": "blocked",
+      "attempts": 1,
+      "event_id": 1,
+      "provider": "rongcloud",
+      "updated_at": "2026-09-08T23:50:04.996665+00:00",
+      "execution_run_id": null,
+      "lease_expires_at": null,
+      "provider_receipt": {
+        "code": "membership_revoked",
+        "state": "blocked"
+      },
+      "admitted_scope_epoch": 3
+    },
+    {
+      "id": 2,
+      "status": "delivered",
+      "attempts": 1,
+      "event_id": 2,
+      "provider": "rongcloud",
+      "updated_at": "2026-09-08T23:50:05.04769+00:00",
+      "execution_run_id": null,
+      "lease_expires_at": null,
+      "provider_receipt": {
+        "code": 200,
+        "messageUIDs": [
+          {
+            "groupId": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+            "messageUID": "D0GD-MSGD-GO4E-75D4"
+          }
+        ]
+      },
+      "admitted_scope_epoch": 3
+    }
+  ],
+  "actions": [
+    {
+      "receipt": {
+        "message": {
+          "id": "d04e00c1-7307-41cd-93b8-59892a04bc20",
+          "seq": 1,
+          "content": "[仅本地合成验收] 此文本不外发；只验证融云 reaction canonical失效通知的受理。",
+          "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+          "author_id": "19519294-3539-479b-8615-a9ee68709c2d",
+          "created_at": "2026-09-09T07:50:04.968743+08:00"
+        },
+        "replayed": false
+      },
+      "action_id": "reaction-transport-20260909-074313-attempt2/local-text",
+      "created_at": "2026-09-08T23:50:04.968743+00:00",
+      "principal_id": "19519294-3539-479b-8615-a9ee68709c2d",
+      "request_hash": "5059f41f0929bd396c314b4b5791a2bb2a5dc76d8a652987b8f04c72c2d6c1e7"
+    },
+    {
+      "receipt": {
+        "count": 1,
+        "emoji": "feishu:OK",
+        "active": true,
+        "changed": true,
+        "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+        "version": 1,
+        "replayed": false,
+        "selected": true,
+        "message_id": "d04e00c1-7307-41cd-93b8-59892a04bc20",
+        "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465"
+      },
+      "action_id": "reaction-transport-20260909-074313-attempt2/reaction",
+      "created_at": "2026-09-08T23:50:04.976561+00:00",
+      "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+      "request_hash": "9080de3be74506de526b848a0fc0942976aab36d57818a3caee7b2530a759b96"
+    }
+  ],
+  "messages": [
+    {
+      "id": "d04e00c1-7307-41cd-93b8-59892a04bc20",
+      "seq": 1,
+      "content": "[仅本地合成验收] 此文本不外发；只验证融云 reaction canonical失效通知的受理。",
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "reply_to": null,
+      "author_id": "19519294-3539-479b-8615-a9ee68709c2d",
+      "created_at": "2026-09-08T23:50:04.968743+00:00",
+      "reply_snapshot": null,
+      "reaction_version": 1
+    }
+  ],
+  "reactions": [
+    {
+      "emoji": "feishu:OK",
+      "active": true,
+      "created_at": "2026-09-08T23:50:04.976561+00:00",
+      "message_id": "d04e00c1-7307-41cd-93b8-59892a04bc20",
+      "updated_at": "2026-09-08T23:50:04.976561+00:00",
+      "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465"
+    }
+  ]
+}

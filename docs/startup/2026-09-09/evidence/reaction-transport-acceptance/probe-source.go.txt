@@ -1,0 +1,540 @@
+package main
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"crypto/rand"
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/huapohen/active-agent/services/collaboration/internal/domain"
+	"github.com/huapohen/active-agent/services/collaboration/internal/emoji"
+	"github.com/huapohen/active-agent/services/collaboration/internal/store"
+	"github.com/huapohen/active-agent/services/collaboration/internal/transport"
+	"github.com/jackc/pgx/v5"
+)
+
+const label = "reaction-transport-20260909-074313-attempt2"
+
+type fixture struct {
+	Schema          string             `json:"schema"`
+	RunID           string             `json:"run_id"`
+	ProviderBinding string             `json:"provider_binding"`
+	Principals      []domain.Principal `json:"principals"`
+	WorkspaceID     string             `json:"workspace_id"`
+	WorkspaceTitle  string             `json:"workspace_title"`
+	Room            *domain.Room       `json:"room"`
+}
+type journal struct {
+	f          *os.File
+	calls      int
+	bodyHashes []string
+}
+
+func (j *journal) add(v map[string]any) error {
+	v["at"] = time.Now().UTC()
+	if json.NewEncoder(j.f).Encode(v) != nil || j.f.Sync() != nil {
+		return errors.New("journal_write_failed")
+	}
+	return nil
+}
+
+type observer struct {
+	next  http.RoundTripper
+	j     *journal
+	base  string
+	room  string
+	actor string
+}
+
+func (o *observer) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Scheme+"://"+req.URL.Host != o.base || req.Method != "POST" || req.URL.RawQuery != "" {
+		return nil, errors.New("probe_network_scope_rejected")
+	}
+	raw, err := io.ReadAll(io.LimitReader(req.Body, 65537))
+	if err != nil || len(raw) > 65536 {
+		return nil, errors.New("probe_request_invalid")
+	}
+	req.Body = io.NopCloser(bytes.NewReader(raw))
+	form, err := url.ParseQuery(string(raw))
+	if err != nil {
+		return nil, errors.New("probe_form_invalid")
+	}
+	operation := ""
+	switch req.URL.Path {
+	case "/group/user/query.json":
+		if len(form) != 1 || form.Get("groupId") != o.room {
+			return nil, errors.New("probe_group_read_scope_rejected")
+		}
+		operation = "group_members_read"
+	case "/message/group/publish.json":
+		if form.Get("toGroupId") != o.room || len(form["toGroupId"]) != 1 || form.Get("fromUserId") != o.actor || form.Get("objectName") != "RC:CmdMsg" || form.Get("isPersisted") != "0" {
+			return nil, errors.New("probe_command_scope_rejected")
+		}
+		operation = "reaction_command"
+	default:
+		return nil, errors.New("probe_route_rejected")
+	}
+	o.j.calls++
+	if err = o.j.add(map[string]any{"operation": operation, "state": "network_started", "request_path": req.URL.Path, "form_sha256": hash(raw)}); err != nil {
+		return nil, err
+	}
+	resp, err := o.next.RoundTrip(req)
+	if err != nil {
+		_ = o.j.add(map[string]any{"operation": operation, "state": "network_unknown"})
+		return nil, err
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 262145))
+	resp.Body.Close()
+	if err != nil || len(body) > 262144 {
+		_ = o.j.add(map[string]any{"operation": operation, "state": "response_unknown", "http_status": resp.StatusCode})
+		return nil, errors.New("probe_response_unavailable")
+	}
+	resp.Body = io.NopCloser(bytes.NewReader(body))
+	o.j.bodyHashes = append(o.j.bodyHashes, hash(body))
+	if err = o.j.add(map[string]any{"operation": operation, "state": "response_observed", "http_status": resp.StatusCode, "raw_body_bytes": len(body), "raw_body_sha256": hash(body)}); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+type scoped struct {
+	p           *transport.RongCloud
+	j           *journal
+	expected    domain.ReactionReceipt
+	text        domain.Message
+	sent        bool
+	admin       *pgx.Conn
+	currentRoom domain.Room
+}
+
+func (s *scoped) Session(context.Context, domain.Principal) (transport.Session, error) {
+	return transport.Session{}, domain.ErrForbidden
+}
+func (s *scoped) CreateGroup(context.Context, domain.Room, []string) error {
+	return domain.ErrForbidden
+}
+func (s *scoped) Publish(_ context.Context, m domain.Message) (transport.Delivery, error) {
+	if m.ID != s.text.ID || m.RoomID != s.text.RoomID || m.AuthorID != s.text.AuthorID || m.Content != s.text.Content || m.Seq != s.text.Seq {
+		return transport.Delivery{}, domain.ErrInvalid
+	}
+	if err := s.j.add(map[string]any{"operation": "local_text", "state": "deliberately_blocked_by_fixture_scope", "message_id": m.ID, "external_calls": 0, "note": "The scoped probe rejects all ordinary text publication using ErrForbidden; outbox membership_revoked is this test suppression code, not an actual membership removal."}); err != nil {
+		return transport.Delivery{}, err
+	}
+	return transport.Delivery{}, domain.ErrForbidden
+}
+func (s *scoped) NotifyReaction(ctx context.Context, r domain.ReactionReceipt) (transport.Delivery, error) {
+	if r != s.expected || s.sent {
+		return transport.Delivery{}, domain.ErrInvalid
+	}
+	s.sent = true
+	var live domain.Room
+	e := s.admin.QueryRow(ctx, "SELECT id::text,workspace_id::text,title,kind,version,scope_epoch,stopped FROM public.rooms WHERE id=$1", r.RoomID).Scan(&live.ID, &live.WorkspaceID, &live.Title, &live.Kind, &live.Version, &live.ScopeEpoch, &live.Stopped)
+	if e != nil || live != s.currentRoom {
+		return transport.Delivery{}, domain.ErrStopped
+	}
+	if e = s.j.add(map[string]any{"operation": "pre_command_policy_read", "state": "current_policy_matches_frozen_plan", "version": live.Version, "scope_epoch": live.ScopeEpoch, "stopped": live.Stopped}); e != nil {
+		return transport.Delivery{}, e
+	}
+	if err := s.j.add(map[string]any{"operation": "reaction_command", "state": "intent_fsynced", "room_id": r.RoomID, "message_id": r.MessageID, "principal_id": r.PrincipalID, "version": r.Version, "attempt_budget": 1}); err != nil {
+		return transport.Delivery{}, err
+	}
+	d, err := s.p.NotifyReaction(ctx, r)
+	state := "provider_accepted"
+	unknown := false
+	code := d.Code
+	if err != nil {
+		state = "stopped_no_retry"
+		unknown = true
+		var pe *transport.ProviderError
+		if errors.As(err, &pe) {
+			unknown = pe.Unknown
+			code = pe.Code
+		}
+	}
+	v := map[string]any{"operation": "reaction_command", "state": state, "unknown": unknown, "code": code}
+	if err == nil {
+		v["provider_receipt"] = d
+	}
+	if e := s.j.add(v); e != nil {
+		return d, e
+	}
+	return d, err
+}
+func main() {
+	if err := run(); err != nil {
+		fmt.Println(`{"state":"stopped_no_retry","code":"bounded_probe_failed_check_private_evidence"}`)
+		os.Exit(1)
+	}
+}
+func run() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		return err
+	}
+	priv := filepath.Join(root, "data/startup", label)
+	out := filepath.Join(root, "output", label)
+	lock, err := os.OpenFile(filepath.Join(priv, "invocation.lock"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return errors.New("already_started_no_retry")
+	}
+	defer lock.Close()
+	lock.WriteString(time.Now().UTC().Format(time.RFC3339Nano))
+	lock.Sync()
+	if err = syncDir(priv); err != nil {
+		return err
+	}
+	if err = syncDir(filepath.Dir(priv)); err != nil {
+		return err
+	}
+	jf, err := os.OpenFile(filepath.Join(priv, "journal.jsonl"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer jf.Close()
+	j := &journal{f: jf}
+	if err = syncDir(priv); err != nil {
+		return err
+	}
+	cfg := map[string]string{}
+	for _, name := range []string{"api.env", "rongcloud.env"} {
+		f, e := os.Open(filepath.Join(root, "data/startup", name))
+		if e != nil {
+			return e
+		}
+		scan := bufio.NewScanner(f)
+		for scan.Scan() {
+			line := strings.TrimSpace(scan.Text())
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			k, v, ok := strings.Cut(line, "=")
+			if ok {
+				cfg[k] = strings.Trim(v, "\"'")
+			}
+		}
+		f.Close()
+		if scan.Err() != nil {
+			return scan.Err()
+		}
+	}
+	oldPaths := []string{"rongcloud-outbox-fixture-v1.json", "rongcloud-outbox-provider-observations-v1.jsonl", "rongcloud-outbox-readback-v1.json", "rongcloud-outbox-restart-verification-v1.json"}
+	oldHashes := map[string]string{}
+	for _, name := range oldPaths {
+		b, e := os.ReadFile(filepath.Join(root, "data/startup", name))
+		if e != nil {
+			return e
+		}
+		oldHashes[name] = hash(b)
+	}
+	raw, _ := os.ReadFile(filepath.Join(root, "data/startup", oldPaths[0]))
+	var f fixture
+	if json.Unmarshal(raw, &f) != nil || f.Schema != "renji.rongcloud.synthetic.v1" || f.Room == nil || f.RunID != "2164910f-f0be-4660-8297-e1d3db3a491a" || f.Room.ID != "63892e35-efbd-40cb-86e6-17c7cab37aa6" || len(f.Principals) != 3 || hash([]byte(cfg["RONGCLOUD_API_URL"]+"\x00"+cfg["RONGCLOUD_APP_KEY"])) != f.ProviderBinding {
+		return errors.New("old_fixture_binding_invalid")
+	}
+	for i, p := range f.Principals {
+		want := "human"
+		if i == 2 {
+			want = "agent"
+		}
+		if p.Kind != want || !strings.Contains(p.DisplayName, "合成验收") {
+			return errors.New("non_synthetic_principal")
+		}
+		if _, e := uuid.Parse(p.ID); e != nil {
+			return e
+		}
+	}
+	admin, err := pgx.Connect(ctx, cfg["RENJI_DATABASE_URL"])
+	if err != nil {
+		return errors.New("database_unavailable")
+	}
+	defer admin.Close(context.Background())
+	var db string
+	if admin.QueryRow(ctx, "SELECT current_database()").Scan(&db) != nil || db != "renji_startup" {
+		return errors.New("database_binding_invalid")
+	}
+	before, err := publicSnapshot(ctx, admin, f.Room.ID)
+	if err != nil {
+		return err
+	}
+	var actualRoom domain.Room
+	err = admin.QueryRow(ctx, "SELECT id::text,workspace_id::text,title,kind,version,scope_epoch,stopped FROM public.rooms WHERE id=$1", f.Room.ID).Scan(&actualRoom.ID, &actualRoom.WorkspaceID, &actualRoom.Title, &actualRoom.Kind, &actualRoom.Version, &actualRoom.ScopeEpoch, &actualRoom.Stopped)
+	if err != nil || actualRoom.ID != f.Room.ID || actualRoom.WorkspaceID != f.Room.WorkspaceID || actualRoom.Title != f.Room.Title || actualRoom.Kind != f.Room.Kind || actualRoom.Version != 3 || actualRoom.ScopeEpoch != 3 || actualRoom.Stopped {
+		return errors.New("controlled_room_changed")
+	}
+	f.Room = &actualRoom // This attempt freezes current policy; the historical manifest is never rewritten.
+	var members int
+	err = admin.QueryRow(ctx, "SELECT count(*) FROM public.room_members WHERE room_id=$1", f.Room.ID).Scan(&members)
+	if err != nil || members != 3 {
+		return errors.New("public_member_count_changed")
+	}
+	for _, p := range f.Principals {
+		var kind, name string
+		var disabled bool
+		err = admin.QueryRow(ctx, "SELECT p.kind,p.display_name,p.disabled FROM public.principals p JOIN public.room_members m ON m.principal_id=p.id JOIN public.workspace_members w ON w.principal_id=p.id AND w.workspace_id=$3 WHERE p.id=$1 AND m.room_id=$2", p.ID, f.Room.ID, f.WorkspaceID).Scan(&kind, &name, &disabled)
+		if err != nil || kind != p.Kind || name != p.DisplayName || disabled {
+			return errors.New("public_principal_scope_changed")
+		}
+	}
+	schema := "reaction_probe_" + strings.ReplaceAll(uuid.NewString(), "-", "")
+	plan := map[string]any{"schema": "renji.reaction.transport.probe.v1", "probe": label, "prepared_at": time.Now().UTC(), "prior_attempt": "reaction-transport-20260909-074313", "prior_attempt_external_requests": 0, "historical_manifest_policy": map[string]int{"version": 1, "scope_epoch": 1}, "current_policy": actualRoom, "isolated_schema": schema, "provider_room": f.Room.ID, "sender": f.Principals[2], "old_fixture_hashes": oldHashes, "public_fixture_before_sha256": hash(before), "budgets": map[string]int{"group_members_read": 1, "reaction_command": 1, "text_publish": 0, "register": 0, "group_write": 0}, "scope": "Synthetic provider acceptance only; local text is not published and is absent from the public business schema. No client delivery/read/UI-end-to-end claim."}
+	if err = save(filepath.Join(out, "plan.json"), plan); err != nil {
+		return err
+	}
+	previous := http.DefaultTransport
+	http.DefaultTransport = &observer{next: previous, j: j, base: cfg["RONGCLOUD_API_URL"], room: f.Room.ID, actor: f.Principals[2].ID}
+	defer func() { http.DefaultTransport = previous }()
+	ids, err := readMembers(ctx, cfg, f.Room.ID)
+	if err != nil {
+		return err
+	}
+	expected := []string{}
+	for _, p := range f.Principals {
+		expected = append(expected, p.ID)
+	}
+	sort.Strings(ids)
+	sort.Strings(expected)
+	if strings.Join(ids, ",") != strings.Join(expected, ",") {
+		return errors.New("provider_members_changed")
+	}
+	if err = j.add(map[string]any{"operation": "group_members_read", "state": "exact_synthetic_members_verified", "ids": ids}); err != nil {
+		return err
+	}
+	if _, err = admin.Exec(ctx, "CREATE SCHEMA "+schema); err != nil {
+		return errors.New("schema_create_failed")
+	}
+	cleaned := false
+	defer func() {
+		if !cleaned {
+			_ = j.add(map[string]any{"operation": "isolated_schema", "state": "retained_for_failure_review", "schema": schema})
+		}
+	}()
+	u, err := url.Parse(cfg["RENJI_DATABASE_URL"])
+	if err != nil {
+		return err
+	}
+	q := u.Query()
+	q.Set("search_path", schema)
+	u.RawQuery = q.Encode()
+	s, err := store.Open(ctx, u.String())
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+	if err = s.Migrate(ctx); err != nil {
+		return err
+	}
+	var activeSchema string
+	if s.Pool.QueryRow(ctx, "SELECT current_schema()").Scan(&activeSchema) != nil || activeSchema != schema {
+		return errors.New("schema_scope_wrong")
+	}
+	p, err := emoji.NewLocal(filepath.Join(root, "apps/office/assets/emoji"))
+	if err != nil {
+		return err
+	}
+	s.SetReactionEmojiValidator(p)
+	for _, actor := range f.Principals {
+		if _, err = s.Pool.Exec(ctx, "INSERT INTO principals(id,kind,display_name) VALUES($1,$2,$3)", actor.ID, actor.Kind, actor.DisplayName); err != nil {
+			return err
+		}
+	}
+	if _, err = s.Pool.Exec(ctx, "INSERT INTO workspaces(id,title) VALUES($1,$2)", f.WorkspaceID, f.WorkspaceTitle); err != nil {
+		return err
+	}
+	if _, err = s.Pool.Exec(ctx, "INSERT INTO rooms(id,workspace_id,title,kind,version,scope_epoch) VALUES($1,$2,$3,'group',$4,$5)", f.Room.ID, f.WorkspaceID, f.Room.Title, f.Room.Version, f.Room.ScopeEpoch); err != nil {
+		return err
+	}
+	for i, actor := range f.Principals {
+		role := "member"
+		if i == 0 {
+			role = "owner"
+		}
+		if _, err = s.Pool.Exec(ctx, "INSERT INTO workspace_members VALUES($1,$2,$3)", f.WorkspaceID, actor.ID, role); err != nil {
+			return err
+		}
+		if _, err = s.Pool.Exec(ctx, "INSERT INTO room_members VALUES($1,$2,$3)", f.Room.ID, actor.ID, role); err != nil {
+			return err
+		}
+	}
+	msg, err := s.Send(ctx, f.Principals[0].ID, f.Room.ID, domain.SendMessage{ActionID: label + "/local-text", Content: "[仅本地合成验收] 此文本不外发；只验证融云 reaction canonical失效通知的受理。"})
+	if err != nil {
+		return err
+	}
+	epoch := f.Room.ScopeEpoch
+	cmd := domain.SetReaction{ActionID: label + "/reaction", Emoji: "feishu:OK", Active: true, ScopeEpoch: &epoch}
+	reaction, err := s.SetReaction(ctx, f.Principals[2].ID, f.Room.ID, msg.Message.ID, cmd)
+	if err != nil {
+		return err
+	}
+	if reaction.Version != 1 || reaction.Count != 1 || !reaction.Active || !reaction.Changed || reaction.Replayed {
+		return errors.New("canonical_fixture_invalid")
+	}
+	if err = save(filepath.Join(out, "canonical-before.json"), map[string]any{"message_receipt": msg, "reaction_receipt": reaction, "emoji_revision": p.Metadata().Revision}); err != nil {
+		return err
+	}
+	provider, err := transport.NewRongCloud(cfg["RONGCLOUD_API_URL"], cfg["RONGCLOUD_APP_KEY"], cfg["RONGCLOUD_APP_SECRET"])
+	if err != nil {
+		return err
+	}
+	sc := &scoped{p: provider, j: j, expected: reaction, text: msg.Message, admin: admin, currentRoom: actualRoom}
+	for step := 0; step < 2; step++ {
+		var n int
+		if s.Pool.QueryRow(ctx, "SELECT count(*) FROM events WHERE room_id<>$1 OR type NOT IN('message.created','message.reaction_set')", f.Room.ID).Scan(&n) != nil || n != 0 {
+			return errors.New("unexpected_fixture_events")
+		}
+		worked, e := s.DispatchOne(ctx, sc)
+		if e != nil || !worked {
+			return errors.New("dispatch_failed_no_retry")
+		}
+	}
+	snapshot, err := isolatedSnapshot(ctx, s)
+	if err != nil {
+		return err
+	}
+	if err = saveRaw(filepath.Join(out, "canonical-after.json"), snapshot); err != nil {
+		return err
+	}
+	var state string
+	var attempts int
+	var receipt json.RawMessage
+	err = s.Pool.QueryRow(ctx, "SELECT o.status,o.attempts,o.provider_receipt FROM transport_outbox o JOIN events e ON e.id=o.event_id WHERE e.type='message.reaction_set'").Scan(&state, &attempts, &receipt)
+	if err != nil {
+		return err
+	}
+	if state != "delivered" || attempts != 1 {
+		return errors.New("provider_not_accepted_no_retry")
+	}
+	replay, err := s.SetReaction(ctx, f.Principals[2].ID, f.Room.ID, msg.Message.ID, cmd)
+	if err != nil || !replay.Replayed {
+		return errors.New("canonical_replay_failed")
+	}
+	worked, err := s.DispatchOne(ctx, sc)
+	if err != nil || worked || j.calls != 2 {
+		return errors.New("unexpected_second_dispatch")
+	}
+	after, err := publicSnapshot(ctx, admin, f.Room.ID)
+	if err != nil || !bytes.Equal(before, after) {
+		return errors.New("public_fixture_changed")
+	}
+	for name, want := range oldHashes {
+		b, e := os.ReadFile(filepath.Join(root, "data/startup", name))
+		if e != nil || hash(b) != want {
+			return errors.New("old_fixture_file_changed")
+		}
+	}
+	if _, err = admin.Exec(ctx, "DROP SCHEMA "+schema+" CASCADE"); err != nil {
+		return errors.New("isolated_schema_cleanup_failed")
+	}
+	cleaned = true
+	if err = j.add(map[string]any{"operation": "completion", "state": "provider_acceptance_verified", "schema_dropped": true, "actual_http_requests": j.calls, "reaction_requests": 1, "group_members_read_requests": 1, "text_requests": 0, "register_requests": 0, "group_write_requests": 0}); err != nil {
+		return err
+	}
+	journalRaw, err := os.ReadFile(filepath.Join(priv, "journal.jsonl"))
+	if err != nil {
+		return err
+	}
+	if err = saveRaw(filepath.Join(out, "observations.jsonl"), journalRaw); err != nil {
+		return err
+	}
+	result := map[string]any{"schema": "renji.reaction.transport.probe.receipt.v1", "at": time.Now().UTC(), "probe": label, "room_id": f.Room.ID, "principal_id": reaction.PrincipalID, "message_id": reaction.MessageID, "reaction_version": reaction.Version, "canonical_action_id": cmd.ActionID, "provider_receipt": json.RawMessage(receipt), "outbox_status": "delivered", "outbox_status_means": "provider accepted, not client delivery/read", "outbox_attempts": attempts, "provider_acceptance_verified": true, "client_receive_verified": false, "client_read_verified": false, "public_canonical_message_exists": false, "text_transport_suppressed_by_fixture": true, "actual_http_requests": 2, "reaction_command_requests": 1, "group_members_read_requests": 1, "text_publish_requests": 0, "register_requests": 0, "group_write_requests": 0, "canonical_replay_no_new_event_or_http": true, "second_dispatch_worked": false, "public_fixture_unchanged": true, "public_fixture_sha256": hash(after), "old_fixture_files_unchanged": true, "old_fixture_hashes": oldHashes, "isolated_schema": schema, "isolated_schema_dropped": true, "observations_sha256": hash(journalRaw), "raw_response_hashes": j.bodyHashes, "native_sources": []string{"internal/store/message_interactions.go", "internal/store/outbox.go", "internal/transport/rongcloud.go"}}
+	if err = save(filepath.Join(out, "receipt.json"), result); err != nil {
+		return err
+	}
+	return json.NewEncoder(os.Stdout).Encode(map[string]any{"state": "provider_acceptance_verified", "output": out, "requests": 2, "reaction_requests": 1, "message_id": reaction.MessageID})
+}
+func publicSnapshot(ctx context.Context, c *pgx.Conn, room string) ([]byte, error) {
+	var out []byte
+	err := c.QueryRow(ctx, `SELECT jsonb_build_object('room',(SELECT to_jsonb(r) FROM public.rooms r WHERE id=$1),'members',(SELECT jsonb_agg(to_jsonb(m) ORDER BY principal_id) FROM public.room_members m WHERE room_id=$1),'messages',(SELECT jsonb_agg(to_jsonb(m) ORDER BY seq) FROM public.messages m WHERE room_id=$1),'events',(SELECT jsonb_agg(to_jsonb(e) ORDER BY id) FROM public.events e WHERE room_id=$1),'outbox',(SELECT jsonb_agg(to_jsonb(o) ORDER BY o.id) FROM public.transport_outbox o JOIN public.events e ON e.id=o.event_id WHERE e.room_id=$1))`, room).Scan(&out)
+	return out, err
+}
+func isolatedSnapshot(ctx context.Context, s *store.Store) ([]byte, error) {
+	var out []byte
+	err := s.Pool.QueryRow(ctx, `SELECT jsonb_build_object('messages',(SELECT jsonb_agg(to_jsonb(m) ORDER BY seq) FROM messages m),'actions',(SELECT jsonb_agg(to_jsonb(a) ORDER BY action_id) FROM actions a),'events',(SELECT jsonb_agg(to_jsonb(e) ORDER BY id) FROM events e),'outbox',(SELECT jsonb_agg(to_jsonb(o) ORDER BY id) FROM transport_outbox o),'reactions',(SELECT jsonb_agg(to_jsonb(r)) FROM message_reactions r))`).Scan(&out)
+	return out, err
+}
+func readMembers(ctx context.Context, cfg map[string]string, group string) ([]string, error) {
+	nonceBytes := make([]byte, 16)
+	if _, err := rand.Read(nonceBytes); err != nil {
+		return nil, err
+	}
+	nonce := hex.EncodeToString(nonceBytes)
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	sig := sha1.Sum([]byte(cfg["RONGCLOUD_APP_SECRET"] + nonce + ts))
+	req, err := http.NewRequestWithContext(ctx, "POST", cfg["RONGCLOUD_API_URL"]+"/group/user/query.json", strings.NewReader(url.Values{"groupId": {group}}.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("App-Key", cfg["RONGCLOUD_APP_KEY"])
+	req.Header.Set("Nonce", nonce)
+	req.Header.Set("Timestamp", ts)
+	req.Header.Set("Signature", hex.EncodeToString(sig[:]))
+	client := &http.Client{Timeout: 8 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.New("group_read_failed")
+	}
+	defer resp.Body.Close()
+	var result struct {
+		Code  int `json:"code"`
+		Users []struct {
+			ID string `json:"id"`
+		} `json:"users"`
+	}
+	if resp.StatusCode != 200 || json.NewDecoder(resp.Body).Decode(&result) != nil || result.Code != 200 {
+		return nil, errors.New("group_read_rejected")
+	}
+	ids := []string{}
+	for _, u := range result.Users {
+		ids = append(ids, u.ID)
+	}
+	return ids, nil
+}
+func hash(b []byte) string { v := sha256.Sum256(b); return hex.EncodeToString(v[:]) }
+func save(path string, v any) error {
+	b, e := json.MarshalIndent(v, "", "  ")
+	if e != nil {
+		return e
+	}
+	return saveRaw(path, append(b, '\n'))
+}
+func saveRaw(path string, b []byte) error {
+	f, e := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if e != nil {
+		return e
+	}
+	defer f.Close()
+	if _, e = f.Write(b); e != nil {
+		return e
+	}
+	if err := f.Sync(); err != nil {
+		return err
+	}
+	return syncDir(filepath.Dir(path))
+}
+
+func syncDir(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return f.Sync()
+}
