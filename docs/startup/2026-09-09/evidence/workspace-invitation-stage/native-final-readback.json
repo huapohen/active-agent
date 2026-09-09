@@ -1,0 +1,45 @@
+{
+  "time": "2026-09-09T10:49:47.286590+08:00",
+  "native_state": {
+    "principal_id": "f14c260d-e727-410d-9fd7-672d6eab5d55",
+    "display_name": "huapohen",
+    "profile_version": 2,
+    "workspace_role": "owner",
+    "workspace_member_count": 1,
+    "invites": [
+      {
+        "id": "d5b1fc30-163d-4226-8561-142ac2b7d5e2",
+        "workspace_id": "79915db9-b843-4197-bc39-6dc46bed5248",
+        "created_at": "2026-09-09T02:47:30.824418+00:00",
+        "revoked_at": null,
+        "accepted_by": "f14c260d-e727-410d-9fd7-672d6eab5d55",
+        "accepted_at": "2026-09-09T02:48:11.566365+00:00"
+      },
+      {
+        "id": "2473aa0a-2c3a-4b1e-bd53-d81a2d5f5435",
+        "workspace_id": "79915db9-b843-4197-bc39-6dc46bed5248",
+        "created_at": "2026-09-09T02:38:49.504275+00:00",
+        "revoked_at": "2026-09-09T02:39:33.917451+00:00",
+        "accepted_by": null,
+        "accepted_at": null
+      }
+    ],
+    "accept_receipts": [
+      {
+        "action_id": "355c3ea5-fd65-4595-a74c-80b1f86e6fd2",
+        "already_member": true,
+        "role": "owner",
+        "execution_scope_extended": false,
+        "code_present": false
+      }
+    ],
+    "messages": 2
+  },
+  "native_observations": {
+    "copied_feedback": true,
+    "same_app_secure_paste_accepted": true,
+    "single_header_and_visible_close": true,
+    "clerk_session_preserved": true
+  },
+  "no_new_colleague_claim": true
+}

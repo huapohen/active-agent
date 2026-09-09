@@ -1,0 +1,101 @@
+{
+  "time": "2026-09-09T10:51:37+08:00",
+  "main_implementation": "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+  "native_fix": "313572c6881b488cccc6b943918d5598f2f9b5ae",
+  "files": [
+    {
+      "path": "bridge-restored.json",
+      "bytes": 431,
+      "sha256": "273139055c4061bc1bc337d5a205762efee0c9592300862ea23f09ba1a4a5823"
+    },
+    {
+      "path": "build.json",
+      "bytes": 295,
+      "sha256": "d032785627036f2c1e1139770da3da2c8e2150cf26d89bc4c71d1967877c3233"
+    },
+    {
+      "path": "clipboard-fix-secret-scan.json",
+      "bytes": 165,
+      "sha256": "682e8951751aefa266dbcc316c9facdf0b49175da01bf6657434552c8533fbd7"
+    },
+    {
+      "path": "desktop-final-logged-in-native.png",
+      "bytes": 65794,
+      "sha256": "2a9bfaf6d746cdc472ccc625795e0518cef2eba642b7c0a93c1d0c852788350e"
+    },
+    {
+      "path": "desktop-final-tests.txt",
+      "bytes": 1051,
+      "sha256": "8e5623b8075794702bc562bcb4d553aef7774060f7b75b9044af022c580f9d67"
+    },
+    {
+      "path": "go-committed-summary.json",
+      "bytes": 367,
+      "sha256": "b2210630ea26aa6bd3f8994f38e8fb5b69fe538c0dea528da90ba336c97f0340"
+    },
+    {
+      "path": "go-production-summary.json",
+      "bytes": 374,
+      "sha256": "bc5126d970878371be19a89572027131cf6e1f17075b95c77dc34771d1ea68c3"
+    },
+    {
+      "path": "go-production-tests.jsonl",
+      "bytes": 708109,
+      "sha256": "c6182f894ceb118c97e1dad96006b233ae79f4f321f75becf0c9f4d562cefaad"
+    },
+    {
+      "path": "implementation-secret-scan.json",
+      "bytes": 165,
+      "sha256": "3cebc18fc04b4a7855919ce2c7b8c79ba55e27b5de6bb7775fc220bba2e15507"
+    },
+    {
+      "path": "invitation-accept-fixed-native.png",
+      "bytes": 88263,
+      "sha256": "ca8c951e9e77dd9ee35dca7464c5e4011ad21a95a3b1c6725612128326bc587b"
+    },
+    {
+      "path": "invitation-copy-fixed-native.png",
+      "bytes": 97005,
+      "sha256": "7d13af52adc33f16e9671e1f29659d0820735d0eb2730c0d420b31213d834881"
+    },
+    {
+      "path": "invitation-created-native.png",
+      "bytes": 95472,
+      "sha256": "3109632fd6fa2ea6f6a219ccd2103a18b29d1bd179e77e99ea3b8c323e56c65f"
+    },
+    {
+      "path": "native-final-readback.json",
+      "bytes": 1406,
+      "sha256": "ef14ac483f21f95e7891d99de6a36910600b9fb9ee507db53faff9be310a4f1b"
+    },
+    {
+      "path": "native-first-invitation-readback.json",
+      "bytes": 727,
+      "sha256": "0cebf6a0d7d584b6ed8355fb8f6045cff4d82cbc351613955baa3b4a0b129e15"
+    },
+    {
+      "path": "pre-migration-backup.json",
+      "bytes": 307,
+      "sha256": "b5988bcdc3b1bcf035ede26d14de6f104eb774b59d7cd56282855077e55f1cf2"
+    },
+    {
+      "path": "runtime-upgrade.json",
+      "bytes": 494,
+      "sha256": "eb2a94dd23412eaf7553242280d5d258a69d87239d338035807ca7a18ee03a81"
+    },
+    {
+      "path": "web-final-build.txt",
+      "bytes": 12207,
+      "sha256": "d6fa89d423315e14c8182284d27176de6d8b6948020c2118c9126b8efae00258",
+      "source_raw_sha256": "5e0f8fa54bc82bb06924d2f64ba2a4940c59500598e2229165e86ca2bd98e1d4",
+      "normalization": "Trailing whitespace and terminal blank lines removed only"
+    },
+    {
+      "path": "web-final-tests.txt",
+      "bytes": 584,
+      "sha256": "a711ad75088353dd5b6a5549835bf36b3fc1c6efb79cd1c3431ac5d93eb407d7",
+      "source_raw_sha256": "e00630a9e6ad4be3414c0fcecf38ee8fe5b296e7cb70b36496aa4b6afd550a0d",
+      "normalization": "Trailing whitespace and terminal blank lines removed only"
+    }
+  ]
+}

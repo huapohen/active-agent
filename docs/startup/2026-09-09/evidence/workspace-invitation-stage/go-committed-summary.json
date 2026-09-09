@@ -1,0 +1,11 @@
+{
+  "time": "2026-09-09T10:39:53.749464+08:00",
+  "source_commit": "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+  "scope": "clean committed worktree go test -race -json ./...",
+  "top_level_pass": 264,
+  "subtest_pass": 315,
+  "fail": 0,
+  "test_skip": 4,
+  "packages_without_tests": 5,
+  "sha256": "14497b72bd549f63288d97abe761c77caf3443683dcec4bfde1e804461f0394e"
+}

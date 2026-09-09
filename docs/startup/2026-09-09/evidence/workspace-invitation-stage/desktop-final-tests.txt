@@ -1,0 +1,22 @@
+
+> @renji/desktop@0.1.0 test
+> node --test test/*.test.cjs
+
+✔ only exact current application main frame may write at trusted dev or packaged origin (1.418459ms)
+✔ closed and replaced windows cannot issue late clipboard requests (1.184416ms)
+✔ clipboard accepts only bounded plain strings and never echoes their content (2.150833ms)
+✔ native asynchronous failure is sanitized and acknowledgement waits for completed write (0.129459ms)
+✔ development origin cannot load a remote page or embedded credential (0.473584ms)
+✔ only our main frame can use business IPC (0.082875ms)
+✔ static asset resolver rejects encoded traversal and mixed slashes (0.223708ms)
+✔ transport session requires the configured app and bounded fields (0.164875ms)
+✔ product preload exposes typed transport and bounded clipboard write only, stripping raw IPC events (7.812625ms)
+✔ all four native SDK packages share an exact version (0.555125ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 44.389625

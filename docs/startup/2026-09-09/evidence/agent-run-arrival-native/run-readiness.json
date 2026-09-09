@@ -1,0 +1,78 @@
+{
+  "schema": "renji.agent-invitation-run-readiness.v1",
+  "private_directory": "data/startup/agent-invitation-arrival-20260909-103308-03e916dc",
+  "run_create_posts": 1,
+  "chat_writes": 0,
+  "model_calls": 0,
+  "outbox_dispatches": 0,
+  "worker_started": false,
+  "requests": [
+    {
+      "label": "machine-me",
+      "method": "GET",
+      "path": "/v1/me",
+      "status": 200,
+      "sha256": "41c25f0b002ea0db048da1cdfa2419d0f68879aa9d81b14baf156949b9d91e1e"
+    },
+    {
+      "label": "binding",
+      "method": "POST",
+      "path": "/internal/harness/binding",
+      "status": 200,
+      "sha256": "3093c86bf2def13cb623b3acd8c544d8e2e26f51da5823ef96dc0775e73ae3d7"
+    },
+    {
+      "label": "rooms",
+      "method": "GET",
+      "path": "/v1/rooms",
+      "status": 200,
+      "sha256": "102aa622a6afbfceb047abcff30563573c39124aaaad89ff3d63c52e79bd75e2"
+    },
+    {
+      "label": "run-create",
+      "method": "POST",
+      "path": "/v1/runs",
+      "status": 201,
+      "sha256": "2fb8390194e600716e1808bec0bbaddae23b8692ee81956887b243cde5194779"
+    },
+    {
+      "label": "run-readback",
+      "method": "GET",
+      "path": "/v1/runs/d53224d3-9c19-4d60-9b87-7168ec5dce19",
+      "status": 200,
+      "sha256": "2fb8390194e600716e1808bec0bbaddae23b8692ee81956887b243cde5194779"
+    },
+    {
+      "label": "run-check",
+      "method": "POST",
+      "path": "/internal/harness/check",
+      "status": 200,
+      "sha256": "af0da34c17b64921ff8e70fffbc89b6fa7a9445ef03cf8407b99d913231acb00"
+    },
+    {
+      "label": "arrival-http",
+      "method": "GET",
+      "path": "/v1/transport/events?run_id=d53224d3-9c19-4d60-9b87-7168ec5dce19&after=0&limit=50",
+      "status": 200,
+      "sha256": "3235c742de020fe60fc52b7b1c22b61b2aa4a3baf2f2b94d306033516e81a09d"
+    },
+    {
+      "label": "arrival-mcp",
+      "method": "POST",
+      "path": "/v1/mcp",
+      "status": 200,
+      "sha256": "a050423841cbb815de3c82e23c1db251832a4755ae9ca10404c2b1348d4f7586"
+    }
+  ],
+  "result": "new_run_and_unavailable_arrival_verified",
+  "run_id": "d53224d3-9c19-4d60-9b87-7168ec5dce19",
+  "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+  "executor_id": "65406456-48cf-4d57-83ee-6a90c206e7a1",
+  "workspace_id": "736b5198-479b-4505-8dbb-8d54b0d5c697",
+  "root_room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+  "scope_epoch": 3,
+  "origin_scopes": [],
+  "arrival_count": 0,
+  "bridge_state": "unavailable",
+  "invitation_acceptance": "not_attempted"
+}

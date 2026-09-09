@@ -1,0 +1,57 @@
+{
+  "schema": "renji.run-arrival-stage-index.v1",
+  "test_counts_are_overlapping_runs_do_not_add": true,
+  "tests": {
+    "store_harness_affected": {
+      "log": "/tmp/renji-run-transport-affected-20260909.log",
+      "sha256": "fe087eaaf6d081c4e76c36691e65fe32ceffe2830730266a475e5b6e64cb4c41",
+      "counts": {
+        "top": 126,
+        "sub": 132,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    "http_mcp_harness_final": {
+      "log": "/tmp/renji-run-transport-http-mcp-20260909.log",
+      "sha256": "a385e700a69d5ea3b11557c94e7805dbc9f11cc173c9366d907a71235bd751db",
+      "counts": {
+        "top": 10,
+        "sub": 32,
+        "fail": 0,
+        "skip": 0
+      }
+    }
+  },
+  "live_evidence": [
+    {
+      "file": "current-authority-readonly.json",
+      "sha256": "2b749426e6a22197a398688c2f983c522d30cc22a443690a824d033e38d64ae5"
+    },
+    {
+      "file": "token-readiness.json",
+      "sha256": "9bdd779557e1138f0bde33f902ec1d3271defed541abc86825803e066edecbfd"
+    },
+    {
+      "file": "run-readiness.json",
+      "sha256": "6e095d3e4df08b8bcbd55c81302177917d4271129adabae0c2e0ad3aadc2fcc8"
+    },
+    {
+      "file": "closure-verification.json",
+      "sha256": "084c00eb0b4e58be99e7af016bf3ea035ee1c55ce317fe2fdccb82f22263c1ff"
+    },
+    {
+      "file": "closed-run-audit.json",
+      "sha256": "8c25ec55749294b06e798897c11a5847e2240c37a374f2e78dd97dc3843b1055"
+    }
+  ],
+  "live_model_calls": 0,
+  "live_worker_started": false,
+  "live_outbox_dispatches": 0,
+  "live_sdk_arrivals_for_agent": 0,
+  "live_invitation_acceptance": "not_attempted",
+  "implementation_commit": "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+  "implementation_committed_at": "2026-09-09T10:33:54+08:00",
+  "run_status": "stopped",
+  "stage_status": "closed_for_user_acceptance"
+}

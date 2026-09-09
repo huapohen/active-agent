@@ -1,0 +1,57 @@
+{
+  "schema": "renji.invitation.kernel-evidence.v1",
+  "observed_at": "2026-09-09T10:25:00.267401+08:00",
+  "baseline_commit": "1ea4685b4df3f0a9e9bffd0400c295b2bfb723e1",
+  "implementation": "uncommitted working tree; root will append actual implementation commit",
+  "verification": "real isolated PostgreSQL schema, go test -race, no skipped tests",
+  "top_level_tests": 15,
+  "subtests": 8,
+  "live_migrations": 0,
+  "live_business_writes": 0,
+  "external_messages": 0,
+  "models_called": 0,
+  "source_files": [
+    {
+      "path": "services/collaboration/internal/domain/workspace_invitation.go",
+      "sha256": "6e83a227bac413e40eadf40bd6efd8f99e6b693114ad54a08a0416331ecc7096"
+    },
+    {
+      "path": "services/collaboration/internal/store/workspace_invitation.go",
+      "sha256": "fe23e380821058d39cfa8a731f691531cfe9f27cb96f968aac548a76ef57b31a"
+    },
+    {
+      "path": "services/collaboration/internal/store/workspace_invitation_test.go",
+      "sha256": "75403b019562512d05860bcd7d681c51c3872821ade3fedb3fd4ffda20cf11df"
+    },
+    {
+      "path": "services/collaboration/internal/store/migrations/00010_workspace_invitations.sql",
+      "sha256": "127e6e83d5d7053e4cb3053c3d3ff392435e3d4d0066cf7e4e2abe28f116ef27"
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/workspace_invitation.go",
+      "sha256": "913db160b8008ca4a982f8863a72575bb335116c9e06a04e26847007f76dc876"
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/workspace_invitation_test.go",
+      "sha256": "9d0da9638f7bc0b4084169dec9b3b071c6abfa0b87a4203a4239218f446cd801"
+    },
+    {
+      "path": "services/collaboration/internal/httpapi/workspace_invitation_mcp_test.go",
+      "sha256": "30410132e433a95ea46d448222a2d4695c84ffe77775bd56d39aa0c9fccff648"
+    }
+  ],
+  "test_output": {
+    "path": "isolated-pg-race-tests.txt",
+    "sha256": "8e3dbeb038da943997e0238b567028d539a57b28f994052c330350b52db0ba07"
+  },
+  "final_verified_at": "2026-09-09T10:34:13.619314+08:00",
+  "protocols_verified": [
+    "Store",
+    "authenticated HTTP",
+    "MCP shared native helpers"
+  ],
+  "implementation_commit": "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+  "implementation_commit_time": "2026-09-09T10:33:54+08:00",
+  "implementation_description": "feat(startup): invite human and agent colleagues with scoped arrival reads",
+  "initial_implementation_field_is_historical": true
+}

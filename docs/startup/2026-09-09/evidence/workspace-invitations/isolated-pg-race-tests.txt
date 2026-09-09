@@ -1,0 +1,50 @@
+=== RUN   TestWorkspaceInvitationHumanGrantOneTimeCodeAndRecovery
+--- PASS: TestWorkspaceInvitationHumanGrantOneTimeCodeAndRecovery (0.27s)
+=== RUN   TestWorkspaceInvitationCurrentAdministrationAndCollision
+--- PASS: TestWorkspaceInvitationCurrentAdministrationAndCollision (0.27s)
+=== RUN   TestWorkspaceInvitationExpiryRevocationAndUsedArePreCommitErrors
+--- PASS: TestWorkspaceInvitationExpiryRevocationAndUsedArePreCommitErrors (0.32s)
+=== RUN   TestWorkspaceInvitationConcurrentSingleConsumerAndSameAction
+--- PASS: TestWorkspaceInvitationConcurrentSingleConsumerAndSameAction (0.33s)
+=== RUN   TestWorkspaceInvitationAgentIssuerInheritedAuthorityAndCompletedRun
+--- PASS: TestWorkspaceInvitationAgentIssuerInheritedAuthorityAndCompletedRun (0.43s)
+=== RUN   TestWorkspaceInvitationAgentAcceptCrossWorkspaceRetainsExecutionScope
+--- PASS: TestWorkspaceInvitationAgentAcceptCrossWorkspaceRetainsExecutionScope (0.44s)
+=== RUN   TestWorkspaceInvitationIssuerCredentialOrRoleRevocationInvalidatesPendingGrant
+=== RUN   TestWorkspaceInvitationIssuerCredentialOrRoleRevocationInvalidatesPendingGrant/executor
+=== RUN   TestWorkspaceInvitationIssuerCredentialOrRoleRevocationInvalidatesPendingGrant/policy
+=== RUN   TestWorkspaceInvitationIssuerCredentialOrRoleRevocationInvalidatesPendingGrant/role
+--- PASS: TestWorkspaceInvitationIssuerCredentialOrRoleRevocationInvalidatesPendingGrant (0.89s)
+    --- PASS: TestWorkspaceInvitationIssuerCredentialOrRoleRevocationInvalidatesPendingGrant/executor (0.30s)
+    --- PASS: TestWorkspaceInvitationIssuerCredentialOrRoleRevocationInvalidatesPendingGrant/policy (0.31s)
+    --- PASS: TestWorkspaceInvitationIssuerCredentialOrRoleRevocationInvalidatesPendingGrant/role (0.28s)
+=== RUN   TestWorkspaceInvitationActionLockPrecedesAllSourceRooms
+--- PASS: TestWorkspaceInvitationActionLockPrecedesAllSourceRooms (0.33s)
+PASS
+ok  	github.com/huapohen/active-agent/services/collaboration/internal/store	5.051s
+=== RUN   TestWorkspaceInvitationMCPHTTPHumanReceiptParity
+--- PASS: TestWorkspaceInvitationMCPHTTPHumanReceiptParity (0.41s)
+=== RUN   TestWorkspaceInvitationMCPMachineRunAndIssuerStopParity
+--- PASS: TestWorkspaceInvitationMCPMachineRunAndIssuerStopParity (0.52s)
+=== RUN   TestWorkspaceInvitationMCPAgentCrossWorkspaceGrantKeepsRunScope
+--- PASS: TestWorkspaceInvitationMCPAgentCrossWorkspaceGrantKeepsRunScope (0.38s)
+=== RUN   TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields
+=== RUN   TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/null_ttl
+=== RUN   TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/zero_ttl
+=== RUN   TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/null_run
+=== RUN   TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/extra_role
+=== RUN   TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/null_action
+--- PASS: TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields (0.27s)
+    --- PASS: TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/null_ttl (0.00s)
+    --- PASS: TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/zero_ttl (0.00s)
+    --- PASS: TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/null_run (0.00s)
+    --- PASS: TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/extra_role (0.00s)
+    --- PASS: TestWorkspaceInvitationMCPHTTPRejectExplicitNullAndAuthorityFields/null_action (0.00s)
+=== RUN   TestWorkspaceInvitationHTTPAuthenticatedJoinAndSecretRecovery
+--- PASS: TestWorkspaceInvitationHTTPAuthenticatedJoinAndSecretRecovery (0.31s)
+=== RUN   TestWorkspaceInvitationHTTPStrictBodyAndSafeErrors
+--- PASS: TestWorkspaceInvitationHTTPStrictBodyAndSafeErrors (0.27s)
+=== RUN   TestWorkspaceInvitationHTTPMachineIssuerAndInheritedStop
+--- PASS: TestWorkspaceInvitationHTTPMachineIssuerAndInheritedStop (0.31s)
+PASS
+ok  	github.com/huapohen/active-agent/services/collaboration/internal/httpapi	4.615s

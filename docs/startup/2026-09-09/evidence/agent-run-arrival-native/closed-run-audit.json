@@ -1,0 +1,66 @@
+{
+  "run": {
+    "context": {
+      "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+      "executor_id": "65406456-48cf-4d57-83ee-6a90c206e7a1",
+      "run_id": "d53224d3-9c19-4d60-9b87-7168ec5dce19",
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "scope_epoch": 3,
+      "runtime_version": "eino-v0.9.19-renji-1",
+      "workflow_version": "renji-stage-v1"
+    },
+    "workspace_id": "736b5198-479b-4505-8dbb-8d54b0d5c697",
+    "executor_version": 1,
+    "policy_version": 2,
+    "goal": "受控验收：以机器本人接受合法邀请并只读自身融云到达事实；不启动模型、不派发消息、不扩绑定或来源。",
+    "status": "stopped",
+    "created_by": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+    "created_at": "2026-09-09T10:37:24.46995+08:00"
+  },
+  "mode": "audit",
+  "through": 2,
+  "cursor": 2,
+  "has_more": false,
+  "entries": [
+    {
+      "seq": 1,
+      "kind": "event",
+      "object_id": "e31d9628db973f17ddf6e856d5d0e411e265e2ae4c65b8ae0f18748e2260d472",
+      "data": {
+        "created_at": "2026-09-09T02:40:01.816313+00:00",
+        "event": {
+          "agent_path": "operator-acceptance-script",
+          "data": {
+            "arrival_count": 0,
+            "bridge_state": "unavailable",
+            "business_actions": 0,
+            "invitation_acceptance": "not_attempted",
+            "model_calls": 0,
+            "readiness_sha256": "6e095d3e4df08b8bcbd55c81302177917d4271129adabae0c2e0ad3aadc2fcc8",
+            "reason": "user_requested_stage_completion_and_pause",
+            "temporal_started": false,
+            "verified": "authenticated Run-scoped transport HTTP/MCP read with zero configured Agent bridges"
+          },
+          "id": "e31d9628db973f17ddf6e856d5d0e411e265e2ae4c65b8ae0f18748e2260d472",
+          "stage": 0,
+          "type": "run.stopped"
+        },
+        "event_id": "e31d9628db973f17ddf6e856d5d0e411e265e2ae4c65b8ae0f18748e2260d472",
+        "request_hash": "124b992748eabb4a8351d2e2a2a5532c418c73aa451138da9fffa7841cb8ae93"
+      },
+      "recorded_at": "2026-09-09T10:40:01.823059+08:00",
+      "legacy_snapshot": false
+    },
+    {
+      "seq": 2,
+      "kind": "run.status",
+      "object_id": "d53224d3-9c19-4d60-9b87-7168ec5dce19",
+      "data": {
+        "previous_status": "running",
+        "status": "stopped"
+      },
+      "recorded_at": "2026-09-09T10:40:01.824608+08:00",
+      "legacy_snapshot": false
+    }
+  ]
+}

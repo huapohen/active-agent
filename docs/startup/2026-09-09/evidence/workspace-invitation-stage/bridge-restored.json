@@ -1,0 +1,15 @@
+{
+  "bridges": [
+    {
+      "bridge_id": "receive-e11c13d2-9206-4ea9-9b8d-265907e8cb00",
+      "receiver_id": "19519294-3539-479b-8615-a9ee68709c2d",
+      "connection_state": "connected",
+      "heartbeat_at": "2026-09-09T02:50:25.880349+00:00",
+      "heartbeat_seq": 1788922225867000
+    }
+  ],
+  "inbox_count": 1,
+  "time": "2026-09-09T10:50:28.988761+08:00",
+  "restored_process_id": 16076,
+  "same_config_and_queue": true
+}

@@ -1,0 +1,65 @@
+{
+  "schema": "renji.inspection-run-stage-closure.v1",
+  "run_id": "d53224d3-9c19-4d60-9b87-7168ec5dce19",
+  "terminal_posts": 1,
+  "new_business_actions": 0,
+  "chat_writes": 0,
+  "room_policy_changes": 0,
+  "model_calls": 0,
+  "worker_started": false,
+  "requests": [
+    {
+      "label": "run-before",
+      "method": "GET",
+      "path": "/v1/runs/d53224d3-9c19-4d60-9b87-7168ec5dce19",
+      "status": 200,
+      "sha256": "2fb8390194e600716e1808bec0bbaddae23b8692ee81956887b243cde5194779"
+    },
+    {
+      "label": "terminal",
+      "method": "POST",
+      "path": "/internal/harness/events",
+      "status": 204,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "run-after",
+      "method": "GET",
+      "path": "/v1/runs/d53224d3-9c19-4d60-9b87-7168ec5dce19",
+      "status": 200,
+      "sha256": "588bf0ace8db5567492df893ecedfd2f246ba8eaeb6500f6183cb7009fe2ff5a"
+    },
+    {
+      "label": "execution-denied",
+      "method": "GET",
+      "path": "/v1/transport/events?run_id=d53224d3-9c19-4d60-9b87-7168ec5dce19",
+      "status": 409,
+      "sha256": "476e406506d03f7fc0fa89aea805e02f595108acaafde629b9716e16fedbf6e8"
+    },
+    {
+      "label": "audit",
+      "method": "GET",
+      "path": "/v1/runs/d53224d3-9c19-4d60-9b87-7168ec5dce19/evidence?mode=audit&limit=100",
+      "status": 200,
+      "sha256": "6a3974e6e9deb1163922d74126072bb16ec7a44968c8daf3fce1bbd3a9b5a92e"
+    },
+    {
+      "label": "rooms-after",
+      "method": "GET",
+      "path": "/v1/rooms",
+      "status": 200,
+      "sha256": "102aa622a6afbfceb047abcff30563573c39124aaaad89ff3d63c52e79bd75e2"
+    }
+  ],
+  "invitation_acceptance": "not_attempted",
+  "token_policy": "allow_natural_expiration",
+  "token_expiration": 1788924797876,
+  "result": "stopped_with_audit_preserved",
+  "event_id": "e31d9628db973f17ddf6e856d5d0e411e265e2ae4c65b8ae0f18748e2260d472",
+  "run_status": "stopped",
+  "live_execution_read_status": 409,
+  "audit_read_status": 200,
+  "source_room_stopped": false,
+  "source_epoch": 3,
+  "audit_sha256": "8c25ec55749294b06e798897c11a5847e2240c37a374f2e78dd97dc3843b1055"
+}

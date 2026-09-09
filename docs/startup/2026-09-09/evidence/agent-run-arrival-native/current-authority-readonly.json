@@ -1,0 +1,69 @@
+{
+  "business_writes": 0,
+  "rows": [
+    {
+      "issuer": "https://smooth-chicken-2808.clerk.accounts.dev",
+      "enabled": true,
+      "subject": "mch_3J3jwdUUY9oSiQMJo1zXncbKgxf",
+      "executor_id": "65406456-48cf-4d57-83ee-6a90c206e7a1",
+      "principal_id": "b49d2ffc-946c-4061-a6ef-5ed7e4308465",
+      "workspace_id": "736b5198-479b-4505-8dbb-8d54b0d5c697",
+      "policy_version": 2,
+      "workspace_role": "member",
+      "runtime_version": "eino-v0.9.19-renji-1",
+      "executor_version": 1,
+      "workflow_version": "renji-stage-v1",
+      "proactive_enabled": true,
+      "principal_disabled": false
+    },
+    {
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "stopped": false,
+      "version": 3,
+      "member_role": "member",
+      "scope_epoch": 3,
+      "workspace_id": "736b5198-479b-4505-8dbb-8d54b0d5c697"
+    },
+    {
+      "run_id": "76dedd18-1ddf-4fc0-abfa-19aee795b034",
+      "status": "failed",
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "scope_epoch": 3,
+      "origin_scopes": null,
+      "policy_version": 2,
+      "executor_version": 1
+    },
+    {
+      "run_id": "b94da23b-4cb9-4f06-a03d-701fc4475108",
+      "status": "failed",
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "scope_epoch": 3,
+      "origin_scopes": null,
+      "policy_version": 2,
+      "executor_version": 1
+    },
+    {
+      "run_id": "8983c3f0-6900-4e99-b8d6-3088d176a8d7",
+      "status": "running",
+      "room_id": "97917531-399b-4540-ab3c-7edf2ad15f54",
+      "scope_epoch": 1,
+      "origin_scopes": [
+        {
+          "epoch": 1,
+          "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6"
+        }
+      ],
+      "policy_version": 2,
+      "executor_version": 1
+    },
+    {
+      "run_id": "d7e53eb5-d209-4eb2-b709-b75245a9af85",
+      "status": "running",
+      "room_id": "63892e35-efbd-40cb-86e6-17c7cab37aa6",
+      "scope_epoch": 1,
+      "origin_scopes": null,
+      "policy_version": 2,
+      "executor_version": 1
+    }
+  ]
+}

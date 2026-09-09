@@ -1,0 +1,9 @@
+{
+  "time": "2026-09-09T10:29:39.804823+08:00",
+  "format": "pg_dump custom",
+  "schema": "public",
+  "bytes": 84187,
+  "sha256": "9d5533596e86c4d2c1356b8a1269a41175816cefa0c9ed903e05a9be995a5510",
+  "restore_list_valid": true,
+  "path": "data/startup/workspace-invitations-20260909/before-schema10.dump"
+}

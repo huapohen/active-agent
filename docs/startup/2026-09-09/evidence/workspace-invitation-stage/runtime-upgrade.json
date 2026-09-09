@@ -1,0 +1,15 @@
+{
+  "time": "2026-09-09T10:36:22.058382+08:00",
+  "health": {
+    "protocol": "renji.v1",
+    "service": "renji-collaboration",
+    "transport": "rongcloud"
+  },
+  "schema_version": 10,
+  "implementation_commit": "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+  "listeners": [
+    "COMMAND     PID  USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME",
+    "api-30c6c 14264 lwblx    7u  IPv4 0xbc8bf0a51fa5ed76      0t0  TCP 127.0.0.1:3318 (LISTEN)"
+  ],
+  "prior_bridge_process_alive": true
+}

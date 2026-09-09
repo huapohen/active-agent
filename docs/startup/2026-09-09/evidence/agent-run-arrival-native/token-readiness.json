@@ -1,0 +1,105 @@
+{
+  "schema": "renji.agent-invitation-token-readiness.v1",
+  "attempt": "20260909-103308-03e916dc",
+  "private_directory": "data/startup/agent-invitation-arrival-20260909-103308-03e916dc",
+  "issuance_posts": 1,
+  "business_writes": 0,
+  "model_calls": 0,
+  "worker_started": false,
+  "probes": [
+    {
+      "route": "direct",
+      "status": 401,
+      "seconds": 2.155
+    },
+    {
+      "route": "system_proxy",
+      "status": 401,
+      "seconds": 0.878
+    }
+  ],
+  "route": "system_proxy",
+  "before": {
+    "complete": true,
+    "unique_count": 4,
+    "pages": [
+      {
+        "expired": "false",
+        "revoked": "false",
+        "offset": 0,
+        "count": 0,
+        "total": 0,
+        "sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+      },
+      {
+        "expired": "false",
+        "revoked": "true",
+        "offset": 0,
+        "count": 0,
+        "total": 0,
+        "sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+      },
+      {
+        "expired": "true",
+        "revoked": "false",
+        "offset": 0,
+        "count": 4,
+        "total": 4,
+        "sha256": "c25e870f068b438a4d278f46552091a8cde37a81c90e52799914440beb2d6f62"
+      },
+      {
+        "expired": "true",
+        "revoked": "true",
+        "offset": 0,
+        "count": 0,
+        "total": 0,
+        "sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+      }
+    ]
+  },
+  "after": {
+    "complete": true,
+    "unique_count": 5,
+    "pages": [
+      {
+        "expired": "false",
+        "revoked": "false",
+        "offset": 0,
+        "count": 1,
+        "total": 1,
+        "sha256": "c0e53b7feeda7d28c5da5f123a715ce8590b369adebf511bfd230f17998ad507"
+      },
+      {
+        "expired": "false",
+        "revoked": "true",
+        "offset": 0,
+        "count": 0,
+        "total": 0,
+        "sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+      },
+      {
+        "expired": "true",
+        "revoked": "false",
+        "offset": 0,
+        "count": 4,
+        "total": 4,
+        "sha256": "c25e870f068b438a4d278f46552091a8cde37a81c90e52799914440beb2d6f62"
+      },
+      {
+        "expired": "true",
+        "revoked": "true",
+        "offset": 0,
+        "count": 0,
+        "total": 0,
+        "sha256": "206a8e9421e77bf63e5259c6f5669f155fa590dd27bfabf307b4089e07ac230b"
+      }
+    ]
+  },
+  "result": "created_and_list_reconciled",
+  "subject": "mch_3J3jwdUUY9oSiQMJo1zXncbKgxf",
+  "receiver": "mch_3J3jf4PPVcLCndvQArqanHyKUCP",
+  "expiration": 1788924797876,
+  "token_id_sha256": "310232d50fdb4adcc3e8c5fba9cf7cb2f23f98208aa80bef08042ca5c51826da",
+  "http_status": 201,
+  "guards_unchanged": true
+}

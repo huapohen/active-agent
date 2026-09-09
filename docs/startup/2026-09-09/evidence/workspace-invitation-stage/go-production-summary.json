@@ -1,0 +1,15 @@
+{
+  "time": "2026-09-09T10:42:58.350126+08:00",
+  "source_commit": "30c6c22ce3ff24676d9d5a43bf1b3ce0cf14aafa",
+  "scope": [
+    "./cmd/...",
+    "./internal/..."
+  ],
+  "race": true,
+  "top_level_pass": 267,
+  "subtest_pass": 316,
+  "fail": 0,
+  "test_skip": 0,
+  "packages_without_tests": 5,
+  "sha256": "c6182f894ceb118c97e1dad96006b233ae79f4f321f75becf0c9f4d562cefaad"
+}

@@ -1,0 +1,16 @@
+
+> @renji/web@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.0 /Users/lwblx/huapohen/agent/execute/enterprise_work/active_agent/apps/web
+
+
+ Test Files  21 passed (21)
+      Tests  206 passed (206)
+   Start at  10:44:29
+   Duration  4.12s (environment 46%, tests 21%, import 16%, transform 16%)
+
+Environment  jsdom was created 21 times · 13.43s total, 46% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
