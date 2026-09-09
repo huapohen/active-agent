@@ -1,0 +1,84 @@
+{
+  "created_at": "2026-09-09T10:00:29.803983+08:00",
+  "implementation_commit": "e975e94e900cc892e39ed52ac0ce94ccd71c6ea1",
+  "source_commit": "3705fb59266ddaa25414fb0794ec292e6ff20239",
+  "source_document_id": "eb826242",
+  "note": "Publisher/test source .txt files are immutable audit copies, not entrypoints to execute from this directory.",
+  "files": [
+    {
+      "path": "affine-latest-sync.json",
+      "bytes": 1895,
+      "sha256": "e72a843f44826a64f360aadc340cd0e6d0820844f156a9bba392913b800da1d2"
+    },
+    {
+      "path": "docmost-latest-sync.json",
+      "bytes": 1864,
+      "sha256": "b58788e74b689700d768cd955309262d63f3c9416bb64b48adf54a5579d86e6f"
+    },
+    {
+      "path": "frozen-plan.json",
+      "bytes": 11921,
+      "sha256": "92857f102235420abff76220123e64a78d996e24b28eb501b8c06186792135db"
+    },
+    {
+      "path": "historical-native-diagnosis.json",
+      "bytes": 19670,
+      "sha256": "8e72805c273b0618b9fad9b5f0017f62178dd4665fba4156018ae13cdf0e3c63"
+    },
+    {
+      "path": "historical-native-diagnosis.md",
+      "bytes": 2178,
+      "sha256": "b8f20591440725868a2470bfbab7f7da71e2ec9f3f5f189c02a89895698b7012"
+    },
+    {
+      "path": "historical-profile-fix-receipt.json",
+      "bytes": 605,
+      "sha256": "4e8a377146c947c950616824775056813fc3c4a932ded1708bfac33d1754e06c"
+    },
+    {
+      "path": "historical-profile-tests.py.txt",
+      "bytes": 4202,
+      "sha256": "643815cae3beda53e88c479ddd8d4b8fa46d555a0ee43d873e0d34c477d38ec6"
+    },
+    {
+      "path": "independent-postflight.json",
+      "bytes": 2356,
+      "sha256": "c2531d665cbd990fd48c903067e15e7479b7194a19480c7043e0c2cf65901ce6"
+    },
+    {
+      "path": "independent-publisher-review.md",
+      "bytes": 6873,
+      "sha256": "d43db5a5d013f9aae273fed8275d2a37be0e60b0f5e9148756124f96041a2247"
+    },
+    {
+      "path": "next-stage-preservation.json",
+      "bytes": 794,
+      "sha256": "4480a99bd0d2999e9f4b8d2a7be32ead973b94f8e186afb81a7220fd17140cff"
+    },
+    {
+      "path": "publication-receipt.json",
+      "bytes": 10394,
+      "sha256": "6fa8de592a42bf33831cd1c6e5f5792ba08f36b788e42b8499b646a8c77b353b"
+    },
+    {
+      "path": "published-body.md",
+      "bytes": 10462,
+      "sha256": "7d68387b21d2dca9e6fe19f255c6ac6d1806760a986a69763774907e65cd6813"
+    },
+    {
+      "path": "published-source.json",
+      "bytes": 10819,
+      "sha256": "b85d9b95cd77385d23eb0b24b6686f8f74e263403aa5e6f13d20714d5f0b02dd"
+    },
+    {
+      "path": "publisher-source.py.txt",
+      "bytes": 40191,
+      "sha256": "b3cfafd5895ac7a1586be02bb0204f5fb973ae951605361870b234e2e9ba80ef"
+    },
+    {
+      "path": "read-only-inspection.json",
+      "bytes": 7030,
+      "sha256": "30fc4ac561f0175c201bab75206907bee416b1df434accbab0072803bc8d373e"
+    }
+  ]
+}

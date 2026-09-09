@@ -1,0 +1,49 @@
+{
+  "schema": "renji.account-bridge.publication-independent-postflight.v1",
+  "started_at": "2026-09-09T09:58:52.799850+08:00",
+  "publisher_sha256": "b3cfafd5895ac7a1586be02bb0204f5fb973ae951605361870b234e2e9ba80ef",
+  "external_writes": 0,
+  "sync_invocations": 0,
+  "journal_appends": 0,
+  "state": "passed",
+  "source_document_id": "eb826242",
+  "source_revision": 1,
+  "source_content_sha256": "f19e67759e98c94bfdab0961ee4ae3584cfa10eb588adb37b98e49bb32aa56d5",
+  "source_object_sha256": "49a3b399c0de96d7108d8b53edf3cdec5e696d179f03ecc4ad43ea09b638c4e1",
+  "human_agent_exact_equal": true,
+  "nonmember_http_status": 403,
+  "source_directory_exactly_old_six_plus_new": true,
+  "historical_sources_unchanged": 6,
+  "historical_targets_unchanged": 12,
+  "historical_config_journal_pairs_unchanged": 5,
+  "current_state_config_protection_unchanged": true,
+  "new_journal_sha256": "576bb50b0d661a7dbee3c4be0169808811848aa509ae90cbc960ed994c4271cd",
+  "new_journal_lines": 8,
+  "targets": [
+    {
+      "provider": "affine",
+      "external_id": "0MDttZyU_BqyjzQMKqVLW",
+      "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+      "native_raw_sha256": "61d5cd7b3439a1433e3e2af3a81c65a27912744ba046e261d468cb86fcc552b3",
+      "target_version": "sha256:61d5cd7b3439a1433e3e2af3a81c65a27912744ba046e261d468cb86fcc552b3",
+      "canonical_sha256": "af2f2130e8e6361e5f0a4c5e5b6934341e89e3419a170de64b3170be71c5702d",
+      "observation_matches_publication_receipt": true
+    },
+    {
+      "provider": "docmost",
+      "external_id": "01a083e1-d4f7-7af2-a4d8-e537c7a14f69",
+      "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+      "native_raw_sha256": "a56d503ca8df8891e0f8269128a3bc90eaf29b15cac533e1fe39cd8461223065",
+      "target_version": "2026-09-09T01:56:50.548Z",
+      "canonical_sha256": "af2f2130e8e6361e5f0a4c5e5b6934341e89e3419a170de64b3170be71c5702d",
+      "observation_matches_publication_receipt": true
+    }
+  ],
+  "source_commit": "3705fb59266ddaa25414fb0794ec292e6ff20239",
+  "original_md_sha256": "2364e3f62a0914d2ada94502febdc9b0ad7f1ffb05b7885bb68c128cdf532091",
+  "derived_body_sha256": "7d68387b21d2dca9e6fe19f255c6ac6d1806760a986a69763774907e65cd6813",
+  "completed_at": "2026-09-09T09:58:53.151720+08:00",
+  "read_request_count": 45,
+  "successful_read_requests": 38,
+  "denied_nonmember_reads": 7
+}

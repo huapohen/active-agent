@@ -1,0 +1,58 @@
+from pathlib import Path
+import importlib.util,json,copy,unittest
+p=Path(__file__).with_name('publish.py');s=importlib.util.spec_from_file_location('current_publisher',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+m.http=lambda *a,**kw: (_ for _ in ()).throw(AssertionError('offline_test_network_forbidden'))
+OLD=m.configs();EXPECTED=m.historical_native_profiles(OLD)
+ROWS=json.loads(p.with_name('historical-native-diagnosis.json').read_text())['targets'];OBS={r['binding_id']:r for r in ROWS}
+FIXTURES=[]
+for name,c,latest,ch,jh in OLD:
+ for b in c['bindings']:
+  r=copy.deepcopy(latest[b['id']])
+  if r['state']!='native_verified':continue
+  obs=copy.deepcopy(OBS[b['id']]['current_observation']);r['desired_title_hash']=r['observed_title_hash']=obs['title_hash']=m.digest(b'Synthetic offline title')
+  native={'native_raw_hash':OBS[b['id']]['checks']['native_raw_hash']['observed'],'target_version':OBS[b['id']]['checks']['target_version']['observed']}
+  document={'id':b['document_id'],'revision':r['source_revision'],'content_hash':r['source_content_hash'],'title':'Synthetic offline title'}
+  FIXTURES.append((b,r,obs,native,document))
+class HistoricalProfiles(unittest.TestCase):
+ def test_all_eight_exact_historical_native_proofs_match(self):
+  self.assertEqual(len(EXPECTED),8)
+  for f in FIXTURES:m.match_native_receipt(*f,expected_profile=EXPECTED[f[0]['id']])
+ def test_four_legacy_verified_proofs_are_not_upgraded(self):
+  ids=[b['id'] for _,c,l,_,_ in OLD for b in c['bindings'] if l[b['id']]['state']=='verified'];self.assertEqual(len(ids),4);self.assertTrue(all(i not in EXPECTED for i in ids))
+ def test_new_projection_default_still_rejects_two_v1_profiles(self):
+  seen=0
+  for f in FIXTURES:
+   if f[1]['native']['profile'].endswith('.v1'):
+    with self.assertRaisesRegex(m.Failure,'final_native_receipt_mismatch'):m.match_native_receipt(*f)
+    seen+=1
+  self.assertEqual(seen,2)
+ def test_new_default_v2_passes_existing_six_v2_fixtures(self):
+  seen=0
+  for f in FIXTURES:
+   if f[1]['native']['profile'].endswith('.v2'):m.match_native_receipt(*f);seen+=1
+  self.assertEqual(seen,6)
+ def test_mutated_pin_rejected(self):
+  old=copy.deepcopy(OLD);n,c,l,ch,jh=old[1];old[1]=(n,c,l,ch,'0'*64)
+  with self.assertRaisesRegex(m.Failure,'historical_config_or_journal_pin_mismatch'):m.historical_native_profiles(old)
+ def test_changed_parsed_record_cannot_claim_original_journal_pin(self):
+  old=copy.deepcopy(OLD);n,c,l,ch,jh=old[1];l[c['bindings'][0]['id']]['native']['profile']=m.PROFILES['affine']
+  with self.assertRaisesRegex(m.Failure,'historical_parsed_record_differs_from_pinned_bytes'):m.historical_native_profiles(old)
+ def test_changed_artifact_pin_rejected(self):
+  previous=m.PREVIOUS_ARTIFACT_SHA256
+  try:
+   m.PREVIOUS_ARTIFACT_SHA256={**previous,'publication-receipt.json':'0'*64}
+   with self.assertRaisesRegex(m.Failure,'previous_publication_artifact_changed'):m.historical_native_profiles(OLD)
+  finally:m.PREVIOUS_ARTIFACT_SHA256=previous
+ def mutation(self,change):
+  for fixture in FIXTURES:
+   f=copy.deepcopy(fixture);change(*f)
+   with self.assertRaises(m.Failure):m.match_native_receipt(*f,expected_profile=EXPECTED[f[0]['id']])
+ def test_native_raw_change_rejected(self):self.mutation(lambda b,r,o,n,d:n.update(native_raw_hash='0'*64))
+ def test_target_version_change_rejected(self):self.mutation(lambda b,r,o,n,d:n.update(target_version='changed'))
+ def test_canonical_change_rejected(self):self.mutation(lambda b,r,o,n,d:r['native'].update(target_canonical_hash='0'*64))
+ def test_title_change_rejected(self):self.mutation(lambda b,r,o,n,d:o.update(title_hash='0'*64))
+ def test_source_revision_change_rejected(self):self.mutation(lambda b,r,o,n,d:d.update(revision=d['revision']+1))
+ def test_source_content_change_rejected(self):self.mutation(lambda b,r,o,n,d:d.update(content_hash='0'*64))
+ def test_wrong_provider_profile_rejected(self):self.mutation(lambda b,r,o,n,d:r['native'].update(profile=m.PROFILES['docmost' if b['target']=='affine' else 'affine']))
+ def test_arbitrary_profile_rejected(self):self.mutation(lambda b,r,o,n,d:r['native'].update(profile='untrusted.profile.v0'))
+if __name__=='__main__':unittest.main(verbosity=2)

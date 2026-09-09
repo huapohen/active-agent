@@ -1,0 +1,735 @@
+#!/usr/bin/env python3
+"""DRAFT: one new account-and-bridge report. No publication until root fills provenance.
+
+Default --inspect is read-only. --prepare resolves links against an immutable
+Git commit and records a reviewed plan. --publish requires both frozen hashes.
+A pending non-idempotent source POST is never resent; recovery is read-only.
+"""
+from pathlib import Path, PurePosixPath
+import argparse
+import datetime
+import fcntl
+import hashlib
+import json
+import os
+import posixpath
+import re
+import stat
+import subprocess
+import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
+
+ROOT = Path(__file__).resolve().parents[2]
+NAME = 'account-bridge-publication-20260909'
+OUT = ROOT / 'output' / NAME
+PRIVATE = ROOT / 'data/startup/publications' / NAME
+# Root must fill these from the final committed delivery; never infer a SHA.
+DRAFT = False
+REPORT = 'docs/startup/2026-09-09/STARTUP_ACCOUNT_BRIDGE_DELIVERY_0943.md'
+REPORT_HEADING = '# 人机商业阶段交付：Clerk 开户协作与融云真实接收桥'
+REPORT_TIMESTAMP = '2026-09-09T09:43:30+08:00'
+TITLE = '人机商业阶段 · 开户协作与融云接收桥 · 2026-09-09 09:43 · e975e94'
+ROOM = 'room-1de8fc2a-eed0-438b-98c3-b79c8997859e'
+SOURCE = 'http://127.0.0.1:3218'
+IMPLEMENTATION = 'e975e94e900cc892e39ed52ac0ce94ccd71c6ea1'
+OLD_PUBLICATION = ROOT / 'output/startup-message-interactions-publication-20260909-0750'
+OLD_SOURCE_IDS = ['25ae13fb', '9d62380a', 'a74679d5', 'f6b5ff58', '7e81ae07', '31bb33b9']
+OLD_PROJECTION_COUNT = 12
+OLD_CONFIG_COUNT = 5
+PREVIOUS_SOURCE_ID = '31bb33b9'
+PREVIOUS_CONFIG_SHA256 = 'e0c4be2faaade891cd1294ca80ea51b9637e370540a1b96468fd2b9668ce92f8'
+# Read-only local audit pins: no credential or content is copied here.
+PREVIOUS_ARTIFACT_SHA256 = {
+    'frozen-plan.json': '9a92f1a55d1fc0f084a14b5668b1cfb1e7570f69bb7917891c93a2fd92b8e885',
+    'publication-receipt.json': '9a60e77fd36f786765b8ff3f53fc4ba24e67bba8ee6ed0fb1271154b78c8307a',
+    'published-source.json': 'c0a5cb62b6700913cc0a1ada88bf2b8d5754a8ab86771b444483e3bcb990f2dc',
+}
+OLD_CONFIGS = [
+    'data/startup/document-sync/config.json',
+    'data/startup/publications/startup-stage-publication-20260909-0418/config.json',
+    'data/startup/publications/archive-code-20260909-0618/config.json',
+    'data/startup/publications/startup-automatic-archive-publication-20260909-0649/config.json',
+    'data/startup/publications/startup-message-interactions-publication-20260909-0750/config.json',
+]
+TARGETS = {
+    'affine': ('http://127.0.0.1:3010', 'a901cbc0-59ac-40b6-86bf-fcca7ff7b619'),
+    'docmost': ('http://127.0.0.1:3021', '01a08286-d2ee-75a6-82b2-cb68157cd32a'),
+}
+PROFILES = {
+    'affine': 'affine.database-v3.code-v1.rich-text.b4c8548c0.v2',
+    'docmost': 'docmost.prosemirror.gfm-code.goldmark-1.8.6.v2',
+}
+HISTORICAL_PROFILES = {
+    'affine': {'affine.database-v3.rich-text.b4c8548c0.v1', PROFILES['affine']},
+    'docmost': {'docmost.prosemirror.gfm.goldmark-1.8.6.v1', PROFILES['docmost']},
+}
+
+class Failure(Exception):
+    pass
+
+def fail(code):
+    raise Failure(code)
+
+def now():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+def digest(value):
+    return hashlib.sha256(value).hexdigest()
+
+def object_hash(value):
+    return digest(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode())
+
+def private_read(path):
+    path = Path(path)
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077 or info.st_size > 2_000_000:
+        fail('private_regular_file_required')
+    return path.read_bytes()
+
+def atomic_json(path, value):
+    path = Path(path)
+    if path.is_symlink() or path.exists() and not path.is_file():
+        fail('unsafe_state_path')
+    fd, temp = tempfile.mkstemp(prefix=path.name + '.', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write((json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode())
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temp, path)
+        parent = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(parent)
+        finally:
+            os.close(parent)
+    finally:
+        if os.path.exists(temp):
+            os.unlink(temp)
+
+def credential(path):
+    raw = private_read(path).decode().strip()
+    if raw.startswith('{'):
+        value = json.loads(raw)
+        raw = value.get('token') or value.get('data', {}).get('createMcpCredential', {}).get('token', '')
+    if not raw or '\r' in raw or '\n' in raw:
+        fail('invalid_private_credential')
+    return raw
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+
+def http(url, headers, body=None, binary=False, raw_json=False):
+    origins = [SOURCE] + [target[0] for target in TARGETS.values()]
+    if not any(url.startswith(origin + '/') for origin in origins):
+        fail('endpoint_outside_fixed_scope')
+    data = None if body is None else json.dumps(body, ensure_ascii=False).encode()
+    request = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json', **headers})
+    try:
+        with OPENER.open(request, timeout=15) as response:
+            raw = response.read(2_000_001)
+            if len(raw) > 2_000_000:
+                fail('response_too_large')
+            if binary and response.headers.get('Content-Type') != 'application/octet-stream':
+                fail('native_content_type_mismatch')
+            return raw if binary or raw_json else json.loads(raw)
+    except urllib.error.HTTPError as error:
+        fail('http_' + str(error.code))
+    except (urllib.error.URLError, TimeoutError):
+        fail('transport_outcome_unknown')
+
+def git(*args):
+    result = subprocess.run(['git', '-C', str(ROOT), *args], capture_output=True)
+    if result.returncode:
+        fail('git_provenance_check_failed')
+    return result.stdout
+
+def derive(commit):
+    if DRAFT or not all(isinstance(value, str) and value for value in (REPORT, REPORT_HEADING, REPORT_TIMESTAMP, TITLE, IMPLEMENTATION)):
+        fail('publisher_draft_requires_root_final_report_and_implementation')
+    if not re.fullmatch(r'[0-9a-f]{40}', IMPLEMENTATION):
+        fail('full_implementation_commit_required')
+    if not re.fullmatch(r'[0-9a-f]{40}', commit):
+        fail('full_source_commit_required')
+    git('merge-base', '--is-ancestor', IMPLEMENTATION, commit)
+    git('merge-base', '--is-ancestor', commit, 'HEAD')
+    raw = git('show', commit + ':' + REPORT)
+    if raw != (ROOT / REPORT).read_bytes():
+        fail('worktree_report_differs_from_docs_commit')
+    text = raw.decode('utf8')
+    metadata = git('show', '-s', '--format=%H%n%cI%n%s', IMPLEMENTATION).decode().strip().split('\n', 2)
+    if any(item not in text for item in metadata):
+        fail('report_missing_implementation_provenance')
+    if not text.startswith(REPORT_HEADING + '\n') or REPORT_TIMESTAMP not in text:
+        fail('report_title_or_date_changed')
+    # This reviewed report has ordinary inline links only. Reject new syntax
+    # rather than partially rewriting references, images or nested destinations.
+    pattern = re.compile(r'(?<!!)\[([^\]\n]+)\]\(([^()\s]+)\)')
+    matches = list(pattern.finditer(text))
+    if text.count('](') != len(matches) or '![' in text:
+        fail('unreviewed_markdown_link_syntax')
+    links = []
+    def rewrite(match):
+        label, destination = match.groups()
+        parsed = urllib.parse.urlsplit(destination)
+        if parsed.scheme:
+            if parsed.scheme not in ('https', 'http', 'mailto'):
+                fail('unapproved_link_scheme')
+            return match.group(0)
+        if parsed.netloc or parsed.path.startswith('/'):
+            fail('unreviewed_absolute_file_link')
+        path = posixpath.normpath(posixpath.join(str(PurePosixPath(REPORT).parent), urllib.parse.unquote(parsed.path)))
+        if path == '..' or path.startswith('../') or path.startswith('/'):
+            fail('relative_link_outside_repository')
+        if git('cat-file', '-t', commit + ':' + path).decode().strip() != 'blob':
+            fail('relative_link_not_committed_file')
+        target = 'https://github.com/huapohen/active-agent/blob/' + commit + '/' + urllib.parse.quote(path, safe='/')
+        if parsed.query:
+            target += '?' + parsed.query
+        if parsed.fragment:
+            target += '#' + parsed.fragment
+        links.append({'original': destination, 'committed_path': path, 'immutable_url': target})
+        return '[' + label + '](' + target + ')'
+    body = pattern.sub(rewrite, text)
+    if not links:
+        fail('expected_relative_file_links_missing')
+    source_meta = git('show', '-s', '--format=%H%n%cI%n%s', commit).decode().strip().split('\n', 2)
+    return {
+        'source_path': REPORT, 'source_commit': commit, 'source_commit_time': source_meta[1],
+        'source_commit_description': source_meta[2], 'implementation_commits': [dict(zip(['commit', 'at', 'description'], metadata))],
+        'original_md_sha256': digest(raw), 'derived_body_sha256': digest(body.encode()),
+        'server_trimmed_body_sha256': digest(body.rstrip('\n').encode()), 'title': TITLE,
+        'relative_links': links,
+    }, body
+
+def configs():
+    result = []
+    for name in OLD_CONFIGS:
+        raw = private_read(ROOT / name)
+        config = json.loads(raw)
+        journal = private_read(config['journal'])
+        latest = {}
+        for line in journal.splitlines():
+            item = json.loads(line)['record']
+            latest[item['binding_id']] = item
+        for binding in config['bindings']:
+            if (binding['source_endpoint'] != SOURCE or binding['room_id'] != ROOM or
+                binding['target'] not in TARGETS or
+                (binding['target_endpoint'], binding['namespace_id']) != TARGETS[binding['target']] or
+                not binding['enabled'] or not binding['gateway_only_namespace'] or
+                latest.get(binding['id'], {}).get('state') not in ('verified', 'native_verified')):
+                fail('old_scope_or_receipt_not_approved')
+        result.append((name, config, latest, digest(raw), digest(journal)))
+    bindings = [binding for item in result for binding in item[1]['bindings']]
+    if len(result) != OLD_CONFIG_COUNT or len(bindings) != OLD_PROJECTION_COUNT:
+        fail('expected_five_old_configs_and_twelve_projections')
+    if len({binding['id'] for binding in bindings}) != OLD_PROJECTION_COUNT:
+        fail('duplicate_historical_binding_id')
+    projections = {(binding['document_id'], binding['target']) for binding in bindings}
+    if projections != {(ident, provider) for ident in OLD_SOURCE_IDS for provider in TARGETS}:
+        fail('historical_source_provider_matrix_changed')
+    return result
+
+def access(config):
+    binding = config['bindings'][0]
+    headers = {'Authorization': 'Bearer ' + credential(binding['source_credential_file'])}
+    principal = http(SOURCE + '/api/im/me', headers)['principal']['id']
+    if principal != binding['principal_id']:
+        fail('source_principal_changed')
+    view = http(SOURCE + '/api/im/rooms/' + ROOM, headers)
+    if 'docs' in view['restricted_plugins']:
+        fail('source_docs_restricted')
+    members = sorted((m['principal_id'], m['kind'], m['role'], m['disabled']) for m in view['members'])
+    if len(members) != 2 or not any(m[0] == principal and m[2] == 'owner' and not m[3] for m in members):
+        fail('source_member_scope_changed')
+    people = json.loads(private_read(ROOT / 'data/office/access.json'))
+    agent = {'Authorization': 'Bearer ' + people['agent']['token']}
+    agent_view = http(SOURCE + '/api/im/rooms/' + ROOM, agent)
+    if sorted(d['id'] for d in agent_view['documents']) != sorted(d['id'] for d in view['documents']):
+        fail('human_agent_directory_differs')
+    acl = {'room_id': ROOM, 'principal_id': principal, 'members': members,
+           'room_kind': view['room']['kind'], 'message_count': view['room']['message_count']}
+    return headers, agent, people['peer']['token'], acl, view
+
+def source_read(headers, ident):
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,160}', ident):
+        fail('invalid_source_id')
+    document = http(SOURCE + '/api/im/rooms/' + ROOM + '/documents/' + ident, headers)['document']
+    if document.get('id') != ident:
+        fail('source_document_id_mismatch')
+    return document
+
+def raw_json_field(raw, key):
+    """Extract an object member as exact UTF-8 bytes, like json.RawMessage.
+
+    Do not reserialize or sort native content: Go records the hash of its original
+    JSON bytes in the verification receipt. Reject duplicate keys instead of choosing one.
+    """
+    text = raw.decode('utf8')
+    decoder = json.JSONDecoder()
+    whitespace = ' \t\r\n'
+    def skip(index):
+        while index < len(text) and text[index] in whitespace:
+            index += 1
+        return index
+    cursor = skip(0)
+    if cursor == len(text) or text[cursor] != '{':
+        fail('native_json_object_required')
+    cursor = skip(cursor + 1)
+    members = {}
+    if cursor < len(text) and text[cursor] == '}':
+        cursor += 1
+    else:
+        while True:
+            name, end = decoder.raw_decode(text, cursor)
+            if not isinstance(name, str) or name in members:
+                fail('native_json_duplicate_or_invalid_key')
+            cursor = skip(end)
+            if cursor == len(text) or text[cursor] != ':':
+                fail('native_json_member_separator_required')
+            start = skip(cursor + 1)
+            _, end = decoder.raw_decode(text, start)
+            members[name] = text[start:end].encode('utf8')
+            cursor = skip(end)
+            if cursor < len(text) and text[cursor] == '}':
+                cursor += 1
+                break
+            if cursor == len(text) or text[cursor] != ',':
+                fail('native_json_object_separator_required')
+            cursor = skip(cursor + 1)
+    if skip(cursor) != len(text) or key not in members:
+        fail('native_json_missing_member_or_trailing_data')
+    return members[key]
+
+def target_observe(binding, ident, include_native_receipt=False):
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,160}', ident):
+        fail('invalid_target_id')
+    provider = binding['target']
+    origin = binding['target_endpoint']
+    if provider == 'affine':
+        cookie = credential(binding['target_metadata_credential_file'])
+        value = http(origin + '/graphql', {'Cookie': cookie}, {
+            'query': 'query($workspace: String!, $doc: String!) { workspace(id: $workspace) { doc(docId: $doc) { id workspaceId title public } } }',
+            'variables': {'workspace': binding['namespace_id'], 'doc': ident}})
+        if value.get('errors'):
+            fail('target_metadata_unavailable')
+        page = value['data']['workspace']['doc']
+        if page['id'] != ident or page['workspaceId'] != binding['namespace_id'] or page['public'] is not False:
+            fail('target_scope_or_visibility_changed')
+        raw = http(origin + '/api/workspaces/' + binding['namespace_id'] + '/docs/' + ident, {'Cookie': cookie}, binary=True)
+        observed = {'id': ident, 'title_hash': digest(page['title'].encode()), 'native_hash': digest(raw), 'public': False}
+        if include_native_receipt:
+            return observed, {'native_raw_hash': digest(raw), 'target_version': 'sha256:' + digest(raw)}
+        return observed
+    response = http(origin + '/api/pages/info', {'Cookie': 'authToken=' + credential(binding['target_credential_file'])},
+                    {'pageId': ident, 'includeContent': True, 'includeSpace': True}, raw_json=True)
+    page = json.loads(response)['data']
+    if page['id'] != ident or page['spaceId'] != binding['namespace_id']:
+        fail('target_namespace_changed')
+    observed = {'id': ident, 'title_hash': digest(page['title'].encode()), 'native_hash': object_hash(page['content']),
+                'updated_at': page['updatedAt'], 'slug_id': page['slugId']}
+    if include_native_receipt:
+        native_raw = raw_json_field(raw_json_field(response, 'data'), 'content')
+        if not isinstance(page['content'], dict) or page['content'].get('type') != 'doc':
+            fail('native_docmost_document_required')
+        return observed, {'native_raw_hash': digest(native_raw), 'target_version': page['updatedAt']}
+    return observed
+
+def pinned_previous_artifacts():
+    artifacts = {}
+    for filename, expected_hash in PREVIOUS_ARTIFACT_SHA256.items():
+        raw = (OLD_PUBLICATION / filename).read_bytes()
+        if digest(raw) != expected_hash:
+            fail('previous_publication_artifact_changed')
+        artifacts[filename] = json.loads(raw)
+    return artifacts
+
+def historical_native_profiles(old):
+    """Use each exact historical proof version, anchored to pinned journal bytes.
+
+    This is only for protecting old targets. New targets still require PROFILES.
+    Neither a provider's current data nor an unpinned caller-supplied profile can
+    choose a weaker validator. The old journals are never rewritten or upgraded.
+    """
+    artifacts = pinned_previous_artifacts()
+    expected = dict(artifacts['frozen-plan.json']['baseline']['old_configs'])
+    expected[OLD_CONFIGS[-1]] = {
+        'config_hash': PREVIOUS_CONFIG_SHA256,
+        'journal_hash': artifacts['publication-receipt.json']['new_journal_sha256'],
+    }
+    profiles = {}
+    for name, config, latest, config_hash, journal_hash in old:
+        pin = expected.get(name)
+        if pin != {'config_hash': config_hash, 'journal_hash': journal_hash}:
+            fail('historical_config_or_journal_pin_mismatch')
+        # Re-read exact pinned bytes before deriving the expected profile; the
+        # parsed record supplied by the caller must be the pinned journal record.
+        raw_config = private_read(ROOT / name)
+        raw_journal = private_read(config['journal'])
+        if digest(raw_config) != config_hash or digest(raw_journal) != journal_hash:
+            fail('historical_config_or_journal_changed_during_read')
+        pinned_latest = {}
+        for line in raw_journal.splitlines():
+            item = json.loads(line)['record']
+            pinned_latest[item['binding_id']] = item
+        if json.loads(raw_config) != config or pinned_latest != latest:
+            fail('historical_parsed_record_differs_from_pinned_bytes')
+        for binding in config['bindings']:
+            record = pinned_latest[binding['id']]
+            if record['state'] != 'native_verified':
+                continue
+            profile = record.get('native', {}).get('profile')
+            if profile not in HISTORICAL_PROFILES[binding['target']]:
+                fail('unsupported_pinned_historical_native_profile')
+            profiles[binding['id']] = profile
+    return profiles
+
+def match_native_receipt(binding, record, observed, native_observed, document, *, expected_profile=None):
+    """Fence the final observation to the exact source and verified target.
+
+    This matches an existing strict CLI proof; it does not independently prove
+    structure, byte-equivalent Markdown, signatures, or a provider transaction.
+    Historical protection snapshots keep their existing hash representation.
+    """
+    proof = record.get('native')
+    if not isinstance(proof, dict):
+        fail('final_native_proof_missing')
+    hash_fields = ('source_canonical_hash', 'target_canonical_hash', 'target_native_raw_hash')
+    if any(not isinstance(proof.get(field), str) or not re.fullmatch(r'[0-9a-f]{64}', proof[field]) for field in hash_fields):
+        fail('final_native_proof_invalid_hash')
+    if (record.get('state') != 'native_verified' or record.get('binding_id') != binding['id'] or
+        record.get('external_id') != observed.get('id') or binding['document_id'] != document['id'] or
+        record.get('source_revision') != document['revision'] or record.get('source_content_hash') != document['content_hash'] or
+        record.get('desired_title_hash') != digest(document['title'].encode()) or record.get('title_verified') is not True or
+        observed.get('title_hash') != record.get('desired_title_hash') or
+        record.get('observed_title_hash') != record.get('desired_title_hash')):
+        fail('final_target_or_source_receipt_mismatch')
+    if expected_profile is None:
+        expected_profile = PROFILES[binding['target']]
+    if (expected_profile not in HISTORICAL_PROFILES[binding['target']] or
+        proof.get('profile') != expected_profile or
+        proof['source_canonical_hash'] != proof['target_canonical_hash'] or
+        proof['target_native_raw_hash'] != native_observed.get('native_raw_hash') or
+        not isinstance(proof.get('target_version'), str) or not proof['target_version'] or
+        proof['target_version'] != native_observed.get('target_version')):
+        fail('final_native_receipt_mismatch')
+    if binding['target'] == 'affine' and proof['target_version'] != 'sha256:' + proof['target_native_raw_hash']:
+        fail('final_affine_native_version_mismatch')
+    if binding['target'] == 'docmost' and observed.get('updated_at') != proof['target_version']:
+        fail('final_docmost_native_version_mismatch')
+
+def snapshot(old, expected_document_ids=None):
+    historical_profiles = historical_native_profiles(old)
+    headers, agent, peer, acl, view = access(old[0][1])
+    ids = sorted(d['id'] for d in view['documents'])
+    if expected_document_ids is None:
+        if ids != sorted(OLD_SOURCE_IDS):
+            fail('expected_exact_six_old_source_documents')
+        expected_document_ids = list(OLD_SOURCE_IDS)
+    if any(ident not in ids for ident in expected_document_ids):
+        fail('old_source_document_missing')
+    docs = {}
+    source_documents = {}
+    for ident in expected_document_ids:
+        human_doc = source_read(headers, ident)
+        if source_read(agent, ident) != human_doc:
+            fail('old_source_human_agent_difference')
+        try:
+            source_read({'Authorization': 'Bearer ' + peer}, ident)
+        except Failure as error:
+            if str(error) != 'http_403':
+                raise
+        else:
+            fail('old_source_visible_to_nonmember')
+        source_documents[ident] = human_doc
+        docs[ident] = object_hash(human_doc)
+    targets = {}
+    for name, config, latest, config_hash, journal_hash in old:
+        for binding in config['bindings']:
+            record = latest[binding['id']]
+            if record['state'] == 'native_verified':
+                observed, native_observed = target_observe(binding, record['external_id'], include_native_receipt=True)
+                match_native_receipt(binding, record, observed, native_observed, source_documents[binding['document_id']],
+                                     expected_profile=historical_profiles[binding['id']])
+            else:
+                # Four legacy projections retain their historical verified proof;
+                # a protection read must not silently upgrade them to native_verified.
+                observed = target_observe(binding, record['external_id'])
+            targets[binding['id']] = observed
+    protected = {'documents': docs, 'targets': targets,
+                 'old_configs': {name: {'config_hash': ch, 'journal_hash': jh} for name, _, _, ch, jh in old}}
+    verify_previous_publication(protected, acl, old)
+    protection_path = PRIVATE / 'protection.json'
+    immutable_protection = {'baseline': protected, 'acl': acl}
+    if protection_path.exists():
+        if object_hash(json.loads(private_read(protection_path))) != object_hash(immutable_protection):
+            fail('initial_read_only_protection_changed')
+    else:
+        atomic_json(protection_path, immutable_protection)
+    return protected, acl, view, headers, agent, peer
+
+def verify_previous_publication(protected, acl, old):
+    # Anchor the first ten targets/five sources/four private mappings to the
+    # previous frozen baseline; add its two new targets and new source from the
+    # final native receipt. These pins were reviewed without external requests.
+    artifacts = pinned_previous_artifacts()
+    freeze = artifacts['frozen-plan.json']
+    receipt = artifacts['publication-receipt.json']
+    source = artifacts['published-source.json']
+    base = freeze['baseline']
+    if (len(base['documents']) != 5 or len(base['targets']) != 10 or len(base['old_configs']) != 4 or
+        set(base['documents']) != set(OLD_SOURCE_IDS) - {PREVIOUS_SOURCE_ID}):
+        fail('previous_baseline_cardinality_changed')
+    for group in ('documents', 'targets', 'old_configs'):
+        for ident, expected in base[group].items():
+            if protected[group].get(ident) != expected:
+                fail('previous_publication_' + group + '_changed')
+    if object_hash(acl) != object_hash(freeze['acl']):
+        fail('previous_controlled_room_acl_changed')
+    if (source['id'] != receipt['source_document_id'] or source['id'] != PREVIOUS_SOURCE_ID or
+        protected['documents'].get(source['id']) != object_hash(source) or
+        receipt['source_room_id'] != ROOM or receipt['source_revision'] != source['revision'] or
+        receipt['source_content_hash'] != source['content_hash']):
+        fail('previous_new_source_changed')
+    if (receipt['human_agent_same_document'] is not True or receipt['nonmember_http_status'] != 403 or
+        receipt['historical_source_documents_unchanged'] != 5 or receipt['old_projections_unchanged'] != 10 or
+        receipt['old_configs_and_journals_unchanged'] is not True or receipt['second_pass_no_append'] is not True or
+        receipt['chat_messages_sent'] != 0 or receipt['model_calls'] != 0):
+        fail('previous_publication_guarantees_changed')
+    last_name, last_config, latest, last_config_hash, last_journal_hash = old[-1]
+    if last_name != OLD_CONFIGS[-1] or last_config_hash != PREVIOUS_CONFIG_SHA256:
+        fail('previous_new_config_bytes_changed')
+    if last_journal_hash != receipt['new_journal_sha256']:
+        fail('previous_new_journal_changed')
+    target_receipts = receipt['targets']
+    if len(target_receipts) != 2 or {target['provider'] for target in target_receipts} != set(TARGETS):
+        fail('previous_new_target_receipt_count_changed')
+    bindings_by_provider = {binding['target']: binding for binding in last_config['bindings']}
+    for target in target_receipts:
+        binding = bindings_by_provider[target['provider']]
+        record = target['record']
+        if (record['binding_id'] != binding['id'] or latest.get(record['binding_id']) != record or
+            protected['targets'].get(record['binding_id']) != target['observation'] or
+            target.get('native_same_as_verified_receipt') is not True):
+            fail('previous_new_projection_changed')
+        match_native_receipt(binding, record, target['observation'], target['final_native_readback'], source)
+    # The preceding receipt has no config hash. In addition to today's pinned
+    # raw bytes, reproduce its reviewed recipe, including credentials by path
+    # only, so a changed mapping cannot hide behind an unchanged target ID.
+    templates = {binding['target']: binding for binding in old[0][1]['bindings']}
+    expected_bindings = []
+    for provider in ('affine', 'docmost'):
+        binding = dict(templates[provider])
+        binding.update(id='startup-message-interactions-publication-20260909-0750-' + provider,
+                       document_id=PREVIOUS_SOURCE_ID, generation=1,
+                       approval_reference='Root approved frozen message-interactions stage report with immutable Git links; same controlled source room and explicit namespaces; no old resource writes')
+        expected_bindings.append(binding)
+    expected_journal = str(ROOT / 'data/startup/publications/startup-message-interactions-publication-20260909-0750/receipts.jsonl')
+    if last_config != {'journal': expected_journal, 'bindings': expected_bindings}:
+        fail('previous_new_config_differs_from_reviewed_recipe')
+
+def check_preserved(freeze):
+    result = snapshot(configs(), list(freeze['baseline']['documents']))
+    if result[0] != freeze['baseline'] or object_hash(result[1]) != object_hash(freeze['acl']):
+        fail('historical_scope_or_acl_changed')
+    return result
+
+def prepare(commit):
+    if (PRIVATE / 'state.json').exists():
+        fail('publication_already_started_do_not_refreeze')
+    delivery, body = derive(commit)
+    baseline, acl, view, _, _, _ = snapshot(configs())
+    if any(d['title'] == TITLE for d in view['documents']):
+        fail('new_report_title_already_exists')
+    freeze = {'protocol': 'renji.immutable-linked-stage-publication.v2', 'publication': NAME,
+              'prepared_at': now(), 'preparation_head': git('rev-parse', 'HEAD').decode().strip(),
+              'delivery': delivery, 'baseline': baseline, 'acl': acl,
+              'target_profiles': PROFILES, 'source_create_budget': 1, 'target_create_budget_each': 1,
+              'chat_messages': 0, 'model_calls': 0, 'old_resource_writes': 0}
+    path = PRIVATE / 'freeze.json'
+    if path.exists():
+        existing = json.loads(private_read(path))
+        for key in ('delivery', 'baseline', 'acl', 'target_profiles'):
+            if object_hash(existing[key]) != object_hash(freeze[key]):
+                fail('existing_freeze_differs')
+        freeze = existing
+    else:
+        atomic_json(path, freeze)
+    (OUT / 'derived-body.md').write_text(body)
+    atomic_json(OUT / 'frozen-plan.json', freeze)
+    print(json.dumps({'state': 'prepared_no_external_write', 'source_commit': commit,
+                      'original_md_sha256': delivery['original_md_sha256'], 'derived_body_sha256': delivery['derived_body_sha256'],
+                      'immutable_links': len(delivery['relative_links']), 'old_documents': len(OLD_SOURCE_IDS), 'old_projections': OLD_PROJECTION_COUNT}))
+
+def verify_document(document, body):
+    if (document['title'] != TITLE or document['revision'] != 1 or document['content'] != body.rstrip('\n') or
+        document['content_hash'] != digest(document['content'].encode())):
+        fail('new_source_readback_mismatch')
+
+def sync_once(config_path, binding):
+    args = ['go', '-C', str(ROOT / 'services/collaboration'), 'run', './cmd/document-sync', '-config', str(config_path),
+            '-binding', binding['id'], '-native-profile', PROFILES[binding['target']]]
+    if binding['target'] == 'affine':
+        args.extend(['-native-codec', str(ROOT / 'services/collaboration/internal/documents/affinecodec'), '-native-node', '/usr/local/bin/node'])
+    result = subprocess.run(args, capture_output=True, timeout=150)
+    if len(result.stdout) > 100000:
+        fail('unexpected_sync_output')
+    rows = [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
+    atomic_json(OUT / (binding['target'] + '-latest-sync.json'), {'at': now(), 'exit_code': result.returncode, 'results': rows})
+    if result.returncode or len(rows) != 1 or rows[0].get('error_code') or rows[0].get('record', {}).get('state') != 'native_verified':
+        fail('target_not_native_verified_no_blind_retry')
+    return rows[0]
+
+def publish(args):
+    freeze = json.loads(private_read(PRIVATE / 'freeze.json'))
+    delivery, body = derive(args.source_commit)
+    if (object_hash(delivery) != object_hash(freeze['delivery']) or
+        args.expected_original_sha256 != delivery['original_md_sha256'] or args.expected_body_sha256 != delivery['derived_body_sha256']):
+        fail('root_freeze_does_not_match')
+    baseline, acl, view, headers, agent, peer = check_preserved(freeze)
+    path = PRIVATE / 'state.json'
+    state = json.loads(private_read(path)) if path.exists() else None
+    if state is None:
+        if any(d['title'] == TITLE for d in view['documents']):
+            fail('ambiguous_existing_source_title')
+        state = {'protocol': freeze['protocol'], 'freeze_hash': object_hash(freeze), 'created_at': now(),
+                 'source_document_id': None, 'source_create_intent': None,
+                 'publication_head': git('rev-parse', 'HEAD').decode().strip()}
+        atomic_json(path, state)
+    if state['freeze_hash'] != object_hash(freeze):
+        fail('state_freeze_changed')
+    if state['source_document_id'] is None:
+        if state['source_create_intent'] is not None:
+            candidates = []
+            for item in view['documents']:
+                if item['id'] not in baseline['documents'] and item['title'] == TITLE:
+                    document = source_read(headers, item['id'])
+                    if document['content'] == body.rstrip('\n') and document['revision'] == 1:
+                        candidates.append(document)
+            if len(candidates) != 1:
+                fail('source_post_unknown_no_unique_read_only_match_do_not_recreate')
+            state['source_document_id'] = candidates[0]['id']
+            state['source_reconciled_at'] = now()
+            atomic_json(path, state)
+        else:
+            state['source_create_intent'] = {'at': now(), 'room_id': ROOM, 'title_hash': digest(TITLE.encode()),
+                                             'derived_body_sha256': delivery['derived_body_sha256']}
+            atomic_json(path, state)  # fsync BEFORE the non-idempotent request.
+            response = http(SOURCE + '/api/im/rooms/' + ROOM + '/documents', headers, {'title': TITLE, 'content': body})
+            ident = response.get('document', {}).get('id')
+            if not isinstance(ident, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,160}', ident) or ident in baseline['documents']:
+                fail('source_post_returned_no_safe_new_id')
+            state['source_document_id'] = ident
+            state['source_response_at'] = now()
+            atomic_json(path, state)  # retain known ID before any body validation.
+    ident = state['source_document_id']
+    document = source_read(headers, ident)
+    verify_document(document, body)
+    agent_document = source_read(agent, ident)
+    if agent_document != document:
+        fail('new_source_human_agent_difference')
+    try:
+        source_read({'Authorization': 'Bearer ' + peer}, ident)
+    except Failure as error:
+        if str(error) != 'http_403':
+            raise
+    else:
+        fail('new_source_visible_to_nonmember')
+    old = configs()
+    templates = {b['target']: b for b in old[0][1]['bindings']}
+    bindings = []
+    for provider in ('affine', 'docmost'):
+        binding = dict(templates[provider])
+        binding.update(id=NAME + '-' + provider, document_id=ident, generation=1,
+                       approval_reference='Root approved frozen account-and-bridge stage report with immutable Git links; same controlled source room and explicit namespaces; no old resource writes')
+        bindings.append(binding)
+    config = {'journal': str(PRIVATE / 'receipts.jsonl'), 'bindings': bindings}
+    config_path = PRIVATE / 'config.json'
+    if config_path.exists():
+        if json.loads(private_read(config_path)) != config:
+            fail('new_mapping_config_changed')
+    else:
+        atomic_json(config_path, config)
+    results = []
+    for binding in bindings:
+        check_preserved(freeze)
+        verify_document(source_read(headers, ident), body)
+        results.append(sync_once(config_path, binding))
+    journal_before = private_read(config['journal'])
+    for binding, first in zip(bindings, results):
+        if sync_once(config_path, binding) != first:
+            fail('idempotent_result_changed')
+    if private_read(config['journal']) != journal_before:
+        fail('idempotent_pass_appended')
+    check_preserved(freeze)
+    verify_document(source_read(headers, ident), body)
+    targets = []
+    for binding, result in zip(bindings, results):
+        external = result['record']['external_id']
+        observed, native_observed = target_observe(binding, external, include_native_receipt=True)
+        match_native_receipt(binding, result['record'], observed, native_observed, document)
+        url = binding['target_endpoint'] + ('/workspace/' + binding['namespace_id'] + '/' + external if binding['target'] == 'affine' else '/p/' + observed['slug_id'])
+        targets.append({'provider': binding['target'], 'url': url, 'observation': observed, 'record': result['record'],
+                        'final_native_readback': native_observed, 'native_same_as_verified_receipt': True})
+    receipt = {'verified_at': now(), 'delivery': delivery, 'publication_head': state['publication_head'],
+               'verification_head': git('rev-parse', 'HEAD').decode().strip(),
+               'source_document_id': ident, 'source_revision': 1,
+               'source_content_hash': document['content_hash'], 'source_room_id': ROOM, 'human_agent_same_document': True,
+               'nonmember_http_status': 403, 'historical_source_documents_unchanged': len(OLD_SOURCE_IDS), 'old_projections_unchanged': OLD_PROJECTION_COUNT,
+               'old_configs_and_journals_unchanged': True, 'second_pass_no_append': True, 'targets': targets,
+               'new_journal_sha256': digest(journal_before), 'new_journal_lines': len(journal_before.splitlines()),
+               'original_relative_links_resolved_to_docs_commit': True, 'chat_messages_sent': 0, 'model_calls': 0}
+    atomic_json(OUT / 'published-source.json', document)
+    atomic_json(OUT / 'publication-receipt.json', receipt)
+    state['verified_at'] = receipt['verified_at']
+    atomic_json(path, state)
+    print(json.dumps({'state': 'native_verified', 'source_document_id': ident,
+                      'targets': {t['provider']: t['record']['external_id'] for t in targets}, 'old_docs': len(OLD_SOURCE_IDS), 'old_targets': OLD_PROJECTION_COUNT}))
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--inspect', action='store_true')
+    mode.add_argument('--prepare', action='store_true')
+    mode.add_argument('--publish', action='store_true')
+    parser.add_argument('--source-commit')
+    parser.add_argument('--expected-original-sha256')
+    parser.add_argument('--expected-body-sha256')
+    args = parser.parse_args()
+    if (args.prepare or args.publish) and DRAFT:
+        fail('publisher_draft_requires_root_final_report_and_implementation')
+    if (args.prepare or args.publish) and not args.source_commit:
+        parser.error('--source-commit required')
+    if args.publish and (not args.expected_original_sha256 or not args.expected_body_sha256):
+        parser.error('--publish requires both expected hashes')
+    OUT.mkdir(parents=True, exist_ok=True)
+    PRIVATE.mkdir(parents=True, mode=0o700, exist_ok=True)
+    lock = os.open(PRIVATE / 'lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(lock, 'w') as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if args.publish:
+            publish(args)
+        elif args.prepare:
+            prepare(args.source_commit)
+        else:
+            baseline, acl, _, _, _, _ = snapshot(configs())
+            atomic_json(OUT / 'read-only-inspection.json', {'at': now(), 'baseline': baseline, 'acl': acl,
+                        'report_path': REPORT, 'report_worktree_sha256': digest((ROOT / REPORT).read_bytes()) if REPORT and (ROOT / REPORT).is_file() else None,
+                        'draft': DRAFT, 'human_agent_full_documents_equal': True, 'nonmember_denied_count': len(baseline['documents']),
+                        'waiting_for_docs_commit_and_start': True, 'external_writes': 0})
+            print(json.dumps({'state': 'inspection_only', 'old_docs': len(baseline['documents']),
+                              'old_projections': len(baseline['targets']), 'external_writes': 0}))
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Failure as error:
+        print(json.dumps({'state': 'not_verified', 'error_code': str(error)}))
+        raise SystemExit(1)
+    except Exception as error:
+        print(json.dumps({'state': 'not_verified', 'error_code': 'unexpected_' + type(error).__name__}))
+        raise SystemExit(1)

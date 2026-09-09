@@ -1,0 +1,36 @@
+{
+  "at": "2026-09-09T01:56:51.314518+00:00",
+  "exit_code": 0,
+  "results": [
+    {
+      "binding_id": "account-bridge-publication-20260909-docmost",
+      "record": {
+        "binding_id": "account-bridge-publication-20260909-docmost",
+        "binding_hash": "460b228e7c3d5547704e4cdd4c27b4a72867481b6a89dbc73341d6bef8b8a50f",
+        "sequence": 4,
+        "state": "native_verified",
+        "external_id": "01a083e1-d4f7-7af2-a4d8-e537c7a14f69",
+        "source_revision": 1,
+        "source_content_hash": "f19e67759e98c94bfdab0961ee4ae3584cfa10eb588adb37b98e49bb32aa56d5",
+        "desired_body_hash": "f19e67759e98c94bfdab0961ee4ae3584cfa10eb588adb37b98e49bb32aa56d5",
+        "desired_title_hash": "2edf71a57a65e6aa54e0de65bba437391fd751dc232204a7bee0da5582f26646",
+        "observed_body_hash": "fda93ccba5bef8453579047130f9c551a4da903f2994f9e623e1430566f132ea",
+        "observed_title_hash": "2edf71a57a65e6aa54e0de65bba437391fd751dc232204a7bee0da5582f26646",
+        "title_verified": true,
+        "at": "2026-09-09T01:56:51.017643Z",
+        "observed_raw_body_hash": "fda93ccba5bef8453579047130f9c551a4da903f2994f9e623e1430566f132ea",
+        "native": {
+          "profile": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "target_version": "2026-09-09T01:56:50.548Z",
+          "source_canonical_hash": "af2f2130e8e6361e5f0a4c5e5b6934341e89e3419a170de64b3170be71c5702d",
+          "target_canonical_hash": "af2f2130e8e6361e5f0a4c5e5b6934341e89e3419a170de64b3170be71c5702d",
+          "target_native_raw_hash": "a56d503ca8df8891e0f8269128a3bc90eaf29b15cac533e1fe39cd8461223065",
+          "platform_behavior_hash": "16cf1cb70e29c0778d9bffc727b88fb8294fb4075c0dbc16f9cdeacdf92cd824",
+          "platform_differences": 30,
+          "markdown_export_error": "readback_mismatch"
+        }
+      },
+      "target": "docmost"
+    }
+  ]
+}

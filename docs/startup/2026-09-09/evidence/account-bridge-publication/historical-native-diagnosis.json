@@ -1,0 +1,453 @@
+{
+  "schema": "renji.publication.historical-native-diagnosis.v1",
+  "at": "2026-09-09T09:53:12.634182+08:00",
+  "source_count": 6,
+  "target_count": 12,
+  "config_and_journal_count": 5,
+  "sources": [
+    {
+      "id": "25ae13fb",
+      "revision": 3,
+      "object_sha256": "1b1bb4045d8756b2b3947f9128341aabee06aec8763bcb5a7d25e4e601df7f74",
+      "content_sha256": "8370a0f0d4c504b0eb15e1601b02749aff59bedac69f6b4c77a1c3b2fa9ae2e2",
+      "human_agent_same": true,
+      "peer_status": 403
+    },
+    {
+      "id": "9d62380a",
+      "revision": 1,
+      "object_sha256": "bebe01159577cff8ead1459c360987aa00bdce8b77270bd1fb7087abc3db8ede",
+      "content_sha256": "e37f8cacc7f3e26a53c66be9b0c89e90273e98ca1efc5da44109b980aa5d9fe9",
+      "human_agent_same": true,
+      "peer_status": 403
+    },
+    {
+      "id": "a74679d5",
+      "revision": 1,
+      "object_sha256": "9578a20d49a7475da663ee824224d13e3bbded619b270a95812ddf60a604f0ca",
+      "content_sha256": "44d5f1a1f25b256dd2aef7e80e81b7b6b47d0677b856519f4a1a79d16cfc8844",
+      "human_agent_same": true,
+      "peer_status": 403
+    },
+    {
+      "id": "f6b5ff58",
+      "revision": 2,
+      "object_sha256": "a8c786e8034a44b21abe2e9bf2ce55827a7113912afcac4c79470010a53a5002",
+      "content_sha256": "a29c4f01f8d8185304feef4163c396f3b35f5075340f2322f5a1a7e70737ee43",
+      "human_agent_same": true,
+      "peer_status": 403
+    },
+    {
+      "id": "7e81ae07",
+      "revision": 1,
+      "object_sha256": "50c851e58e7d0fdab3f8645059614bc13d025ce2145b1310a39967aaf5260fdd",
+      "content_sha256": "a3f858deb4def1f0767f4ed51bd54f6357d48ae576e33e901b0df665d44fd7d1",
+      "human_agent_same": true,
+      "peer_status": 403
+    },
+    {
+      "id": "31bb33b9",
+      "revision": 1,
+      "object_sha256": "ef031c1aed712cfedb1ad02837d1dbbb2265268fafcf49210f675ca723063261",
+      "content_sha256": "f6510b3ba5a4d2503b14ea1f28d185961372e5902fe0a2da1356fc574ad630d8",
+      "human_agent_same": true,
+      "peer_status": 403
+    }
+  ],
+  "targets": [
+    {
+      "binding_id": "startup-fixture-affine-20260909-initialized",
+      "source_id": "25ae13fb",
+      "provider": "affine",
+      "target_id": "2T4haLdQHZ5IkzU2mSJBG",
+      "record_state": "verified",
+      "current_observation": {
+        "id": "2T4haLdQHZ5IkzU2mSJBG",
+        "title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "native_hash": "7f9daa1e91bdf1a4439e703d2d1de707fcf0ad7f90ed6080aa390b2a818f84f9",
+        "public": false
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass"
+    },
+    {
+      "binding_id": "startup-fixture-affine-h1-20260909",
+      "source_id": "f6b5ff58",
+      "provider": "affine",
+      "target_id": "pLxvvvqAYXsM7iuxUGIeR",
+      "record_state": "verified",
+      "current_observation": {
+        "id": "pLxvvvqAYXsM7iuxUGIeR",
+        "title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "native_hash": "a667865d5c306352eee0faf0b7e32277d68521835646723deca23001322d0aea",
+        "public": false
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass"
+    },
+    {
+      "binding_id": "startup-fixture-docmost-20260909-initialized",
+      "source_id": "25ae13fb",
+      "provider": "docmost",
+      "target_id": "01a08286-d73b-76c5-922f-7e1204ba8b2d",
+      "record_state": "verified",
+      "current_observation": {
+        "id": "01a08286-d73b-76c5-922f-7e1204ba8b2d",
+        "title_hash": "b0867521975788669a449cddeb55bc2fb65c77ee04e6105bcc81443bf72ca5c1",
+        "native_hash": "aa5d5c7957a79b784bb7823ee876f0dba93aa27ad3dde52f6766c84ac829feaa",
+        "updated_at": "2026-09-08T19:39:19.447Z",
+        "slug_id": "A8E8PJlMNX"
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass"
+    },
+    {
+      "binding_id": "startup-fixture-docmost-h1-20260909",
+      "source_id": "f6b5ff58",
+      "provider": "docmost",
+      "target_id": "01a08286-d78b-7621-ba89-e26e5c6fbb10",
+      "record_state": "verified",
+      "current_observation": {
+        "id": "01a08286-d78b-7621-ba89-e26e5c6fbb10",
+        "title_hash": "2c2bd00edb3fbf489793ec6d2cf3793a161e223788889f8a2c5b5cbc93fb7e7b",
+        "native_hash": "8d348b738d883c884d45588cfb403d866b52a867f7588902d80571a78e03a2ba",
+        "updated_at": "2026-09-08T19:37:50.218Z",
+        "slug_id": "LLTf7xoGTa"
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass"
+    },
+    {
+      "binding_id": "startup-stage-publication-20260909-0418-affine",
+      "source_id": "a74679d5",
+      "provider": "affine",
+      "target_id": "SLrA9aXyZV-vehgtC91W-",
+      "record_state": "native_verified",
+      "current_observation": {
+        "id": "SLrA9aXyZV-vehgtC91W-",
+        "title_hash": "b2a1ad8b6dd1974d70422e4e0dc9c1f8123bb3924563d44ef8753326c2f34f4e",
+        "native_hash": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+        "public": false
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "final_native_receipt_mismatch",
+      "checks": {
+        "profile": {
+          "expected": "affine.database-v3.rich-text.b4c8548c0.v1",
+          "observed": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "same": false
+        },
+        "native_raw_hash": {
+          "expected": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+          "observed": "a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+          "same": true
+        },
+        "target_version": {
+          "expected": "sha256:a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+          "observed": "sha256:a2bd6b60de16733706bde2ffccbe4301c2b6d4e15c7ef1b1a16d798b971dc8fc",
+          "same": true
+        },
+        "canonical_proof": {
+          "expected": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+          "observed": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+          "same": true
+        }
+      },
+      "mismatch_fields": [
+        "profile"
+      ],
+      "native_raw_exactly_matches_previously_verified_snapshot": true,
+      "canonical_note": "Canonical hash comes from immutable previous strict proof; current native bytes match that proof. No new CLI reconcile/journal append executed."
+    },
+    {
+      "binding_id": "startup-stage-publication-20260909-0418-docmost",
+      "source_id": "a74679d5",
+      "provider": "docmost",
+      "target_id": "01a082b6-bade-7ef2-8bfc-02b75fcd97de",
+      "record_state": "native_verified",
+      "current_observation": {
+        "id": "01a082b6-bade-7ef2-8bfc-02b75fcd97de",
+        "title_hash": "b2a1ad8b6dd1974d70422e4e0dc9c1f8123bb3924563d44ef8753326c2f34f4e",
+        "native_hash": "e34119fe1cbfde259d720a66ffb7d55c635c986664d56cf79afeaee25b8a9e5a",
+        "updated_at": "2026-09-08T20:30:08.605Z",
+        "slug_id": "gsZSY3HjJU"
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "final_native_receipt_mismatch",
+      "checks": {
+        "profile": {
+          "expected": "docmost.prosemirror.gfm.goldmark-1.8.6.v1",
+          "observed": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "same": false
+        },
+        "native_raw_hash": {
+          "expected": "57428f0f86d5b55e03e768a791141f49e14b17960d0155be45a5b7b848a9bd72",
+          "observed": "57428f0f86d5b55e03e768a791141f49e14b17960d0155be45a5b7b848a9bd72",
+          "same": true
+        },
+        "target_version": {
+          "expected": "2026-09-08T20:30:08.605Z",
+          "observed": "2026-09-08T20:30:08.605Z",
+          "same": true
+        },
+        "canonical_proof": {
+          "expected": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+          "observed": "903e9410dfa7c2d7945546fe4001f2ee2b34f1eb12d1b1a733fd269787b1e320",
+          "same": true
+        }
+      },
+      "mismatch_fields": [
+        "profile"
+      ],
+      "native_raw_exactly_matches_previously_verified_snapshot": true,
+      "canonical_note": "Canonical hash comes from immutable previous strict proof; current native bytes match that proof. No new CLI reconcile/journal append executed."
+    },
+    {
+      "binding_id": "startup-archive-code-20260909-0618-affine",
+      "source_id": "9d62380a",
+      "provider": "affine",
+      "target_id": "KfTj5XXxNr39dXMML9eff",
+      "record_state": "native_verified",
+      "current_observation": {
+        "id": "KfTj5XXxNr39dXMML9eff",
+        "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "native_hash": "cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d",
+        "public": false
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass",
+      "checks": {
+        "profile": {
+          "expected": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "observed": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "same": true
+        },
+        "native_raw_hash": {
+          "expected": "cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d",
+          "observed": "cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d",
+          "same": true
+        },
+        "target_version": {
+          "expected": "sha256:cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d",
+          "observed": "sha256:cf74c54fa53229483523c2b296babdbe2bf6a6a3b96fe63f4d771af81be2224d",
+          "same": true
+        },
+        "canonical_proof": {
+          "expected": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+          "observed": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+          "same": true
+        }
+      },
+      "mismatch_fields": [],
+      "native_raw_exactly_matches_previously_verified_snapshot": true,
+      "canonical_note": "Canonical hash comes from immutable previous strict proof; current native bytes match that proof. No new CLI reconcile/journal append executed."
+    },
+    {
+      "binding_id": "startup-archive-code-20260909-0618-docmost",
+      "source_id": "9d62380a",
+      "provider": "docmost",
+      "target_id": "01a0831e-38e3-76d9-8c34-0466c871bb42",
+      "record_state": "native_verified",
+      "current_observation": {
+        "id": "01a0831e-38e3-76d9-8c34-0466c871bb42",
+        "title_hash": "68f797beab2c5ded0e2e757b45e5054fda3deb1bcd2bb619f010295c2090d887",
+        "native_hash": "d95e9b09dc123a4812e9448f7f660ee1b5c9bd785337fbbb7fd46dc96d7bb152",
+        "updated_at": "2026-09-08T22:23:11.073Z",
+        "slug_id": "l8xzi5wOsi"
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass",
+      "checks": {
+        "profile": {
+          "expected": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "observed": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "same": true
+        },
+        "native_raw_hash": {
+          "expected": "f23d48a2f4dbe551643587d38699f5ef55d3b792df1a26018400a90e226bfd72",
+          "observed": "f23d48a2f4dbe551643587d38699f5ef55d3b792df1a26018400a90e226bfd72",
+          "same": true
+        },
+        "target_version": {
+          "expected": "2026-09-08T22:23:11.073Z",
+          "observed": "2026-09-08T22:23:11.073Z",
+          "same": true
+        },
+        "canonical_proof": {
+          "expected": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+          "observed": "2d6a46b05fac3ee69e3bc9ad3ae23f1b132ff7fd786ef5de779dd26c29f75230",
+          "same": true
+        }
+      },
+      "mismatch_fields": [],
+      "native_raw_exactly_matches_previously_verified_snapshot": true,
+      "canonical_note": "Canonical hash comes from immutable previous strict proof; current native bytes match that proof. No new CLI reconcile/journal append executed."
+    },
+    {
+      "binding_id": "startup-automatic-archive-publication-20260909-0649-affine",
+      "source_id": "7e81ae07",
+      "provider": "affine",
+      "target_id": "pos1eudO5AYgYiEVx146t",
+      "record_state": "native_verified",
+      "current_observation": {
+        "id": "pos1eudO5AYgYiEVx146t",
+        "title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "native_hash": "4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936",
+        "public": false
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass",
+      "checks": {
+        "profile": {
+          "expected": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "observed": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "same": true
+        },
+        "native_raw_hash": {
+          "expected": "4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936",
+          "observed": "4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936",
+          "same": true
+        },
+        "target_version": {
+          "expected": "sha256:4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936",
+          "observed": "sha256:4c0e8329e00123dceba4d598a4d8d95d4b112ddadb086c49405f04750c9b9936",
+          "same": true
+        },
+        "canonical_proof": {
+          "expected": "496f4be4df4262477d98fec5732e8310c2f472eb81be25752d9d40cd4663a4d0",
+          "observed": "496f4be4df4262477d98fec5732e8310c2f472eb81be25752d9d40cd4663a4d0",
+          "same": true
+        }
+      },
+      "mismatch_fields": [],
+      "native_raw_exactly_matches_previously_verified_snapshot": true,
+      "canonical_note": "Canonical hash comes from immutable previous strict proof; current native bytes match that proof. No new CLI reconcile/journal append executed."
+    },
+    {
+      "binding_id": "startup-automatic-archive-publication-20260909-0649-docmost",
+      "source_id": "7e81ae07",
+      "provider": "docmost",
+      "target_id": "01a0833c-cc3a-71aa-83f4-b29474708ce6",
+      "record_state": "native_verified",
+      "current_observation": {
+        "id": "01a0833c-cc3a-71aa-83f4-b29474708ce6",
+        "title_hash": "8f2c35ab15f3bef4a905077d08c633d9539cd3a57c3e8e4094eb6ae9444bf43e",
+        "native_hash": "33788efd0ed01d445eba35ccafc25467320d4fb71712d2142bc607c1e928e049",
+        "updated_at": "2026-09-08T22:56:34.872Z",
+        "slug_id": "GzQBbzDiOT"
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass",
+      "checks": {
+        "profile": {
+          "expected": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "observed": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "same": true
+        },
+        "native_raw_hash": {
+          "expected": "e32512c5952f7a0e1473b7bc0ccec16ea59a99089ad5a26d9a0d0893bfae038f",
+          "observed": "e32512c5952f7a0e1473b7bc0ccec16ea59a99089ad5a26d9a0d0893bfae038f",
+          "same": true
+        },
+        "target_version": {
+          "expected": "2026-09-08T22:56:34.872Z",
+          "observed": "2026-09-08T22:56:34.872Z",
+          "same": true
+        },
+        "canonical_proof": {
+          "expected": "496f4be4df4262477d98fec5732e8310c2f472eb81be25752d9d40cd4663a4d0",
+          "observed": "496f4be4df4262477d98fec5732e8310c2f472eb81be25752d9d40cd4663a4d0",
+          "same": true
+        }
+      },
+      "mismatch_fields": [],
+      "native_raw_exactly_matches_previously_verified_snapshot": true,
+      "canonical_note": "Canonical hash comes from immutable previous strict proof; current native bytes match that proof. No new CLI reconcile/journal append executed."
+    },
+    {
+      "binding_id": "startup-message-interactions-publication-20260909-0750-affine",
+      "source_id": "31bb33b9",
+      "provider": "affine",
+      "target_id": "bGCK2yAAKIJTKrJDgZId0",
+      "record_state": "native_verified",
+      "current_observation": {
+        "id": "bGCK2yAAKIJTKrJDgZId0",
+        "title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "native_hash": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+        "public": false
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass",
+      "checks": {
+        "profile": {
+          "expected": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "observed": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "same": true
+        },
+        "native_raw_hash": {
+          "expected": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+          "observed": "d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+          "same": true
+        },
+        "target_version": {
+          "expected": "sha256:d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+          "observed": "sha256:d111014af0a3b3ab2585eb35be6aa3c1e7017cbc67ed71dd244a67b57cb88efd",
+          "same": true
+        },
+        "canonical_proof": {
+          "expected": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+          "observed": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+          "same": true
+        }
+      },
+      "mismatch_fields": [],
+      "native_raw_exactly_matches_previously_verified_snapshot": true,
+      "canonical_note": "Canonical hash comes from immutable previous strict proof; current native bytes match that proof. No new CLI reconcile/journal append executed."
+    },
+    {
+      "binding_id": "startup-message-interactions-publication-20260909-0750-docmost",
+      "source_id": "31bb33b9",
+      "provider": "docmost",
+      "target_id": "01a0838f-b37f-75b2-8f7c-3d3b603ccb4e",
+      "record_state": "native_verified",
+      "current_observation": {
+        "id": "01a0838f-b37f-75b2-8f7c-3d3b603ccb4e",
+        "title_hash": "19894e81b656e6bbc66f94c370a6c30473bb1d8baec8dba6911c05bba68b9c50",
+        "native_hash": "2947b619471dadb078a215744217dc411b6f3ca59b898d59698c0a9e8344d3ed",
+        "updated_at": "2026-09-09T00:27:08.026Z",
+        "slug_id": "8kdEVzWuIf"
+      },
+      "prior_protection_observation_same": true,
+      "current_match_result": "pass",
+      "checks": {
+        "profile": {
+          "expected": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "observed": "docmost.prosemirror.gfm-code.goldmark-1.8.6.v2",
+          "same": true
+        },
+        "native_raw_hash": {
+          "expected": "510fd7ad5e342fd969ffe124c210c06d8fea911f8761b31fb7bec987580b64d9",
+          "observed": "510fd7ad5e342fd969ffe124c210c06d8fea911f8761b31fb7bec987580b64d9",
+          "same": true
+        },
+        "target_version": {
+          "expected": "2026-09-09T00:27:08.026Z",
+          "observed": "2026-09-09T00:27:08.026Z",
+          "same": true
+        },
+        "canonical_proof": {
+          "expected": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+          "observed": "523d8984a1367ed954e9df89cf6a5fdfbe944221eeddb4d079f6cd8f46d61fc3",
+          "same": true
+        }
+      },
+      "mismatch_fields": [],
+      "native_raw_exactly_matches_previously_verified_snapshot": true,
+      "canonical_note": "Canonical hash comes from immutable previous strict proof; current native bytes match that proof. No new CLI reconcile/journal append executed."
+    }
+  ],
+  "all_previous_protection_observations_unchanged": true,
+  "config_journal_bytes_unchanged": true,
+  "external_writes": 0,
+  "diagnosis": "Only historical a74679d5 native v1 profiles are rejected by the new publisher global v2 requirement; raw native/version/title and pinned previous target observations remain unchanged."
+}

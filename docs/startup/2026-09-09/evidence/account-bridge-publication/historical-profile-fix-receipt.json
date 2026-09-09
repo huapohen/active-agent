@@ -1,0 +1,17 @@
+{
+  "schema": "renji.publisher.historical-profile-fix.v1",
+  "at": "2026-09-09T09:55:59.227961+08:00",
+  "publisher_sha256": "b3cfafd5895ac7a1586be02bb0204f5fb973ae951605361870b234e2e9ba80ef",
+  "diagnosis_sha256": "8e72805c273b0618b9fad9b5f0017f62178dd4665fba4156018ae13cdf0e3c63",
+  "tests_sha256": "643815cae3beda53e88c479ddd8d4b8fa46d555a0ee43d873e0d34c477d38ec6",
+  "offline_tests_passed": 15,
+  "inspect": {
+    "state": "inspection_only",
+    "old_docs": 6,
+    "old_projections": 12,
+    "external_writes": 0
+  },
+  "prepare_run": false,
+  "publish_run": false,
+  "old_resources_changed": false
+}

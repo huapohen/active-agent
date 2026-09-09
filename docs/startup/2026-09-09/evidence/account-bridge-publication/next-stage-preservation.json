@@ -1,0 +1,22 @@
+{
+  "at": "2026-09-09T09:58:43.539926+08:00",
+  "source_documents": [
+    "25ae13fb",
+    "9d62380a",
+    "a74679d5",
+    "f6b5ff58",
+    "7e81ae07",
+    "31bb33b9",
+    "eb826242"
+  ],
+  "source_count": 7,
+  "projection_count": 14,
+  "config_count": 6,
+  "previous_sources_preserved": 6,
+  "previous_projections_preserved": 12,
+  "new_config_sha256": "20cfec118ff015f960fb709c4a9052d349c675ce140367a3353cec8603ecf5a2",
+  "new_journal_sha256": "576bb50b0d661a7dbee3c4be0169808811848aa509ae90cbc960ed994c4271cd",
+  "new_source_sha256": "b85d9b95cd77385d23eb0b24b6686f8f74e263403aa5e6f13d20714d5f0b02dd",
+  "publisher_sha256": "b3cfafd5895ac7a1586be02bb0204f5fb973ae951605361870b234e2e9ba80ef",
+  "publication_receipt_sha256": "6fa8de592a42bf33831cd1c6e5f5792ba08f36b788e42b8499b646a8c77b353b"
+}

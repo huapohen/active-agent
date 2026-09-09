@@ -1,0 +1,36 @@
+{
+  "at": "2026-09-09T01:56:51.165457+00:00",
+  "exit_code": 0,
+  "results": [
+    {
+      "binding_id": "account-bridge-publication-20260909-affine",
+      "record": {
+        "binding_id": "account-bridge-publication-20260909-affine",
+        "binding_hash": "869cbbeb3e861690739565a62c9ba1e15eee2e5d7eaf272c453052197d69871c",
+        "sequence": 4,
+        "state": "native_verified",
+        "external_id": "0MDttZyU_BqyjzQMKqVLW",
+        "source_revision": 1,
+        "source_content_hash": "f19e67759e98c94bfdab0961ee4ae3584cfa10eb588adb37b98e49bb32aa56d5",
+        "desired_body_hash": "f19e67759e98c94bfdab0961ee4ae3584cfa10eb588adb37b98e49bb32aa56d5",
+        "desired_title_hash": "2edf71a57a65e6aa54e0de65bba437391fd751dc232204a7bee0da5582f26646",
+        "observed_body_hash": "5781632b99ecb24d61eb6af142acb090efde5035469425388ff51a826c652d5a",
+        "observed_title_hash": "2edf71a57a65e6aa54e0de65bba437391fd751dc232204a7bee0da5582f26646",
+        "title_verified": true,
+        "at": "2026-09-09T01:56:50.227645Z",
+        "observed_raw_body_hash": "0c1b363abae75a0d50e7171c88a16e4e1a274eaa384c840a46f3d14def015ceb",
+        "native": {
+          "profile": "affine.database-v3.code-v1.rich-text.b4c8548c0.v2",
+          "target_version": "sha256:61d5cd7b3439a1433e3e2af3a81c65a27912744ba046e261d468cb86fcc552b3",
+          "source_canonical_hash": "af2f2130e8e6361e5f0a4c5e5b6934341e89e3419a170de64b3170be71c5702d",
+          "target_canonical_hash": "af2f2130e8e6361e5f0a4c5e5b6934341e89e3419a170de64b3170be71c5702d",
+          "target_native_raw_hash": "61d5cd7b3439a1433e3e2af3a81c65a27912744ba046e261d468cb86fcc552b3",
+          "platform_behavior_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "platform_differences": 0,
+          "markdown_export_error": "readback_mismatch"
+        }
+      },
+      "target": "affine"
+    }
+  ]
+}
