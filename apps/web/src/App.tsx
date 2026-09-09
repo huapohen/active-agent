@@ -13,7 +13,7 @@ import { Documents } from './Documents';
 import { CommercialOnboarding, CommercialProfileForm, CommercialWorkspaceForm, CommercialRoomForm } from './CommercialOnboarding';
 import { useCommercialAccount } from './useCommercialAccount';
 import { useWorkspaceInvitations } from './useWorkspaceInvitations';
-import { WorkspaceInvitations } from './WorkspaceInvitations';
+import { WorkspaceInvitationDialog } from './WorkspaceInvitationDialog';
 import { ReactionList, visibleReactions } from './ReactionList';
 import { EmojiIcon, MessageActions, messageClientScope, messagePreview } from './MessageActions';
 
@@ -150,7 +150,7 @@ function Workspace({ session, onLogout }: { session: Session; onLogout: () => vo
         <CommercialRoomForm scopeKey={session.id} me={me} workspace={onboarding.workspaces.find(w => w.id === onboarding.selectedWorkspaceId)} members={onboarding.members} membersLoad={onboarding.membersLoad} enabled={onboarding.canCreateRoom} state={onboarding.roomState} onSubmit={onboarding.onCreateRoom} onReconcile={scope => onboarding.onReconcile?.('room', scope)} onRefreshMembers={onboarding.onRefreshMembers} onOpenRoom={onboarding.onOpenRoom} />
       </>}<footer><Dialog.Close className="secondary">关闭</Dialog.Close></footer>
     </Dialog.Content></Dialog.Portal></Dialog.Root>}
-    {client.invitations && <Dialog.Root open={accountDialog === 'invite' || accountDialog === 'join'} onOpenChange={open => { if (!open) setAccountDialog(undefined); }}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="dialog-content" style={{ maxHeight: '85vh', overflowY: 'auto', maxWidth: 560 }}><Dialog.Title>{accountDialog === 'join' ? '加入工作空间' : '邀请同事'}</Dialog.Title><Dialog.Description>邀请只授予普通成员身份，并按当前工作身份核对操作。</Dialog.Description><WorkspaceInvitations model={invitations} workspaces={onboarding.workspaces} onSelectWorkspace={onboarding.onSelectWorkspace} mode={accountDialog === 'join' ? 'join' : 'invite'} onOpenWorkspace={(id, caller) => { onboarding.onSelectWorkspace(id, caller); setAccountDialog('workspace'); }} /><footer><Dialog.Close className="secondary">关闭</Dialog.Close></footer></Dialog.Content></Dialog.Portal></Dialog.Root>}
+    {client.invitations && <WorkspaceInvitationDialog open={accountDialog === 'invite' || accountDialog === 'join'} onOpenChange={open => { if (!open) setAccountDialog(undefined); }} model={invitations} workspaces={onboarding.workspaces} onSelectWorkspace={onboarding.onSelectWorkspace} mode={accountDialog === 'join' ? 'join' : 'invite'} onOpenWorkspace={(id, caller) => { onboarding.onSelectWorkspace(id, caller); setAccountDialog('workspace'); }} />}
     <Dialog.Root open={createOpen} onOpenChange={setCreateOpen}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="dialog-content"><Dialog.Title>创建群聊</Dialog.Title><Dialog.Description>群创建后，可以在现有客户端管理人和 Agent 成员。</Dialog.Description><form onSubmit={create}><label>群聊名称<input autoFocus required maxLength={100} value={createTitle} onChange={e => setCreateTitle(e.target.value)} /></label><Status error={error} /><footer><Dialog.Close className="secondary">取消</Dialog.Close><button className="primary" disabled={busyCreate}>{busyCreate ? '正在创建…' : '创建'}</button></footer></form></Dialog.Content></Dialog.Portal></Dialog.Root>
   </main>;
 }

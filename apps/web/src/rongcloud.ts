@@ -5,7 +5,7 @@ import type { CollaborationClient } from './types';
 export type TransportState = 'connecting' | 'connected' | 'disconnected' | 'unavailable';
 export type TransportConfig = { appKey: string; userId: string; token: string };
 type TransportNotice = { kind: 'state'; state: TransportState } | { kind: 'changed' };
-declare global { interface Window { renjiDesktop?: { platform: string; connectRongCloud: (config: TransportConfig) => Promise<{ connected: boolean }>; disconnectRongCloud: () => Promise<void>; onRongCloud: (listener: (notice: TransportNotice) => void) => () => void } } }
+declare global { interface Window { renjiDesktop?: { platform: string; writeClipboardText?: (text: string) => Promise<{ written: boolean }>; connectRongCloud: (config: TransportConfig) => Promise<{ connected: boolean }>; disconnectRongCloud: () => Promise<void>; onRongCloud: (listener: (notice: TransportNotice) => void) => () => void } } }
 
 export interface ReceiveTransport { connect(config: TransportConfig, notice: (notice: TransportNotice) => void): Promise<void>; disconnect(): Promise<void> }
 

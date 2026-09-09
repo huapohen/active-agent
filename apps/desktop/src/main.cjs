@@ -1,9 +1,10 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, protocol, net, session } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, session, clipboard } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { randomUUID } = require('node:crypto');
 const { developmentURL, trustedFrame, assetPath, validTransportConfig } = require('./security.cjs');
+const { createClipboardWriter } = require('./clipboard.cjs');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'renji', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }]);
 const requested = process.env.RENJI_WEB_DEV_URL;
@@ -74,6 +75,7 @@ else {
       ses.setPermissionCheckHandler(() => false);
     }
     let operation = Promise.resolve();
+    ipcMain.handle('renji:clipboard:write-text', createClipboardWriter(() => window, uiOrigin, text => clipboard.writeText(text)));
     ipcMain.handle('renji:transport:connect', (event, config) => {
       if (!window || event.sender !== window.webContents || !trustedFrame(event.senderFrame, uiOrigin) || !appKey || !validTransportConfig(config, appKey)) throw new Error('Transport configuration rejected');
       const result = operation.then(() => createTransport(config)); operation = result.catch(() => {}); return result;

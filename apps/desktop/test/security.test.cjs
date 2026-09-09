@@ -27,16 +27,19 @@ test('transport session requires the configured app and bounded fields', () => {
   assert.equal(validTransportConfig({ ...config, method: 'readFile' }, 'public-app'), false);
   assert.equal(validTransportConfig({ ...config, token: 'x'.repeat(8193) }, 'public-app'), false);
 });
-test('product preload provides only typed transport API and strips raw IPC events', async () => {
+test('product preload exposes typed transport and bounded clipboard write only, stripping raw IPC events', async () => {
   const listeners = new Map(), calls = [], published = {};
   const ipc = { invoke: (...args) => { calls.push(args); return Promise.resolve(); }, on: (name, callback) => listeners.set(name, callback), removeListener: (name, callback) => { if (listeners.get(name) === callback) listeners.delete(name); } };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../src/preload.cjs'), 'utf8'), { require: name => { assert.equal(name, 'electron'); return { contextBridge: { exposeInMainWorld: (name, value) => { published[name] = value; } }, ipcRenderer: ipc }; }, process: { platform: 'darwin' } });
   const bridge = published.renjiDesktop;
-  assert.deepEqual(Object.keys(bridge).sort(), ['connectRongCloud', 'disconnectRongCloud', 'onRongCloud', 'platform']);
+  assert.deepEqual(Object.keys(bridge).sort(), ['connectRongCloud', 'disconnectRongCloud', 'onRongCloud', 'platform', 'writeClipboardText']);
   let received; const off = bridge.onRongCloud(value => { received = value; });
   listeners.get('renji:transport:notice')({ sender: 'privileged-object' }, { kind: 'changed' });
   assert.deepEqual(received, { kind: 'changed' }); off(); assert.equal(listeners.size, 0);
   await bridge.disconnectRongCloud(); assert.deepEqual(calls, [['renji:transport:disconnect']]);
+  await bridge.writeClipboardText('合成复制'); assert.deepEqual(calls[1], ['renji:clipboard:write-text', '合成复制']);
+  for (const value of ['', 'a'.repeat(65537), 'bad\0text', {}, undefined]) await assert.rejects(bridge.writeClipboardText(value), /Clipboard text rejected/);
+  assert.equal(calls.length, 2);
 });
 test('all four native SDK packages share an exact version', () => {
   const desktop = require('../package.json'), web = require('../../web/package.json');
